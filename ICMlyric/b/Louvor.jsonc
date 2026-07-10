@@ -1,0 +1,123 @@
+{
+  "name": "Louvor",
+  "type": "object",
+  "properties": {
+    "numero": {
+      "type": "string",
+      "title": "N\u00famero"
+    },
+    "nome": {
+      "type": "string",
+      "title": "Nome do Louvor"
+    },
+    "categoria": {
+      "type": "string",
+      "title": "Categoria",
+      "enum": [
+        "Avulsos",
+        "Cias",
+        "Colet\u00e2nea"
+      ],
+      "default": "Avulsos"
+    },
+    "bpm_compasso": {
+      "type": "string",
+      "title": "BPM/Compasso"
+    },
+    "ritmo": {
+      "type": "string",
+      "title": "Ritmo",
+      "enum": [
+        "VALSA",
+        "VAISEADO",
+        "COUNTRY",
+        "B\u00c1SICO",
+        "GUAR\u00c2NIA",
+        "B\u00c1SICO II",
+        "MARCHA",
+        "MARCHA MARCIAL",
+        "FOX",
+        "BALADA",
+        "NOVO",
+        "BLUE",
+        "CAN\u00c7\u00c3O",
+        "TOADA",
+        "REPIQUE"
+      ]
+    },
+    "mapa_musica": {
+      "type": "string",
+      "title": "Tom"
+    },
+    "link_referencia": {
+      "type": "string",
+      "title": "Partitura voz",
+      "format": "uri"
+    },
+    "instrumentos": {
+      "type": "string",
+      "title": "Instrumentos"
+    },
+    "soprano": {
+      "type": "string",
+      "title": "Soprano",
+      "format": "uri"
+    },
+    "contralto": {
+      "type": "string",
+      "title": "Contralto",
+      "format": "uri"
+    },
+    "tenor": {
+      "type": "string",
+      "title": "Tenor",
+      "format": "uri"
+    },
+    "baixo": {
+      "type": "string",
+      "title": "Baixo",
+      "format": "uri"
+    },
+    "sugestoes_ensaio": {
+      "type": "string",
+      "title": "Sugest\u00f5es de Ensaio"
+    },
+    "cifra_tom_original": {
+      "type": "string",
+      "title": "Cifra - Tom Original"
+    },
+    "cifra_tom_alternativo": {
+      "type": "string",
+      "title": "Cifra - Tom Alternativo"
+    },
+    "cifra1_imagem": {
+      "type": "string",
+      "title": "Cifra 1 - Imagem",
+      "format": "file_uri"
+    },
+    "cifra2_imagem": {
+      "type": "string",
+      "title": "Cifra 2 - Imagem",
+      "format": "file_uri"
+    },
+    "letra_musica": {
+      "type": "string",
+      "title": "Letra da M\u00fasica"
+    }
+  },
+  "required": [
+    "nome"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": null,
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

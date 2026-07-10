@@ -1,0 +1,30 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "musico": {
+      "type": "string",
+      "title": "M\u00fasico"
+    },
+    "mensagem": {
+      "type": "string",
+      "title": "Mensagem"
+    }
+  },
+  "required": [
+    "musico",
+    "mensagem"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": null,
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

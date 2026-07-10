@@ -1,0 +1,29 @@
+{
+  "name": "Mensagem",
+  "type": "object",
+  "properties": {
+    "musico": {
+      "type": "string",
+      "title": "M\u00fasico"
+    },
+    "mensagem": {
+      "type": "string",
+      "title": "Mensagem"
+    },
+    "anexo": {
+      "type": "string",
+      "title": "Anexo",
+      "format": "file_uri"
+    },
+    "louvor_id": {
+      "type": "string",
+      "title": "Louvor Vinculado",
+      "relationType": "one",
+      "relatedEntity": "Louvor"
+    }
+  },
+  "required": [
+    "musico",
+    "mensagem"
+  ]
+}
