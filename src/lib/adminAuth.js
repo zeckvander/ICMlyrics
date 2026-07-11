@@ -1,13 +1,14 @@
+// adminAuth.js
 const ADMIN_KEY = "icmtools_admin";
-const ADMIN_USER = "Ezequiel";
-const ADMIN_PASS = "551290";
 
 export function isAdmin() {
   return localStorage.getItem(ADMIN_KEY) === "true";
 }
 
 export function loginAdmin(user, pass) {
-  if (user.trim() === ADMIN_USER && pass === ADMIN_PASS) {
+  // Agora o código lê as variáveis que você acabou de configurar na Vercel
+  if (user.trim() === process.env.NEXT_PUBLIC_ADMIN_USER && 
+      pass === process.env.NEXT_PUBLIC_ADMIN_PASS) {
     localStorage.setItem(ADMIN_KEY, "true");
     return true;
   }
