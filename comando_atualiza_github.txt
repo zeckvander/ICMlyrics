@@ -1,0 +1,5 @@
+git add . (para marcar as mudanças)
+
+git commit -m "uma mensagem curta sobre o que mudou" (para salvar localmente)
+
+git push (para enviar ao GitHub)
