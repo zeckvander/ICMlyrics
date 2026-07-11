@@ -6,9 +6,10 @@ export function isAdmin() {
 }
 
 export function loginAdmin(user, pass) {
-  // O Vite usa import.meta.env, a Vercel usa process.env
-  const adminUser = import.meta.env.VITE_ADMIN_USER || process.env.NEXT_PUBLIC_ADMIN_USER;
-  const adminPass = import.meta.env.VITE_ADMIN_PASS || process.env.NEXT_PUBLIC_ADMIN_PASS;
+  // Como o Vite injeta essas variáveis em tempo de build, 
+  // vamos usar diretamente a importação do meta env
+  const adminUser = import.meta.env.VITE_ADMIN_USER;
+  const adminPass = import.meta.env.VITE_ADMIN_PASS;
 
   if (user.trim() === adminUser && pass === adminPass) {
     localStorage.setItem(ADMIN_KEY, "true");
