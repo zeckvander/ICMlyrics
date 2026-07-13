@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Minus, X, Mic, MicOff, ChevronDown, Settings2 } from "lucide-react";
+import { Minus, X, Mic, ChevronDown, Settings2 } from "lucide-react";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -120,7 +120,17 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
   const cordaRef = useRef(null);
   const sensRef = useRef("normal");
 
-  useEffect(() => { cordaRef.current = cordaSelecionada; sensRef.current = sensibilidade; }, [cordaSelecionada, sensibilidade]);
+  // Corrige o bug da nota travada ao trocar para Cromático
+  useEffect(() => {
+    if (instrumento === "chromatic") {
+      setCordaSelecionada(null);
+    }
+  }, [instrumento]);
+
+  useEffect(() => { 
+    cordaRef.current = cordaSelecionada; 
+    sensRef.current = sensibilidade; 
+  }, [cordaSelecionada, sensibilidade]);
 
   const detect = useCallback(() => {
     if (!analyserRef.current) return;
