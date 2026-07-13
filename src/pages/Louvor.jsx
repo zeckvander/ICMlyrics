@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Music2, Loader2, Star, FileUp, Menu, ArrowLeft, Upload, Download, ChevronDown } from "lucide-react";
+import { Plus, Search, Filter, Music2, Loader2, Star, Menu, ArrowLeft, Upload, Download, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -8,12 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import SongCard from "@/components/louvores/SongCard";
 import LouvorForm from "@/components/louvores/LouvorForm";
-import ImportPlanilha from "@/components/louvores/ImportPlanilha";
 import DrawerMenu from "@/components/louvores/DrawerMenu";
 import { getFavorites } from "@/lib/favorites";
 import { isAdmin } from "@/lib/adminAuth";
 import { TEMAS_PADRAO } from "@/data/louvores_coletanea_tema";
-import DADOS_INICIAIS from "@/data/Coletanea_louvores.json";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function Louvor() {
   const navigate = useNavigate();
@@ -24,7 +23,6 @@ export default function Louvor() {
   const [filterTema, setFilterTema] = useState("all");
   const [showFavsOnly, setShowFavsOnly] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [admin, setAdmin] = useState(() => isAdmin());
@@ -34,36 +32,41 @@ export default function Louvor() {
     loadLouvores();
   }, []);
 
-  const loadLouvores = () => {
+  const loadLouvores = async () => {
     setLoading(true);
-    const savedData = localStorage.getItem("icm_louvores");
+    const { data, error } = await supabase
+      .from('louvores')
+      .select('*')
+      .order('numero', { ascending: true });
     
-    if (!savedData || JSON.parse(savedData).length === 0) {
-      localStorage.setItem("icm_louvores", JSON.stringify(DADOS_INICIAIS));
-      setLouvores(DADOS_INICIAIS);
-    } else {
-      setLouvores(JSON.parse(savedData));
-    }
+    if (error) console.error("Erro ao buscar:", error);
+    else setLouvores(data || []);
     setLoading(false);
   };
 
   const handleCreate = async (form) => {
     setSaving(true);
-    const currentLouvores = JSON.parse(localStorage.getItem("icm_louvores") || "[]");
-    const novoLouvor = {
-      ...form,
-      id: "local_" + Date.now(),
-      created_date: new Date().toISOString()
-    };
-    currentLouvores.push(novoLouvor);
-    localStorage.setItem("icm_louvores", JSON.stringify(currentLouvores));
+    const { error } = await supabase.from('louvores').insert([form]);
+    if (error) alert("Erro ao salvar: " + error.message);
+    else {
+      setSheetOpen(false);
+      loadLouvores();
+    }
     setSaving(false);
-    setSheetOpen(false);
-    loadLouvores();
+  };
+
+  const dispararDownload = (blob, nomeArquivo) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const exportarBackupJson = () => {
-    if (louvores.length === 0) return;
     const blob = new Blob([JSON.stringify(louvores, null, 2)], { type: "application/json" });
     dispararDownload(blob, "backup_louvores.json");
   };
@@ -94,53 +97,37 @@ export default function Louvor() {
     dispararDownload(blob, "backup_louvores.xlsx");
   };
 
-  const dispararDownload = (blob, nomeArquivo) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = nomeArquivo;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportJson = (event) => {
+  const handleImportJson = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const jsonImportado = JSON.parse(e.target.result);
-        if (Array.isArray(jsonImportado)) {
-          const currentLouvores = JSON.parse(localStorage.getItem("icm_louvores") || "[]");
-          const idsExistentes = new Set(currentLouvores.map(l => l.id));
-          const novosLouvores = jsonImportado.filter(l => !idsExistentes.has(l.id));
-          localStorage.setItem("icm_louvores", JSON.stringify([...currentLouvores, ...novosLouvores]));
-          loadLouvores();
-        }
-      } catch (err) { alert("Erro ao importar."); }
+        const { error } = await supabase.from('louvores').insert(jsonImportado);
+        if (error) alert("Erro ao importar: " + error.message);
+        else loadLouvores();
+      } catch (err) { alert("Erro ao processar JSON."); }
     };
     reader.readAsText(file);
-    event.target.value = "";
   };
 
   const filtered = louvores.filter((l) => {
     const temaDoLouvor = l.tema || TEMAS_PADRAO.find(t => t.numero === String(l.numero))?.tema || "Sem Tema";
-    const matchSearch = l.nome?.toLowerCase().includes(search.toLowerCase()) || l.numero?.includes(search);
+    const matchSearch = l.nome?.toLowerCase().includes(search.toLowerCase()) || String(l.numero)?.includes(search);
     const matchCategoria = filterCategoria === "all" || l.categoria === filterCategoria;
     const matchTema = filterTema === "all" || temaDoLouvor === filterTema;
     const matchFav = !showFavsOnly || getFavorites(musico).includes(l.id);
     return matchSearch && matchCategoria && matchTema && matchFav;
   }).sort((a, b) => {
-    const aHasNum = a.numero && a.numero.trim() !== "";
-    const bHasNum = b.numero && b.numero.trim() !== "";
+    const aHasNum = a.numero && String(a.numero).trim() !== "";
+    const bHasNum = b.numero && String(b.numero).trim() !== "";
     if (aHasNum && !bHasNum) return -1;
     if (!aHasNum && bHasNum) return 1;
     if (aHasNum && bHasNum) {
       const aNum = parseInt(a.numero, 10);
       const bNum = parseInt(b.numero, 10);
-      return !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : a.numero.localeCompare(b.numero, undefined, { numeric: true });
+      return !isNaN(aNum) && !isNaN(bNum) ? aNum - bNum : String(a.numero).localeCompare(String(b.numero), undefined, { numeric: true });
     }
     return (a.nome || "").localeCompare(b.nome || "");
   });
@@ -171,7 +158,7 @@ export default function Louvor() {
               <SelectValue placeholder="Categoria" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="all">Categoria</SelectItem>
               <SelectItem value="Avulsos">Avulsos</SelectItem>
               <SelectItem value="Cias">Cias</SelectItem>
               <SelectItem value="Coletânea">Coletânea</SelectItem>
@@ -183,7 +170,7 @@ export default function Louvor() {
               <SelectValue placeholder="Tema" />
             </SelectTrigger>
             <SelectContent className="max-h-[300px]">
-              <SelectItem value="all">Todos os Temas</SelectItem>
+              <SelectItem value="all">Tema</SelectItem>
               <SelectItem value="Contra-capa">Contra-capa</SelectItem>
               {["Clamor", "Invocação e Comunhão", "Dedicação", "Morte, Ressureição e Salvação", "Consolo e Encorajamento", "Santificação e Derramamento do Espírito Santo", "Volta de Jesus e Eternidade", "Louvor", "Salmos de Louvor", "Grupo de Louvor", "Corinhos"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>

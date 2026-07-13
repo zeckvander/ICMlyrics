@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Pencil, Trash2, Music, Gauge, MapPin, Loader2, Star, Link2, Clock } from "lucide-react";
+import { ArrowLeft, ExternalLink, Pencil, Music, MapPin, Loader2, Star, Link2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import CategoriaBadge from "@/components/louvores/CategoriaBadge";
 import LouvorForm from "@/components/louvores/LouvorForm";
 import CifraImageTab from "@/components/louvores/CifraImageTab";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
 import { isAdmin } from "@/lib/adminAuth";
-import { TEMAS_PADRAO } from "@/data/louvores_coletanea_tema"; 
+import { TEMAS_PADRAO } from "@/data/louvores_coletanea_tema";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LouvorDetail() {
   const { id } = useParams();
@@ -27,39 +27,51 @@ export default function LouvorDetail() {
   useEffect(() => { loadLouvor(); }, [id]);
   useEffect(() => { if (louvor) setFav(isFavorite(musico, louvor.id)); }, [louvor, musico]);
 
-  const loadLouvor = () => {
+  const loadLouvor = async () => {
     setLoading(true);
-    const currentLouvores = JSON.parse(localStorage.getItem("icm_louvores") || "[]");
-    const encontrado = currentLouvores.find((l) => l.id === id);
-    setLouvor(encontrado || null);
+    const { data, error } = await supabase
+      .from('louvores')
+      .select('*')
+      .eq('numero', id)
+      .single();
+    
+    if (error) console.error("Erro ao buscar:", error);
+    else setLouvor(data);
     setLoading(false);
   };
 
+  const handleUpdate = async (form) => {
+    setSaving(true);
+    const { error } = await supabase
+      .from('louvores')
+      .update(form)
+      .eq('id', louvor.id);
+    
+    if (error) alert("Erro ao atualizar: " + error.message);
+    else {
+      setEditOpen(false);
+      loadLouvor();
+    }
+    setSaving(false);
+  };
+
   const getTemaReal = (numero) => {
-    const item = TEMAS_PADRAO.find(t => t.numero === numero);
+    const item = TEMAS_PADRAO.find(t => t.numero === String(numero));
     return item ? item.tema : null;
   };
 
-  const temaReal = louvor ? getTemaReal(louvor.numero) : null;
-  const linksValidos = louvor ? [
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
+  if (!louvor) return <div className="flex flex-col items-center justify-center min-h-screen gap-3"><p className="text-slate-400">Louvor não encontrado</p><Button variant="outline" onClick={() => navigate("/louvor")}>Voltar</Button></div>;
+
+  const temaReal = getTemaReal(louvor.numero);
+  const linksValidos = [
     { label: "Partitura voz", url: louvor.link_referencia },
     { label: "Instrumentos", url: louvor.instrumentos },
     { label: "Soprano", url: louvor.soprano },
     { label: "Contralto", url: louvor.contralto },
     { label: "Tenor", url: louvor.tenor },
     { label: "Baixo", url: louvor.baixo }
-  ].filter(l => l.url && l.url.trim() !== "") : [];
-
-  const handleUpdate = (form) => {
-    setSaving(true);
-    const currentLouvores = JSON.parse(localStorage.getItem("icm_louvores") || "[]");
-    const updated = currentLouvores.map((l) => l.id === id ? { ...l, ...form } : l);
-    localStorage.setItem("icm_louvores", JSON.stringify(updated));
-    setSaving(false); setEditOpen(false); loadLouvor();
-  };
-
-  if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
-  if (!louvor) return <div className="flex flex-col items-center justify-center min-h-screen gap-3"><p className="text-slate-400">Louvor não encontrado</p><Button variant="outline" onClick={() => navigate("/louvor")}>Voltar</Button></div>;
+  ].filter(l => l.url && l.url.trim() !== "");
 
   return (
     <div className="min-h-screen bg-slate-50 pb-8">
@@ -69,7 +81,7 @@ export default function LouvorDetail() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
               {louvor.numero && <span className="text-xs font-mono bg-white/10 px-2 py-0.5 rounded">#{louvor.numero}</span>}
-              <CategoriaBadge categoria="Coletânea" />
+              <CategoriaBadge categoria={louvor.categoria} />
             </div>
             <h1 className="text-xl font-bold truncate">{louvor.nome}</h1>
             <div className="flex items-center gap-4 mt-2 text-sm text-slate-400 flex-wrap">
@@ -85,7 +97,6 @@ export default function LouvorDetail() {
       </div>
 
       <div className="px-4 -mt-3 space-y-4">
-        {/* Caixa Unificada: Tom, Andamento e Links */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-3 space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2">
@@ -103,7 +114,6 @@ export default function LouvorDetail() {
               </div>
             </div>
           </div>
-
           {linksValidos.length > 0 && (
             <Dialog>
               <DialogTrigger asChild>
@@ -129,7 +139,6 @@ export default function LouvorDetail() {
           )}
         </div>
 
-        {/* Tabs de Conteúdo */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
           <Tabs defaultValue="letra" className="w-full">
             <TabsList className="w-full rounded-none border-b bg-slate-50">
@@ -140,8 +149,8 @@ export default function LouvorDetail() {
             <TabsContent value="letra" className="p-4 m-0">
               <p className="text-base text-slate-700 whitespace-pre-wrap leading-relaxed">{louvor.letra_musica || "Nenhuma letra."}</p>
             </TabsContent>
-            <TabsContent value="cifra1" className="p-4 m-0"><CifraImageTab louvorId={id} field="cifra1_imagem" imageUrl={louvor.cifra1_imagem} onUploaded={loadLouvor} /></TabsContent>
-            <TabsContent value="cifra2" className="p-4 m-0"><CifraImageTab louvorId={id} field="cifra2_imagem" imageUrl={louvor.cifra2_imagem} onUploaded={loadLouvor} /></TabsContent>
+            <TabsContent value="cifra1" className="p-4 m-0"><CifraImageTab louvorId={louvor.id} field="cifra1_imagem" imageUrl={louvor.cifra1_imagem} onUploaded={loadLouvor} /></TabsContent>
+            <TabsContent value="cifra2" className="p-4 m-0"><CifraImageTab louvorId={louvor.id} field="cifra2_imagem" imageUrl={louvor.cifra2_imagem} onUploaded={loadLouvor} /></TabsContent>
           </Tabs>
         </div>
       </div>

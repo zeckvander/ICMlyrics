@@ -1,20 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Music2, ListPlus, FolderOpen, Gauge, Mic, MessageCircle, History, LogOut } from "lucide-react";
+import { Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, BookOpen } from "lucide-react";
 import { useTools } from "@/components/tools/ToolsProvider";
-
+import BibliaPanel from "@/components/tools/BibliaPanel";
 import bannerImg from "../assets/Tromb_mundo.jpg";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [isBibliaOpen, setIsBibliaOpen] = useState(false);
   const { openMetronomo, openAfinador } = useTools();
   const musico = localStorage.getItem("icmtools_musico") || "Músico";
 
   const atalhos = [
-    { label: "Histórico de Listas", icon: History, path: "/historico-listas", color: "bg-indigo-500" },
     { label: "Louvores", icon: Music2, path: "/louvor", color: "bg-teal-500" },
     { label: "Nova Lista", icon: ListPlus, path: "/nova-lista", color: "bg-amber-500" },
-    { label: "Drive", icon: FolderOpen, path: "/drive", color: "bg-blue-500" }
+    { label: "Histórico de Listas", icon: History, path: "/historico-listas", color: "bg-indigo-500" },
+    { label: "Drive", icon: FolderOpen, path: "/drive", color: "bg-blue-500" },
+    { label: "Bíblia", icon: BookOpen, path: null, onClick: () => setIsBibliaOpen(true), color: "bg-emerald-600" }
   ];
 
   const ferramentas = [
@@ -24,20 +26,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 relative">
-      {/* Container do Topo - Agora configurado com overflow-hidden para a imagem de fundo */}
       <div className="bg-slate-900 text-white relative overflow-hidden min-h-[180px] flex flex-col justify-end">
-        
-        {/* IMAGEM COMO PLANO DE FUNDO */}
-        <img 
-          src={bannerImg} 
-          alt="ICMlyrics Banner" 
-          className="absolute inset-0 w-full h-full object-cover opacity-80"
-        />
-        
-        {/* Camada escura por cima da imagem para dar leitura ao texto */}
+        <img src={bannerImg} alt="ICMlyrics Banner" className="absolute inset-0 w-full h-full object-cover opacity-80" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0" />
-
-        {/* Conteúdo (Texto e Botão) por cima do plano de fundo */}
         <div className="px-4 pb-8 pt-20 relative z-10 flex justify-between items-end">
           <div>
             <h2 className="font-bold text-3xl opacity-90 drop-shadow-md text-[hsl(var(--background))]">
@@ -47,23 +38,17 @@ export default function Dashboard() {
               Boas-vindas ao ICM<span className="text-amber-400 font-semibold">lyrics</span>
             </p>
           </div>
-
-          <button 
-            onClick={() => navigate("/")} 
-            className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md transition-colors"
-            aria-label="Sair"
-          >
+          <button onClick={() => navigate("/")} className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md transition-colors" aria-label="Sair">
             <LogOut className="h-5 w-5" />
           </button>
         </div>
       </div>
 
-      {/* Grid de Atalhos e Ferramentas (Layout original intocado) */}
       <div className="px-4 -mt-4 space-y-6 relative z-20">
         <div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {atalhos.map((a) =>
-              <button key={a.label} onClick={() => navigate(a.path)} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow">
+              <button key={a.label} onClick={a.onClick ? a.onClick : () => navigate(a.path)} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow">
                 <div className={`w-11 h-11 rounded-xl ${a.color} flex items-center justify-center`}>
                   <a.icon className="w-5 h-5 text-white" />
                 </div>
@@ -88,10 +73,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <button onClick={() => navigate("/chat")} className="fixed bottom-5 right-5 bg-slate-900 text-white rounded-full px-5 py-3.5 shadow-lg flex items-center gap-2 hover:bg-slate-800 transition-colors z-40 text-xl opacity-80">
-        <MessageCircle className="w-5 h-5 text-[hsl(var(--background))]" />
-        <span className="text-sm font-medium">Chat da Equipe</span>
-      </button>
+      {isBibliaOpen && <BibliaPanel onClose={() => setIsBibliaOpen(false)} />}
     </div>
   );
 }

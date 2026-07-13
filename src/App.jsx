@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -18,14 +19,13 @@ import Drive from '@/pages/Drive';
 import HistoricoListas from '@/pages/HistoricoListas'; 
 import Dashboard from '@/pages/Dashboard';
 import Chat from '@/pages/Chat';
-import ModoPlaylist from '@/pages/ModoPlaylist'; // 1. IMPORTAÇÃO ADICIONADA AQUI
+import ModoPlaylist from '@/pages/ModoPlaylist';
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 
 // Componente para proteger as rotas privadas
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
 
-  // Carregamento
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -34,25 +34,36 @@ const PrivateLayout = ({ children }) => {
     );
   }
 
-  // Erro de registro
   if (authError?.type === 'user_not_registered') {
     return <UserNotRegisteredError />;
   }
 
-  // Se precisar de autenticação, redireciona de forma segura para o login
   if (authError?.type === 'auth_required') {
     return <Navigate to="/login" replace />;
   }
 
-  // Se estiver tudo ok, renderiza as rotas protegidas com o ToolsProvider
   return <ToolsProvider>{children}</ToolsProvider>;
 };
 
 function App() {
+  // Versão do app: altere este número apenas quando fizer mudanças estruturais graves
+  // que exijam que todos os dados salvos no navegador sejam deletados.
+  const APP_VERSION = "1.0.2"; 
+
+  useEffect(() => {
+    const savedVersion = localStorage.getItem("app_version");
+
+    if (savedVersion !== APP_VERSION) {
+      console.log("Versão atualizada detectada. Limpando cache...");
+      localStorage.clear();
+      localStorage.setItem("app_version", APP_VERSION);
+      window.location.reload();
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        {/* Configurado o objeto future para silenciar os avisos do v7 */}
         <Router 
           future={{ 
             v7_startTransition: true, 
@@ -62,13 +73,13 @@ function App() {
           <ScrollToTop />
           
           <Routes>
-            {/* ROTAS PÚBLICAS (Acessíveis sem login) */}
+            {/* ROTAS PÚBLICAS */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* ROTAS PRIVADAS (Protegidas pelo PrivateLayout) */}
+            {/* ROTAS PRIVADAS */}
             <Route path="/" element={<PrivateLayout><Identificacao /></PrivateLayout>} />
             <Route path="/dashboard" element={<PrivateLayout><Dashboard /></PrivateLayout>} />
             <Route path="/louvor" element={<PrivateLayout><Louvor /></PrivateLayout>} /> 
@@ -77,8 +88,6 @@ function App() {
             <Route path="/drive" element={<PrivateLayout><Drive /></PrivateLayout>} />
             <Route path="/historico-listas" element={<PrivateLayout><HistoricoListas /></PrivateLayout>} /> 
             <Route path="/chat" element={<PrivateLayout><Chat /></PrivateLayout>} />
-            
-            {/* 2. ROTA PRIVADA DO MODO PLAYLIST ADICIONADA AQUI */}
             <Route path="/modo-playlist" element={<PrivateLayout><ModoPlaylist /></PrivateLayout>} />
 
             {/* ROTA 404 */}
