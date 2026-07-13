@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Minus, X, Mic, MicOff, ChevronDown, Settings2 } from "lucide-react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Minus, X, Mic, ChevronDown, Settings2 } from "lucide-react";
 
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -52,24 +52,6 @@ const INSTRUMENTOS_PRESETS = {
       { nota: "D", oitava: 4, freqAlvo: 293.66 },
       { nota: "G", oitava: 3, freqAlvo: 196.00 }
     ]
-  },
-  viola: {
-    nome: "Viola de Arco",
-    cordas: [
-      { nota: "A", oitava: 4, freqAlvo: 440.00 },
-      { nota: "D", oitava: 4, freqAlvo: 293.66 },
-      { nota: "G", oitava: 3, freqAlvo: 196.00 },
-      { nota: "C", oitava: 3, freqAlvo: 130.81 }
-    ]
-  },
-  violoncelo: {
-    nome: "Violoncelo",
-    cordas: [
-      { nota: "A", oitava: 3, freqAlvo: 220.00 },
-      { nota: "D", oitava: 3, freqAlvo: 146.83 },
-      { nota: "G", oitava: 2, freqAlvo: 98.00 },
-      { nota: "C", oitava: 2, freqAlvo: 65.41 }
-    ]
   }
 };
 
@@ -90,12 +72,8 @@ function autoCorrelate(buf, sampleRate, rmsThreshold) {
 
   let r1 = 0, r2 = SIZE - 1;
   const threshold = 0.2;
-  for (let i = 0; i < SIZE / 2; i++) {
-    if (Math.abs(buf[i]) < threshold) { r1 = i; break; }
-  }
-  for (let i = 1; i < SIZE / 2; i++) {
-    if (Math.abs(buf[SIZE - i]) < threshold) { r2 = SIZE - i; break; }
-  }
+  for (let i = 0; i < SIZE / 2; i++) { if (Math.abs(buf[i]) < threshold) { r1 = i; break; } }
+  for (let i = 1; i < SIZE / 2; i++) { if (Math.abs(buf[SIZE - i]) < threshold) { r2 = SIZE - i; break; } }
 
   const buf2 = buf.slice(r1, r2);
   const SIZE2 = buf2.length;
@@ -103,17 +81,13 @@ function autoCorrelate(buf, sampleRate, rmsThreshold) {
 
   const c = new Array(SIZE2).fill(0);
   for (let i = 0; i < SIZE2; i++) {
-    for (let j = 0; j < SIZE2 - i; j++) {
-      c[i] += buf2[j] * buf2[j + i];
-    }
+    for (let j = 0; j < SIZE2 - i; j++) c[i] += buf2[j] * buf2[j + i];
   }
 
   let d = 0;
   while (d < SIZE2 - 1 && c[d] > c[d + 1]) d++;
   let maxval = -1, maxpos = -1;
-  for (let i = d; i < SIZE2; i++) {
-    if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
-  }
+  for (let i = d; i < SIZE2; i++) { if (c[i] > maxval) { maxval = c[i]; maxpos = i; } }
   let T0 = maxpos;
   if (T0 <= 0) return -1;
 
@@ -121,12 +95,11 @@ function autoCorrelate(buf, sampleRate, rmsThreshold) {
   const a = (x1 + x3 - 2 * x2) / 2;
   const b = (x3 - x1) / 2;
   if (a) T0 = T0 - b / (2 * a);
-
   return sampleRate / T0;
 }
 
 export default function AfinadorPanel({ onClose, minimized, setMinimized, isStacked }) {
-  const [instrumento, setInstrumento] = useState("chromatic");
+  const [instrumento, setInstrumento] = useState("guitarra");
   const [cordaSelecionada, setCordaSelecionada] = useState(null);
   const [sensibilidade, setSensibilidade] = useState("normal");
   const [micDenied, setMicDenied] = useState(false);
@@ -137,92 +110,85 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
   const [active, setActive] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showSensMenu, setShowSensMenu] = useState(false);
-
+  
   const streamRef = useRef(null);
   const audioCtxRef = useRef(null);
   const rafRef = useRef(null);
   const analyserRef = useRef(null);
   const lastDetectionTimeRef = useRef(0);
   
-  const cordaRef = useRef(cordaSelecionada);
-  const sensRef = useRef(sensibilidade);
+  const cordaRef = useRef(null);
+  const sensRef = useRef("normal");
 
-  useEffect(() => { cordaRef.current = cordaSelecionada; }, [cordaSelecionada]);
-  useEffect(() => { sensRef.current = sensibilidade; }, [sensibilidade]);
+  // Corrige o bug da nota travada ao trocar para Cromático
+  useEffect(() => {
+    if (instrumento === "chromatic") {
+      setCordaSelecionada(null);
+    }
+  }, [instrumento]);
+
+  useEffect(() => { 
+    cordaRef.current = cordaSelecionada; 
+    sensRef.current = sensibilidade; 
+  }, [cordaSelecionada, sensibilidade]);
+
+  const detect = useCallback(() => {
+    if (!analyserRef.current) return;
+    
+    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+
+    const buffer = new Float32Array(analyserRef.current.fftSize);
+    analyserRef.current.getFloatTimeDomainData(buffer);
+
+    let rmsL = sensRef.current === "pouco" ? 0.035 : sensRef.current === "muito" ? 0.005 : 0.015;
+
+    const detected = autoCorrelate(buffer, audioCtxRef.current.sampleRate, rmsL);
+    
+    if (detected > 25 && detected < 2000) {
+      if (cordaRef.current) {
+        setNote(cordaRef.current.nota);
+        setOctave(cordaRef.current.oitava);
+        const nAlvo = 12 * (Math.log(cordaRef.current.freqAlvo / 440) / Math.log(2)) + 69;
+        const nDet = 12 * (Math.log(detected / 440) / Math.log(2)) + 69;
+        setCents(Math.round((nDet - nAlvo) * 100));
+      } else {
+        const { name, octave: oct, cents: ct } = freqToNote(detected);
+        setNote(name);
+        setOctave(oct);
+        setCents(ct);
+      }
+      setFreq(detected);
+      setActive(true);
+      lastDetectionTimeRef.current = Date.now();
+    } else if (Date.now() - lastDetectionTimeRef.current > 800) {
+      setActive(false);
+    }
+    rafRef.current = requestAnimationFrame(detect);
+  }, []);
+
+  const startTuner = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      analyserRef.current = audioCtxRef.current.createAnalyser();
+      analyserRef.current.fftSize = 4096;
+      const source = audioCtxRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+      detect();
+    } catch (e) {
+      setMicDenied(true);
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function init() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        if (cancelled) return;
-        
-        streamRef.current = stream;
-        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-        analyserRef.current = audioCtxRef.current.createAnalyser();
-        analyserRef.current.fftSize = 2048;
-        
-        const source = audioCtxRef.current.createMediaStreamSource(stream);
-        source.connect(analyserRef.current);
-        
-        detect();
-      } catch (e) {
-        setMicDenied(true);
-      }
-    }
-
-    function detect() {
-      if (!analyserRef.current || cancelled) return;
-      
-      const buffer = new Float32Array(analyserRef.current.fftSize);
-      analyserRef.current.getFloatTimeDomainData(buffer);
-
-      let rmsL = 0.015;
-      if (sensRef.current === "pouco") rmsL = 0.035;
-      if (sensRef.current === "muito") rmsL = 0.005;
-
-      const detected = autoCorrelate(buffer, audioCtxRef.current.sampleRate, rmsL);
-      
-      if (detected > 25 && detected < 2000) {
-        if (cordaRef.current) {
-          setNote(cordaRef.current.nota);
-          setOctave(cordaRef.current.oitava);
-          const nAlvo = 12 * (Math.log(cordaRef.current.freqAlvo / 440) / Math.log(2)) + 69;
-          const nDet = 12 * (Math.log(detected / 440) / Math.log(2)) + 69;
-          setCents(Math.round((nDet - nAlvo) * 100));
-        } else {
-          const { name, octave: oct, cents: ct } = freqToNote(detected);
-          setNote(name);
-          setOctave(oct);
-          setCents(ct);
-        }
-        setFreq(detected);
-        setActive(true);
-        lastDetectionTimeRef.current = Date.now();
-      } else if (Date.now() - lastDetectionTimeRef.current > 800) {
-        setActive(false);
-      }
-      
-      rafRef.current = requestAnimationFrame(detect);
-    }
-
-    init();
-
-    return () => { 
-      cancelled = true; 
+    if (!minimized && !audioCtxRef.current) startTuner();
+    return () => {
       cancelAnimationFrame(rafRef.current);
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
       if (audioCtxRef.current) audioCtxRef.current.close();
     };
-  }, []);
-
-  const handleClose = () => {
-    if (onClose) onClose();
-  };
-
-  const needlePos = Math.max(-50, Math.min(50, cents));
-  const inTune = Math.abs(cents) <= 4;
+  }, [minimized]);
 
   if (minimized) {
     return (
@@ -231,12 +197,15 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
           <Mic className="w-4 h-4 text-rose-400" />
           <span className="text-sm font-medium whitespace-nowrap">Afinador</span>
         </button>
-        <button onClick={handleClose} className="ml-1 text-slate-400 hover:text-white focus:outline-none" aria-label="Fechar Afinador">
+        <button onClick={onClose} className="ml-1 text-slate-400 hover:text-white focus:outline-none" aria-label="Fechar Afinador">
           <X className="w-4 h-4" />
         </button>
       </div>
     );
   }
+
+  const needlePos = Math.max(-50, Math.min(50, cents));
+  const inTune = Math.abs(cents) <= 4;
 
   return (
     <div className="fixed bottom-5 left-5 z-50 bg-slate-950 text-slate-100 rounded-2xl shadow-2xl border border-slate-800 w-80 overflow-hidden font-sans">
@@ -247,7 +216,7 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
         </div>
         <div className="flex gap-2">
             <Minus className="w-4 h-4 cursor-pointer text-slate-400 hover:text-white" onClick={() => setMinimized(true)} />
-            <X className="w-4 h-4 cursor-pointer text-slate-400 hover:text-white" onClick={handleClose} />
+            <X className="w-4 h-4 cursor-pointer text-slate-400 hover:text-white" onClick={onClose} />
         </div>
       </div>
 
