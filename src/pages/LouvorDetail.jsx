@@ -55,15 +55,22 @@ export default function LouvorDetail() {
     setSaving(false);
   };
 
-  const getTemaReal = (numero) => {
-    const item = TEMAS_PADRAO.find(t => t.numero === String(numero));
+  // AJUSTE AQUI: O método agora cruza o número da música com a categoria correspondente
+  const getTemaReal = (numero, categoria) => {
+    if (!numero || !categoria) return null;
+    
+    const item = TEMAS_PADRAO.find(
+      t => t.numero === String(numero) && t.categoria === categoria
+    );
     return item ? item.tema : null;
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
   if (!louvor) return <div className="flex flex-col items-center justify-center min-h-screen gap-3"><p className="text-slate-400">Louvor não encontrado</p><Button variant="outline" onClick={() => navigate("/louvor")}>Voltar</Button></div>;
 
-  const temaReal = getTemaReal(louvor.numero);
+  // AJUSTE AQUI: Passando número E categoria do louvor atual
+  const temaReal = getTemaReal(louvor.numero, louvor.categoria);
+  
   const linksValidos = [
     { label: "Partitura voz", url: louvor.link_referencia },
     { label: "Instrumentos", url: louvor.instrumentos },

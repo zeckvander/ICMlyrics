@@ -112,8 +112,12 @@ export default function Louvor() {
     reader.readAsText(file);
   };
 
+  // AJUSTE AQUI: O filtro de busca agora localiza o tema correto considerando a categoria do louvor
   const filtered = louvores.filter((l) => {
-    const temaDoLouvor = l.tema || TEMAS_PADRAO.find(t => t.numero === String(l.numero))?.tema || "Sem Tema";
+    const temaDoLouvor = l.tema || TEMAS_PADRAO.find(
+      t => t.numero === String(l.numero) && t.categoria === l.categoria
+    )?.tema || "Sem Tema";
+
     const matchSearch = l.nome?.toLowerCase().includes(search.toLowerCase()) || String(l.numero)?.includes(search);
     const matchCategoria = filterCategoria === "all" || l.categoria === filterCategoria;
     const matchTema = filterTema === "all" || temaDoLouvor === filterTema;
