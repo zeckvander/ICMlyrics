@@ -19,6 +19,7 @@ import Drive from '@/pages/Drive';
 import HistoricoListas from '@/pages/HistoricoListas'; 
 import Dashboard from '@/pages/Dashboard';
 import Chat from '@/pages/Chat';
+import Biblia from '@/pages/Biblia'; // ou o caminho correspondente à sua pasta de páginas
 import ModoPlaylist from '@/pages/ModoPlaylist';
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 
@@ -89,6 +90,7 @@ function App() {
             <Route path="/historico-listas" element={<PrivateLayout><HistoricoListas /></PrivateLayout>} /> 
             <Route path="/chat" element={<PrivateLayout><Chat /></PrivateLayout>} />
             <Route path="/modo-playlist" element={<PrivateLayout><ModoPlaylist /></PrivateLayout>} />
+            <Route path="/biblia" element={<PrivateLayout><Biblia /></PrivateLayout>} />
 
             {/* ROTA 404 */}
             <Route path="*" element={<PageNotFound />} />

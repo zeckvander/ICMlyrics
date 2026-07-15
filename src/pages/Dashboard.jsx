@@ -1,13 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, BookOpen } from "lucide-react";
 import { useTools } from "@/components/tools/ToolsProvider";
-import BibliaPanel from "@/components/tools/BibliaPanel";
 import bannerImg from "../assets/Tromb_mundo.jpg";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [isBibliaOpen, setIsBibliaOpen] = useState(false);
   const { openMetronomo, openAfinador } = useTools();
   const musico = localStorage.getItem("icmtools_musico") || "Músico";
 
@@ -16,7 +14,7 @@ export default function Dashboard() {
     { label: "Nova Lista", icon: ListPlus, path: "/nova-lista", color: "bg-amber-500" },
     { label: "Histórico de Listas", icon: History, path: "/historico-listas", color: "bg-indigo-500" },
     { label: "Drive", icon: FolderOpen, path: "/drive", color: "bg-blue-500" },
-    { label: "Bíblia", icon: BookOpen, path: null, onClick: () => setIsBibliaOpen(true), color: "bg-emerald-600" }
+    { label: "Bíblia", icon: BookOpen, path: "/biblia", color: "bg-emerald-600" } // Redireciona diretamente para a rota /biblia
   ];
 
   const ferramentas = [
@@ -48,7 +46,11 @@ export default function Dashboard() {
         <div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {atalhos.map((a) =>
-              <button key={a.label} onClick={a.onClick ? a.onClick : () => navigate(a.path)} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow">
+              <button 
+                key={a.label} 
+                onClick={a.onClick ? a.onClick : () => navigate(a.path)} 
+                className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow"
+              >
                 <div className={`w-11 h-11 rounded-xl ${a.color} flex items-center justify-center`}>
                   <a.icon className="w-5 h-5 text-white" />
                 </div>
@@ -72,8 +74,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-      {isBibliaOpen && <BibliaPanel onClose={() => setIsBibliaOpen(false)} />}
     </div>
   );
 }
