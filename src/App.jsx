@@ -19,7 +19,7 @@ import Drive from '@/pages/Drive';
 import HistoricoListas from '@/pages/HistoricoListas'; 
 import Dashboard from '@/pages/Dashboard';
 import Chat from '@/pages/Chat';
-import Biblia from '@/pages/Biblia'; // ou o caminho correspondente à sua pasta de páginas
+import Biblia from '@/pages/biblia'; // ou o caminho correspondente à sua pasta de páginas
 import ModoPlaylist from '@/pages/ModoPlaylist';
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 
