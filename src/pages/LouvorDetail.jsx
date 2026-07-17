@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Pencil, Music, MapPin, Loader2, Star, Link2, Clock } from "lucide-react";
+import { ArrowLeft, ExternalLink, Pencil, Trash2, Music, MapPin, Loader2, Star, Link2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -9,7 +9,6 @@ import CategoriaBadge from "@/components/louvores/CategoriaBadge";
 import LouvorForm from "@/components/louvores/LouvorForm";
 import CifraImageTab from "@/components/louvores/CifraImageTab";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
-import { isAdmin } from "@/lib/adminAuth";
 import { TEMAS_PADRAO } from "@/data/louvores_coletanea_tema";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -21,11 +20,31 @@ export default function LouvorDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fav, setFav] = useState(false);
-  const [admin] = useState(() => isAdmin());
-  const musico = localStorage.getItem("icmtools_musico") || "";
+  
+  // Estado de admin dinâmico validado pelo Supabase Auth
+  const [admin, setAdmin] = useState(false);
+  const musico = localStorage.getItem("icmlyrics_user") || "";
 
   useEffect(() => { loadLouvor(); }, [id]);
   useEffect(() => { if (louvor) setFav(isFavorite(musico, louvor.id)); }, [louvor, musico]);
+
+  // Checa a sessão segura do administrador assim que a tela abre
+  useEffect(() => {
+    const verificarSessao = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (user && !error) {
+          setAdmin(true);
+        } else {
+          setAdmin(false);
+        }
+      } catch (err) {
+        console.error("Erro ao validar sessão admin:", err);
+        setAdmin(false);
+      }
+    };
+    verificarSessao();
+  }, []);
 
   const loadLouvor = async () => {
     setLoading(true);
@@ -55,7 +74,28 @@ export default function LouvorDetail() {
     setSaving(false);
   };
 
-  // AJUSTE AQUI: O método agora cruza o número da música com a categoria correspondente
+  // FUNÇÃO SEGURA PARA EXCLUSÃO DO LOUVOR DIRETO DA TELA INTERNA
+  const handleDelete = async () => {
+    const confirmar = window.confirm(`Deseja realmente excluir o louvor "${louvor?.nome}"?`);
+    if (!confirmar) return;
+
+    try {
+      const { error } = await supabase
+        .from('louvores')
+        .delete()
+        .eq('id', louvor.id);
+
+      if (error) {
+        alert("Erro ao excluir: " + error.message);
+      } else {
+        alert("Louvor excluído com sucesso!");
+        navigate("/louvor"); // Retorna para a listagem geral limpa
+      }
+    } catch (err) {
+      alert("Erro na conexão com o servidor.");
+    }
+  };
+
   const getTemaReal = (numero, categoria) => {
     if (!numero || !categoria) return null;
     
@@ -68,7 +108,6 @@ export default function LouvorDetail() {
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
   if (!louvor) return <div className="flex flex-col items-center justify-center min-h-screen gap-3"><p className="text-slate-400">Louvor não encontrado</p><Button variant="outline" onClick={() => navigate("/louvor")}>Voltar</Button></div>;
 
-  // AJUSTE AQUI: Passando número E categoria do louvor atual
   const temaReal = getTemaReal(louvor.numero, louvor.categoria);
   
   const linksValidos = [
@@ -96,9 +135,20 @@ export default function LouvorDetail() {
               {temaReal && <span className="flex items-center gap-1"><span className="text-blue-400">•</span> {temaReal}</span>}
             </div>
           </div>
-          <div className="flex gap-1.5 shrink-0">
+          <div className="flex gap-1.5 shrink-0 items-center">
             <Button size="icon" variant="ghost" className="text-white/60 hover:text-amber-400" onClick={() => setFav(toggleFavorite(musico, louvor.id))}><Star className={`w-5 h-5 ${fav ? "fill-amber-400 text-amber-400" : ""}`} /></Button>
-            {admin && <Button size="icon" variant="ghost" onClick={() => setEditOpen(true)}><Pencil className="w-4 h-4" /></Button>}
+            
+            {/* 🛡️ SE FOR ADMIN, EXIBE O LÁPIS E A LIXEIRA LADO A LADO COM EFEITO HOVER INDIVIDUAL */}
+            {admin && (
+              <>
+                <Button size="icon" variant="ghost" className="text-white/60 hover:text-amber-400" onClick={() => setEditOpen(true)}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="text-white/60 hover:text-red-500" onClick={handleDelete}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

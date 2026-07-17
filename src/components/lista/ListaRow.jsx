@@ -15,14 +15,15 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
       const temNumeroValido = row.numero && !String(row.numero).startsWith("local_");
       setInputValue(temNumeroValido ? `${row.numero} - ${row.nome}` : row.nome || "");
     }
-  }, [row.id]);
+  }, [row.id, row.nome, row.numero]);
 
   const handleInputChange = (value) => {
     setInputValue(value);
 
     if (!value.trim()) {
       setSuggestions([]);
-      onChange({ ...row, nome: "", numero: "" });
+      // Se limpar o campo de busca, remove as referências do louvor
+      onChange({ ...row, nome: "", numero: "", id_louvor_db: null });
       return;
     }
 
@@ -53,7 +54,8 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
       ...row,
       nome: nomeFinal,
       numero: numeroFinal,
-      categoria: louvor.categoria || row.categoria
+      categoria: louvor.categoria || row.categoria,
+      id_louvor_db: louvor.id // Guarda o ID primário do Supabase para o relacionamento
     });
   };
 
@@ -138,7 +140,7 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
                   )}
                 </div>
               </div>
-              <Input value={row.observacao} onChange={(e) => onChange({ ...row, observacao: e.target.value })} placeholder="Observação (opcional)" className="h-9 text-xs text-slate-500" />
+              <Input value={row.observacao || ""} onChange={(e) => onChange({ ...row, observacao: e.target.value })} placeholder="Observação (opcional)" className="h-9 text-xs text-slate-500" />
             </div>
             <button type="button" onClick={onRemove} className="text-slate-300 hover:text-red-400 mt-2">
               <X className="w-4 h-4" />

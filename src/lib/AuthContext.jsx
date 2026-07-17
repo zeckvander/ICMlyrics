@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext();
-const STORAGE_KEY = "icmtools_musico";
+const STORAGE_KEY = "icmlyrics_user";
 
 export const AuthProvider = ({ children }) => {
   // Inicializa o estado lendo direto do localStorage

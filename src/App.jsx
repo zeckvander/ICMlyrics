@@ -19,17 +19,16 @@ import Drive from '@/pages/Drive';
 import HistoricoListas from '@/pages/HistoricoListas'; 
 import Dashboard from '@/pages/Dashboard';
 import Chat from '@/pages/Chat';
-import Biblia from '@/pages/biblia'; // ou o caminho correspondente à sua pasta de páginas
+import Biblia from '@/pages/biblia'; 
 import ModoPlaylist from '@/pages/ModoPlaylist';
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 
-// Componente para proteger as rotas privadas
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center">
+      <div className="fixed inset-0 flex items-center justify-center bg-white">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
       </div>
     );
@@ -47,18 +46,26 @@ const PrivateLayout = ({ children }) => {
 };
 
 function App() {
-  // Versão do app: altere este número apenas quando fizer mudanças estruturais graves
-  // que exijam que todos os dados salvos no navegador sejam deletados.
   const APP_VERSION = "1.0.2"; 
 
   useEffect(() => {
     const savedVersion = localStorage.getItem("app_version");
 
     if (savedVersion !== APP_VERSION) {
-      console.log("Versão atualizada detectada. Limpando cache...");
-      localStorage.clear();
+      console.log("Atualização detectada. Preservando sessão e limpando cache antigo...");
+      
+      // Filtra chaves: mantemos tudo que começa com 'sb-' (Supabase)
+      const keysToKeep = Object.keys(localStorage).filter(key => key.startsWith('sb-'));
+      
+      // Limpa apenas o que NÃO for do Supabase e NÃO for a versão
+      Object.keys(localStorage).forEach(key => {
+        if (!keysToKeep.includes(key) && key !== 'app_version') {
+          localStorage.removeItem(key);
+        }
+      });
+
       localStorage.setItem("app_version", APP_VERSION);
-      window.location.reload();
+      // Recarrega apenas se necessário, mas removemos o reload forçado para evitar loop
     }
   }, []);
 
@@ -74,13 +81,11 @@ function App() {
           <ScrollToTop />
           
           <Routes>
-            {/* ROTAS PÚBLICAS */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* ROTAS PRIVADAS */}
             <Route path="/" element={<PrivateLayout><Identificacao /></PrivateLayout>} />
             <Route path="/dashboard" element={<PrivateLayout><Dashboard /></PrivateLayout>} />
             <Route path="/louvor" element={<PrivateLayout><Louvor /></PrivateLayout>} /> 
@@ -92,10 +97,8 @@ function App() {
             <Route path="/modo-playlist" element={<PrivateLayout><ModoPlaylist /></PrivateLayout>} />
             <Route path="/biblia" element={<PrivateLayout><Biblia /></PrivateLayout>} />
 
-            {/* ROTA 404 */}
             <Route path="*" element={<PageNotFound />} />
           </Routes>
-
           <Toaster />
         </Router>
       </QueryClientProvider>

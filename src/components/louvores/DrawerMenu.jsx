@@ -16,7 +16,7 @@ export default function DrawerMenu({ open, onOpenChange, onAdminLogout }) {
     logoutAdmin();
     onOpenChange(false);
     onAdminLogout?.();
-    localStorage.removeItem("icmtools_musico");
+    localStorage.removeItem("icmlyrics_user");
     navigate("/");
   };
 

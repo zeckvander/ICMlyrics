@@ -1,0 +1,29 @@
+const ROLE_KEY = "icmlyrics_role";
+const ADMIN_KEY = "icmlyrics_admin";
+
+export function isAdmin() {
+  const role = localStorage.getItem(ROLE_KEY);
+  const legacyAdmin = localStorage.getItem(ADMIN_KEY) === "true";
+
+ 
+  return role === "super_admin" || role === "church_admin" || legacyAdmin;
+}
+
+
+export function loginAdmin(user, pass) {
+  const adminUser = import.meta.env.VITE_ADMIN_USER;
+  const adminPass = import.meta.env.VITE_ADMIN_PASS;
+
+  if (user.trim() === adminUser && pass === adminPass) {
+    localStorage.setItem(ADMIN_KEY, "true");
+    localStorage.setItem(ROLE_KEY, "church_admin"); 
+    return true;
+  }
+  return false;
+}
+
+export function logoutAdmin() {
+  localStorage.removeItem(ADMIN_KEY);
+  localStorage.removeItem(ROLE_KEY);
+  localStorage.removeItem("icmlyrics_user_nuvem");
+}

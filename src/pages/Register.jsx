@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Music2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function Register() {
+  const navigate = useNavigate();
   const [step, setStep] = useState("register");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,10 +20,21 @@ export default function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
-    if (password !== confirm) { setError("As senhas não coincidem."); return; }
+    if (password !== confirm) { 
+      setError("As senhas não coincidem."); 
+      return; 
+    }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
+      // Registra o usuário diretamente no serviço de autenticação do Supabase
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signUpError) throw signUpError;
+
+      // Avança para a etapa de verificação do código OTP enviado por e-mail
       setStep("otp");
     } catch (err) {
       setError(err.message || "Falha ao registrar.");
@@ -36,9 +48,17 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      const { access_token } = await base44.auth.verifyOtp({ email, otpCode: otp });
-      base44.auth.setToken(access_token);
-      window.location.href = "/";
+      // Verifica o código OTP utilizando o Supabase
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'signup'
+      });
+
+      if (verifyError) throw verifyError;
+
+      // Com o e-mail verificado, direciona o usuário ao painel inicial
+      navigate("/");
     } catch (err) {
       setError(err.message || "Código inválido.");
     } finally {
@@ -47,7 +67,32 @@ export default function Register() {
   };
 
   const handleResend = async () => {
-    await base44.auth.resendOtp(email);
+    setError("");
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
+      if (resendError) throw resendError;
+      alert("Código reenviado com sucesso!");
+    } catch (err) {
+      setError(err.message || "Erro ao reenviar o código.");
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    try {
+      const { error: providerError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        }
+      });
+      if (providerError) throw providerError;
+    } catch (err) {
+      setError(err.message || "Falha no login com o Google.");
+    }
   };
 
   return (
@@ -56,7 +101,7 @@ export default function Register() {
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Music2 className="w-8 h-8 text-amber-500" />
-            <h1 className="text-2xl font-bold text-slate-900">ICMtools</h1>
+            <h1 className="text-2xl font-bold text-slate-900">icmlyrics_user</h1>
           </div>
           <p className="text-sm text-slate-500">{step === "register" ? "Criar conta" : "Verificar email"}</p>
         </div>
@@ -68,7 +113,7 @@ export default function Register() {
             <div><Label>Senha</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
             <div><Label>Confirmar Senha</Label><Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required /></div>
             <Button type="submit" className="w-full" disabled={loading}>{loading ? "Criando..." : "Criar Conta"}</Button>
-            <Button type="button" variant="outline" className="w-full" onClick={() => base44.auth.loginWithProvider("google", "/")}>Registrar com Google</Button>
+            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleLogin}>Registrar com Google</Button>
             <p className="text-center text-xs text-slate-500">Já tem conta? <Link to="/login" className="hover:underline">Entrar</Link></p>
           </form>
         ) : (

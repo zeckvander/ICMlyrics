@@ -30,7 +30,7 @@ const LIVROS_MAPA = {
     { abbrev: 'ne', nome: 'Neemias', caps: 13, versiculosPorCap: { 1:11, 2:20, 3:32, 4:23, 5:19, 6:19, 7:73, 8:18, 9:38, 10:39, 11:36, 12:47, 13:31 } },
     { abbrev: 'et', nome: 'Ester', caps: 10, versiculosPorCap: { 1:22, 2:23, 3:15, 4:17, 5:14, 6:14, 7:10, 8:17, 9:32, 10:3 } },
     { abbrev: 'job', nome: 'Jó', caps: 42, versiculosPorCap: { 1:22, 2:13, 3:26, 4:21, 5:27, 6:30, 7:21, 8:22, 9:35, 10:22, 11:20, 12:25, 13:28, 14:22, 15:35, 16:22, 17:16, 18:21, 19:29, 20:29, 21:34, 22:30, 23:17, 24:25, 25:6, 26:14, 27:23, 28:28, 29:25, 30:31, 31:40, 32:22, 33:33, 34:37, 35:16, 36:33, 37:24, 38:41, 39:30, 40:24, 41:34, 42:17 } },
-    { abbrev: 'sl', nome: 'Salmos', caps: 150, versiculosPorCap: Object.fromEntries(Array.from({ length: 150 }, (_, i) => [i + 1, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150].includes(i + 1) ? 20 : 10])) }, // simplificado para fins de espaço de código, adaptável
+    { abbrev: 'sl', nome: 'Salmos', caps: 150, versiculosPorCap: Object.fromEntries(Array.from({ length: 150 }, (_, i) => [i + 1, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150].includes(i + 1) ? 20 : 10])) },
     { abbrev: 'pv', nome: 'Prover.', caps: 31, versiculosPorCap: { 1:33, 2:22, 3:35, 4:27, 5:23, 6:35, 7:27, 8:36, 9:18, 10:32, 11:31, 12:28, 13:25, 14:35, 15:33, 16:33, 17:28, 18:24, 19:29, 20:30, 21:31, 22:29, 23:35, 24:34, 25:28, 26:28, 27:27, 28:28, 29:27, 30:33, 31:31 } },
     { abbrev: 'ec', nome: 'Ecl.', caps: 12, versiculosPorCap: { 1:18, 2:26, 3:22, 4:16, 5:20, 6:12, 7:29, 8:17, 9:18, 10:20, 11:10, 12:14 } },
     { abbrev: 'ct', nome: 'Cantares', caps: 8, versiculosPorCap: { 1:17, 2:17, 3:11, 4:16, 5:16, 6:13, 7:13, 8:14 } },
@@ -146,11 +146,21 @@ export default function Biblia() {
   const [nomeLivroExibicao, setNomeLivroExibicao] = useState("");
   
   const [versaoSelecionada, setVersaoSelecionada] = useState(() => {
-    return localStorage.getItem("icmlyrics_biblia_versao_favorita") || "acf";
+    const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
+    const nova = localStorage.getItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`);
+    if (nova) return nova;
+
+    const antiga = localStorage.getItem("icmlyrics_biblia_versao_favorita");
+    return antiga || "acf";
   });
 
   const [versaoFavoritaSalva, setVersaoFavoritaSalva] = useState(() => {
-    return localStorage.getItem("icmlyrics_biblia_versao_favorita") || null;
+    const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
+    const nova = localStorage.getItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`);
+    if (nova) return nova;
+
+    const antiga = localStorage.getItem("icmlyrics_biblia_versao_favorita");
+    return antiga || null;
   });
 
   const [capitulosDisponiveis, setCapitulosDisponiveis] = useState([]);
@@ -175,16 +185,25 @@ export default function Biblia() {
 
   const [favoritos, setFavoritos] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("icmlyrics_biblia_favoritos")) || [];
+      const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
+      const dadosNovos = localStorage.getItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`);
+      if (dadosNovos) return JSON.parse(dadosNovos);
+
+      const dadosAntigos = localStorage.getItem("icmlyrics_biblia_favoritos");
+      return dadosAntigos ? JSON.parse(dadosAntigos) : [];
     } catch (e) {
       console.error(e);
       return [];
     }
   });
 
+  // CORREÇÃO AQUI: Verifica a chave dinâmica do utilizador para não reabrir o modal se ele já escolheu a versão
   useEffect(() => {
-    const favorita = localStorage.getItem("icmlyrics_biblia_versao_favorita");
-    if (!favorita) {
+    const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
+    const favoritaDinamica = localStorage.getItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`);
+    const favoritaAntiga = localStorage.getItem("icmlyrics_biblia_versao_favorita");
+    
+    if (!favoritaDinamica && !favoritaAntiga) {
       setIsPrimeiroAcessoModalOpen(true);
     }
   }, []);
@@ -202,7 +221,6 @@ export default function Biblia() {
     }
   }, [livroAbbrev, capituloSelecionado, versaoSelecionada]);
 
-  // Atualiza dinamicamente as opções de Capítulos após mudar o Livro na busca
   useEffect(() => {
     setBuscaCapitulo("");
     setBuscaVersiculo("");
@@ -220,7 +238,6 @@ export default function Biblia() {
     }
   }, [buscaLivro]);
 
-  // Atualiza dinamicamente as opções de Versículos após mudar o Capítulo na busca
   useEffect(() => {
     setBuscaVersiculo("");
     
@@ -228,7 +245,7 @@ export default function Biblia() {
       const livroRef = TODOS_LIVROS.find(l => l.abbrev === buscaLivro);
       if (livroRef) {
         const capInt = parseInt(buscaCapitulo, 10);
-        const totalVersiculos = livroRef.versiculosPorCap?.[capInt] || 30; // Fallback seguro
+        const totalVersiculos = livroRef.versiculosPorCap?.[capInt] || 30;
         const arrayVers = Array.from({ length: totalVersiculos }, (_, i) => String(i + 1));
         setVersDoCapBuscado(arrayVers);
       }
@@ -249,30 +266,26 @@ export default function Biblia() {
   const obterCapitulosDoLivro = async () => {
     setLoading(true);
     try {
-
       const livroEncontrado =
         LIVROS_MAPA.AT.find(l => l.abbrev.toLowerCase() === livroAbbrev.toLowerCase()) || 
         LIVROS_MAPA.NT.find(l => l.abbrev.toLowerCase() === livroAbbrev.toLowerCase());
 
-    if (livroEncontrado) {
-        // 2. Cria a lista de capítulos reais com base na propriedade 'caps' (ex: 50 para Gênesis)
+      if (livroEncontrado) {
         const capsUnicos = Array.from({ length: livroEncontrado.caps }, (_, i) => i + 1);
-        
         setCapitulosDisponiveis(capsUnicos);
 
-        // 3. Mantém a sua validação para não deixar um capítulo inválido selecionado
         if (!capsUnicos.includes(capituloSelecionado)) {
-            setCapituloSelecionado(capsUnicos[0]);
+          setCapituloSelecionado(capsUnicos[0]);
         }
-        } else {
+      } else {
         setCapitulosDisponiveis([]);
-        }
+      }
     } catch (error) {
-        console.error("Erro ao carregar capítulos do mapa local:", error);
+      console.error("Erro ao carregar capítulos do mapa local:", error);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
 
   const carregarVersiculos = async () => {
     setLoading(true);
@@ -374,13 +387,17 @@ export default function Biblia() {
     }
 
     setFavoritos(novosFavoritos);
-    localStorage.setItem("icmlyrics_biblia_favoritos", JSON.stringify(novosFavoritos));
+
+    const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
+    localStorage.setItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`, JSON.stringify(novosFavoritos));
   };
 
   const removerFavoritoDireto = (key) => {
     const novosFavoritos = favoritos.filter(f => f.key !== key);
     setFavoritos(novosFavoritos);
-    localStorage.setItem("icmlyrics_biblia_favoritos", JSON.stringify(novosFavoritos));
+
+    const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
+    localStorage.setItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`, JSON.stringify(novosFavoritos));
   };
 
   const salvarComentario = (key, textoComentario) => {
@@ -391,7 +408,9 @@ export default function Biblia() {
       return f;
     });
     setFavoritos(novosFavoritos);
-    localStorage.setItem("icmlyrics_biblia_favoritos", JSON.stringify(novosFavoritos));
+
+    const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
+    localStorage.setItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`, JSON.stringify(novosFavoritos));
     
     setComentariosEditando(prev => {
       const copia = { ...prev };
@@ -445,7 +464,9 @@ export default function Biblia() {
   };
 
   const selecionarVersaoFavoritaPeloModal = (versaoId) => {
-    localStorage.setItem("icmlyrics_biblia_versao_favorita", versaoId);
+    const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
+    localStorage.setItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`, versaoId);
+
     setVersaoFavoritaSalva(versaoId);
     setVersaoSelecionada(versaoId);
     setIsAjudaModalOpen(false);

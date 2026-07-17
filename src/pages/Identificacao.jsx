@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Users, Settings } from "lucide-react";
-import AdminLoginModal from "@/components/AdminLoginModal";
-// Importa a imagem colorida da sua pasta assets
+import AdminLoginModal from "@/components/AdminLoginModal"; 
 import imagemFundo from "../assets/Tromb_mundo.jpg";
 
-const STORAGE_KEY = "icmtools_musico";
+const STORAGE_KEY = "icmlyrics_user";
 
 export default function Identificacao() {
   const navigate = useNavigate();
@@ -27,16 +26,16 @@ export default function Identificacao() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden bg-slate-950">
-      {/* Background image - Configurada para nitidez máxima e 50% de opacidade */}
+      {/* Background image com 50% de opacidade */}
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ 
           backgroundImage: `url('${imagemFundo}')`,
-          opacity: 0.50 // Exatamente 50% de opacidade
+          opacity: 0.50 
         }} 
       />
 
-      {/* Admin gear icon */}
+      {/* Botão de acesso administrativo */}
       <button
         onClick={() => setAdminOpen(true)}
         className="absolute top-5 right-5 text-white/40 hover:text-white/80 transition-colors z-10"
@@ -44,10 +43,11 @@ export default function Identificacao() {
       >
         <Settings className="w-5 h-5" />
       </button>
+      
       <AdminLoginModal open={adminOpen} onOpenChange={setAdminOpen} />
 
       <div className="relative w-full max-w-sm space-y-8">
-        {/* Title */}
+        {/* Título */}
         <div className="text-center space-y-3">
           <h1 className="text-4xl font-bold text-white tracking-tight">
             ICM<span className="text-amber-400">lyrics</span>
@@ -55,7 +55,7 @@ export default function Identificacao() {
           <p className="text-slate-400 text-sm">ICM Heliópolis - Gus</p>
         </div>
 
-        {/* Form */}
+        {/* Formulário de Identificação */}
         <form onSubmit={handleEntrar} className="space-y-4 bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-2xl">
           <div className="flex items-center gap-2 text-slate-300 text-sm mb-2">
             <Users className="w-4 h-4 text-amber-400" />
@@ -82,7 +82,7 @@ export default function Identificacao() {
           </Button>
         </form>
 
-        {/* Texto bíblico com sombra para garantir a leitura sobre a imagem nítida */}
+        {/* Versículo */}
         <p className="text-center max-w-sm mx-auto whitespace-pre-line text-xs text-slate-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-medium">
           "Celebrai com júbilo ao Senhor, todas as terras. 
           Servi ao Senhor com alegria; e entrai diante dele com canto." 

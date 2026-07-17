@@ -1,17 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Music, ChevronRight, Star } from "lucide-react";
 import CategoriaBadge from "@/components/louvores/CategoriaBadge";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
 
-export default function SongCard({ louvor }) {
-  const musico = localStorage.getItem("icmtools_musico") || "";
+export default function SongCard({ louvor, onToggleFav }) {
+  const musico = localStorage.getItem("icmlyrics_user") || "";
   const [fav, setFav] = useState(() => isFavorite(musico, louvor.id));
+
+  useEffect(() => {
+    const handleStorageChange = () => setFav(isFavorite(musico, louvor.id));
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [louvor.id, musico]);
 
   const handleFav = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setFav(toggleFavorite(musico, louvor.id));
+    const novoStatus = toggleFavorite(musico, louvor.id);
+    setFav(novoStatus);
+    if (onToggleFav) onToggleFav(louvor.id, novoStatus);
   };
 
   return (
@@ -34,6 +42,7 @@ export default function SongCard({ louvor }) {
         </div>
         <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
       </Link>
+
       <button
         onClick={handleFav}
         className="p-2 shrink-0 text-slate-300 hover:text-amber-400 transition-colors"
