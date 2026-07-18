@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, AlertTriangle } from "lucide-react";
+import { Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, AlertTriangle, Database, Megaphone } from "lucide-react";
 import { useTools } from "@/components/tools/ToolsProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,9 @@ const CHAVE_MESTRA_SUPER_ADMIN = "icm_master_2026";
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { openMetronomo, openAfunador } = useTools();
+  
+  // 🛠️ CORRIGIDO: Agora puxa "openAfinador" com I do ToolsProvider
+  const { openMetronomo, openAfinador } = useTools();
   const musico = localStorage.getItem("icmlyrics_user") || "Usuário";
 
   // Estados dos Modais
@@ -69,7 +71,6 @@ export default function Dashboard() {
         return;
       }
 
-      // AJUSTE CORRETO: Se for o admin mestre local ou um admin autenticado via Supabase Auth com role super_admin
       if (roleSalva === "super_admin" || userSalvo === "admin_geral") {
         setUsuario(userSalvo);
         setUserRole("super_admin");
@@ -153,7 +154,7 @@ export default function Dashboard() {
         .from("igrejas_autorizadas")
         .select("id, role, responsavel, senha_adm")
         .eq("usuario", usuario.trim())
-        .eq("senha", presidential.trim())
+        .eq("senha", senha.trim())
         .maybeSingle();
 
       if (error) throw error;
@@ -201,7 +202,7 @@ export default function Dashboard() {
     }
   };
 
-  // Execução Final do Logout Seguro com Limpeza Completa e Dinâmica por Usuário
+  // Execução Final do Logout Seguro
   const handleLogoutCompleto = async () => {
     if (limparFavoritos) {
       const usuarioAtual = localStorage.getItem("icmlyrics_user");
@@ -251,17 +252,21 @@ export default function Dashboard() {
     setNuvemAtiva(false);
   };
 
+  // BOTÕES DOS ATALHOS - BÍBLIA E AVISOS EM PERFEITA ORDEM
   const atalhos = [
     { label: "Louvores", icon: Music2, path: "/louvor", color: "bg-teal-500" },
     { label: "Nova Lista", icon: ListPlus, path: "/nova-lista", color: "bg-amber-500" },
     { label: "Histórico de Listas", icon: History, path: "/historico-listas", color: "bg-indigo-500" },
     { label: "Drive", icon: FolderOpen, path: "/drive", color: "bg-blue-500" },
-    { label: "Bíblia", icon: BookOpen, path: "/biblia", color: "bg-emerald-600" }
+    { label: "Bíblia", icon: BookOpen, path: "/biblia", color: "bg-emerald-600" },
+    { label: "Avisos", icon: Megaphone, path: "/avisos", color: "bg-orange-500" }
   ];
 
+  // BOTÕES DE FERRAMENTAS - 🛠️ CORRIGIDO PARA openAfinador
   const ferramentas = [
     { label: "Metrônomo", icon: Gauge, color: "bg-purple-500", onClick: openMetronomo },
-    { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfunador }
+    { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfinador },
+    { label: "Backup", icon: Database, color: "bg-slate-700", onClick: () => navigate("/backup") }
   ];
 
   return (
@@ -300,14 +305,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Atalhos e Ferramentas */}
+        {/* Grid de Atalhos e Ferramentas */}
         <div className="px-4 -mt-4 space-y-6 relative z-20">
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {atalhos.map((a) =>
+              {atalhos.map((a) => (
                 <button 
                   key={a.label} 
-                  onClick={a.onClick ? a.onClick : () => navigate(a.path)} 
+                  onClick={() => navigate(a.path)} 
                   className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow"
                 >
                   <div className={`w-11 h-11 rounded-xl ${a.color} flex items-center justify-center`}>
@@ -315,26 +320,31 @@ export default function Dashboard() {
                   </div>
                   <span className="text-xs font-medium text-slate-700 text-center leading-tight">{a.label}</span>
                 </button>
-              )}
+              ))}
             </div>
           </div>
 
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">Ferramentas</p>
             <div className="grid grid-cols-2 gap-3">
-              {ferramentas.map((f) =>
-                <button key={f.label} onClick={f.onClick} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow">
+              {ferramentas.map((f) => (
+                <button 
+                  key={f.label} 
+                  onClick={f.onClick} 
+                  className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow"
+                >
                   <div className={`w-11 h-11 rounded-xl ${f.color} flex items-center justify-center`}>
                     <f.icon className="w-5 h-5 text-white" />
                   </div>
                   <span className="text-sm font-medium text-slate-700">{f.label}</span>
                 </button>
-              )}
+              ))}
             </div>
           </div>
         </div>
       </div>
 
+      {/* Suporte Técnico */}
       <div className="px-4 mt-8 pb-4">
         <div className="bg-white rounded-2xl border border-slate-100 p-3 shadow-sm flex items-center justify-between text-xs text-slate-500">
           <div className="flex flex-col">

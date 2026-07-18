@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,16 +32,33 @@ export default function LouvorForm({ initial, onSubmit, saving }) {
   const [form, setForm] = React.useState(() => limparDados(initial));
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
+  // 🔥 CORREÇÃO: Força o foco e o scroll para o topo assim que o formulário carrega ou muda
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    
+    // Caso o formulário esteja dentro de um Sheet/Modal, tenta rolar o container interno também
+    const sheetContent = document.querySelector('[role="dialog"]');
+    if (sheetContent) {
+      sheetContent.scrollTop = 0;
+    }
+  }, [initial]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!form.nome.trim()) {
+      alert("O nome do louvor é obrigatório!");
+      return;
+    }
     onSubmit(form);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Cabeçalho limpo apenas com o título. O fechar agora é 100% controlado pelo Sheet */}
-      <div className="mb-2">
-        <h2 className="text-lg font-bold text-slate-900">{initial ? "Editar Louvor" : "Novo Louvor"}</h2>
+    <form onSubmit={handleSubmit} className="space-y-4 pb-6">
+      {/* Cabeçalho */}
+      <div className="mb-2 pt-2">
+        <h2 className="text-lg font-bold text-slate-900">
+          {initial ? "Editar Louvor" : "Novo Louvor"}
+        </h2>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -96,12 +113,16 @@ export default function LouvorForm({ initial, onSubmit, saving }) {
         <Input id="input-instrumentos" name="instrumentos" value={form.instrumentos} onChange={(e) => set("instrumentos", e.target.value)} placeholder="Ex: Violão, Teclado, Baixo" />
       </div>
 
-      {["soprano", "contralto", "tenor", "baixo"].map((voz) => (
-        <div key={voz}>
-          <Label htmlFor={`input-${voz}`} className="capitalize">{voz}</Label>
-          <Input id={`input-${voz}`} name={voz} value={form[voz]} onChange={(e) => set(voz, e.target.value)} placeholder="https://..." />
-        </div>
-      ))}
+      {/* Inputs das Vozes */}
+      <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Links de Áudio das Vozes</p>
+        {["soprano", "contralto", "tenor", "baixo"].map((voz) => (
+          <div key={voz}>
+            <Label htmlFor={`input-${voz}`} className="capitalize text-xs text-slate-600">{voz}</Label>
+            <Input id={`input-${voz}`} name={voz} value={form[voz]} onChange={(e) => set(voz, e.target.value)} placeholder="https://..." className="bg-white" />
+          </div>
+        ))}
+      </div>
 
       <div>
         <Label htmlFor="textarea-sugestoes">Sugestões de Ensaio</Label>
@@ -116,7 +137,7 @@ export default function LouvorForm({ initial, onSubmit, saving }) {
         <Textarea id="textarea-letra" name="letra_musica" value={form.letra_musica} onChange={(e) => set("letra_musica", e.target.value)} rows={6} placeholder="Cole a letra da música aqui..." />
       </div>
 
-      <Button type="submit" className="w-full" disabled={saving}>
+      <Button type="submit" className="w-full mt-4" disabled={saving}>
         {saving ? "Salvando..." : initial ? "Salvar Alterações" : "Adicionar Louvor"}
       </Button>
     </form>

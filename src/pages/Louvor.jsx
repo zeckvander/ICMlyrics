@@ -32,7 +32,9 @@ export default function Louvor() {
   const [filterTema, setFilterTema] = useState(() => sessionStorage.getItem("louvor_tema") || "all");
   const [showFavsOnly, setShowFavsOnly] = useState(() => sessionStorage.getItem("louvor_favs_only") === "true");
 
-  const musico = localStorage.getItem("icmlyrics_user_nuvem") || localStorage.getItem("icmlyrics_user") || "";
+ // const musico = localStorage.getItem("icmlyrics_user_nuvem") || localStorage.getItem("icmlyrics_user") || ""; original e apenas teste
+  // Altere apenas essa linha por volta da linha 25:
+  const musico = localStorage.getItem("icmlyrics_user") || localStorage.getItem("icmlyrics_user_nuvem") || "";
 
   // 1. VERIFICAÇÃO ATUALIZADA: VALIDAÇÃO POR TOKEN CRIPTOGRAFADO DA SESSÃO REAL DO SUPABASE
   useEffect(() => {
@@ -102,8 +104,22 @@ export default function Louvor() {
   const handleCreate = async (form) => {
     if (!(await verificarAcessoAdmin())) return alert("Acesso negado");
     setSaving(true);
-    const { error } = await supabase.from('louvores').insert([form]);
-    if (error) alert("Erro: " + error.message); else { setSheetOpen(false); window.location.reload(); }
+
+    // 🔥 CORREÇÃO: Remove o ID temporário do form para o banco auto-incrementar
+    const { id, ...dadosParaSalvar } = form;
+
+    // 🔥 CORREÇÃO: Se o número for vazio ou só espaços, salva como null
+    if (!dadosParaSalvar.numero || String(dadosParaSalvar.numero).trim() === "") {
+      dadosParaSalvar.numero = null;
+    }
+
+    const { error } = await supabase.from('louvores').insert([dadosParaSalvar]);
+    if (error) {
+      alert("Erro ao salvar: " + error.message);
+    } else { 
+      setSheetOpen(false); 
+      window.location.reload(); 
+    }
     setSaving(false);
   };
 
@@ -147,7 +163,31 @@ export default function Louvor() {
     const matchTema = filterTema === "all" || temaDoLouvor === filterTema;
     const matchFav = !showFavsOnly || getFavorites(musico).includes(String(l.id));
     return matchSearch && matchCategoria && matchTema && matchFav;
-  }).sort((a, b) => (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0));
+  }).sort((a, b) => {
+    // 🔥 CORREÇÃO: Nova ordenação customizada em blocos de prioridade
+    const obterPeso = (item) => {
+      const temNumero = item.numero !== null && item.numero !== undefined && String(item.numero).trim() !== "";
+      
+      if (item.categoria === "Coletânea" && temNumero) return 1;
+      if (item.categoria === "Cias" && temNumero) return 2;
+      if (item.categoria === "Cias" && !temNumero) return 3;
+      if (item.categoria === "Avulsos") return 4;
+      return 5;
+    };
+
+    const pesoA = obterPeso(a);
+    const pesoB = obterPeso(b);
+
+    if (pesoA !== pesoB) return pesoA - pesoB;
+
+    // Blocos com número: Ordena matematicamente pelo número
+    if (pesoA === 1 || pesoA === 2) {
+      return (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0);
+    }
+
+    // Blocos sem número: Ordena alfabeticamente pelo nome do louvor
+    return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 relative">
@@ -213,7 +253,19 @@ export default function Louvor() {
               <Upload className="w-5 h-5 text-slate-500"/>
               <input type="file" id="import-json" name="file-import" className="hidden" onChange={handleImportJson}/>
             </label>
-            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}><SheetTrigger asChild><Button className="rounded-xl"><Plus /></Button></SheetTrigger><SheetContent side="bottom"><LouvorForm onSubmit={handleCreate} saving={saving}/></SheetContent></Sheet>
+            
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <Button className="rounded-xl"><Plus /></Button>
+              </SheetTrigger>
+              <SheetContent 
+                side="bottom" 
+                className="rounded-t-2xl max-h-[92vh] overflow-y-auto"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <LouvorForm onSubmit={handleCreate} saving={saving}/>
+              </SheetContent>
+            </Sheet>
           </div>
         )}
 

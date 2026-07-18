@@ -21,6 +21,8 @@ import Dashboard from '@/pages/Dashboard';
 import Chat from '@/pages/Chat';
 import Biblia from '@/pages/biblia'; 
 import ModoPlaylist from '@/pages/ModoPlaylist';
+import Backup from '@/pages/Backup'; 
+import Avisos from '@/pages/Avisos'; // IMPORTADO AQUI
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 
 const PrivateLayout = ({ children }) => {
@@ -54,10 +56,8 @@ function App() {
     if (savedVersion !== APP_VERSION) {
       console.log("Atualização detectada. Preservando sessão e limpando cache antigo...");
       
-      // Filtra chaves: mantemos tudo que começa com 'sb-' (Supabase)
       const keysToKeep = Object.keys(localStorage).filter(key => key.startsWith('sb-'));
       
-      // Limpa apenas o que NÃO for do Supabase e NÃO for a versão
       Object.keys(localStorage).forEach(key => {
         if (!keysToKeep.includes(key) && key !== 'app_version') {
           localStorage.removeItem(key);
@@ -65,7 +65,6 @@ function App() {
       });
 
       localStorage.setItem("app_version", APP_VERSION);
-      // Recarrega apenas se necessário, mas removemos o reload forçado para evitar loop
     }
   }, []);
 
@@ -96,6 +95,11 @@ function App() {
             <Route path="/chat" element={<PrivateLayout><Chat /></PrivateLayout>} />
             <Route path="/modo-playlist" element={<PrivateLayout><ModoPlaylist /></PrivateLayout>} />
             <Route path="/biblia" element={<PrivateLayout><Biblia /></PrivateLayout>} />
+            
+            <Route path="/backup" element={<PrivateLayout><Backup /></PrivateLayout>} />
+            
+            {/* ROTA DO MURAL DE AVISOS ADICIONADA */}
+            <Route path="/avisos" element={<PrivateLayout><Avisos /></PrivateLayout>} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>

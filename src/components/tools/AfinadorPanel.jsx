@@ -120,7 +120,6 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
   const cordaRef = useRef(null);
   const sensRef = useRef("normal");
 
-  // Corrige o bug da nota travada ao trocar para Cromático
   useEffect(() => {
     if (instrumento === "chromatic") {
       setCordaSelecionada(null);
@@ -168,13 +167,33 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
 
   const startTuner = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Solicitação limpa de áudio (Desativa tratamentos nativos que removem frequências instrumentais)
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        } 
+      });
       streamRef.current = stream;
+      
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Filtro passa-baixa para cortar ruídos agudos falsos acima de 800Hz
+      const filter = audioCtxRef.current.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(800, audioCtxRef.current.currentTime);
+
       analyserRef.current = audioCtxRef.current.createAnalyser();
-      analyserRef.current.fftSize = 4096;
+      // Otimizado para 8192 para ler ondas completas de baixos e notas graves com estabilidade
+      analyserRef.current.fftSize = 8192; 
+      
       const source = audioCtxRef.current.createMediaStreamSource(stream);
-      source.connect(analyserRef.current);
+      
+      // Conexão em cascata: Mic -> Filtro Passa-Baixa -> Analisador FFT
+      source.connect(filter);
+      filter.connect(analyserRef.current);
+      
       detect();
     } catch (e) {
       setMicDenied(true);
@@ -187,6 +206,8 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
       cancelAnimationFrame(rafRef.current);
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
       if (audioCtxRef.current) audioCtxRef.current.close();
+      audioCtxRef.current = null;
+      analyserRef.current = null;
     };
   }, [minimized]);
 

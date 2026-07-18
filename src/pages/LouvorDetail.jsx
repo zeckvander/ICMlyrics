@@ -48,11 +48,12 @@ export default function LouvorDetail() {
 
   const loadLouvor = async () => {
     setLoading(true);
+    // 🔥 CORREÇÃO: Buscando pela chave primária 'id' única e usando maybeSingle() para evitar erros 406
     const { data, error } = await supabase
       .from('louvores')
       .select('*')
-      .eq('numero', id)
-      .single();
+      .eq('id', id)
+      .maybeSingle();
     
     if (error) console.error("Erro ao buscar:", error);
     else setLouvor(data);
@@ -213,7 +214,12 @@ export default function LouvorDetail() {
       </div>
 
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
+        {/* 🔥 CORREÇÃO VISUAL: Impedindo o scroll forçado e o foco automático ao abrir */}
+        <SheetContent 
+          side="bottom" 
+          className="rounded-t-2xl max-h-[92vh] overflow-y-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <LouvorForm initial={louvor} onSubmit={handleUpdate} onCancel={() => setEditOpen(false)} saving={saving} />
         </SheetContent>
       </Sheet>

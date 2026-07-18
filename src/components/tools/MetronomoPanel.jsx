@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Minus, X, Play, Square, Settings2, Plus, ListMusic, Gauge, Volume2, Move, Anchor, Hand } from "lucide-react";
+import { Minus, X, Play, Square, Settings2, Plus, ListMusic, Gauge, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -12,15 +12,11 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
   const [playing, setPlaying] = useState(false);
   const [subdivision, setSubdivision] = useState("seminima");
   const [accent, setAccent] = useState(true);
-  const [volume, setVolume] = useState(0.6); 
+  const [volume, setVolume] = useState(0.5); 
   
   const [showPresets, setShowPresets] = useState(false);
   const [showManual, setShowManual] = useState(false);
 
-  // Estado de travamento do METRÔNOMO INTEIRO
-  const [mainLocked, setMainLocked] = useState(true);
-
-  // Posição do METRÔNOMO INTEIRO
   const [mainPos, setMainPos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
@@ -59,7 +55,6 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
   }, []);
 
   const handleMouseDown = (e) => {
-    if (mainLocked) return; 
     if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return; 
     
     setIsDragging(true);
@@ -87,13 +82,18 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
 
   const playClick = (time, isAccent) => {
     const ctx = audioCtxRef.current;
-    if (!ctx) return;
+    if (!ctx || time < ctx.currentTime) return;
+    
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.frequency.value = isAccent ? 880 : 440;
     
-    gain.gain.setValueAtTime(volumeRef.current, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+    osc.frequency.value = isAccent ? 1000 : 600;
+    
+    const sliderVal = volumeRef.current;
+    const calculatedVolume = (sliderVal * sliderVal) * 2.5;
+    
+    gain.gain.setValueAtTime(calculatedVolume, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
     
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -102,12 +102,15 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
   };
 
   const scheduleBeat = (beatIdx, time) => {
-    const isFirst = beatIdx % beatsRef.current === 0;
     const sub = subdivRef.current;
+    const currentBeats = beatsRef.current;
+    const actualBeat = beatIdx % currentBeats;
+    const isFirst = actualBeat === 0;
 
     if (isComposto && sub === "composto_macro") {
       if (beatIdx % 3 === 0) {
-        const isRealFirst = beatIdx === 0 || (beatIdx / 3) % (beatsRef.current / 3) === 0;
+        const macroBeatIdx = beatIdx / 3;
+        const isRealFirst = macroBeatIdx % (currentBeats / 3) === 0;
         playClick(time, accentRef.current && isRealFirst);
       }
       return;
@@ -136,15 +139,20 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
       for (let i = 1; i < 6; i++) playClick(time + baseSeconds * (i / 6), false);
     } else if (sub === "sextina") {
       for (let i = 1; i < 6; i++) playClick(time + baseSeconds * (i / 6), false);
+    } else if (isComposto && sub === "composto_micro") {
+      playClick(time + baseSeconds * (1 / 3), false);
+      playClick(time + baseSeconds * (2 / 3), false);
     }
   };
 
   const runScheduler = () => {
     const ctx = audioCtxRef.current;
     if (!ctx) return;
+
     while (nextNoteTimeRef.current < ctx.currentTime + 0.1) {
       scheduleBeat(beatCountRef.current, nextNoteTimeRef.current);
-      nextNoteTimeRef.current += (60 / bpmRef.current) / (4 / notaValorRef.current);
+      const secondsPerBeat = (60 / bpmRef.current) / (4 / notaValorRef.current);
+      nextNoteTimeRef.current += secondsPerBeat;
       beatCountRef.current++;
     }
   };
@@ -152,9 +160,11 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
   const start = () => {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtxRef.current = ctx;
-    nextNoteTimeRef.current = ctx.currentTime + 0.1;
+    
+    nextNoteTimeRef.current = ctx.currentTime + 0.05;
     beatCountRef.current = 0;
     setPlaying(true);
+    
     intervalRef.current = setInterval(runScheduler, 25);
   };
 
@@ -176,45 +186,33 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
   };
 
   if (minimized) {
-  return (
-    <div className={`fixed ${isStacked ? "bottom-20" : "bottom-5"} left-5 z-50 bg-slate-900 text-white rounded-full shadow-lg flex items-center gap-2 pr-4 pl-3 py-2.5 border border-slate-800`}>
-      <button onClick={() => setMinimized(false)} className="flex items-center gap-2">
-        <Square className={`w-4 h-4 ${playing ? "text-emerald-400 animate-pulse" : "text-slate-400"}`} />
-        <span className="text-sm font-medium">Metrônomo</span>
-        {playing && <span className="text-xs text-slate-400">{bpm} BPM ({beatsPerCompasso}/{notaValor})</span>}
-      </button>
-      <button onClick={handleClose} className="ml-1 text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
-    </div>
-  );
-}
+    return (
+      <div className={`fixed ${isStacked ? "bottom-20" : "bottom-5"} left-5 z-50 bg-slate-900 text-white rounded-full shadow-lg flex items-center gap-2 pr-4 pl-3 py-2.5 border border-slate-800`}>
+        <button onClick={() => setMinimized(false)} className="flex items-center gap-2">
+          <Square className={`w-4 h-4 ${playing ? "text-emerald-400 animate-pulse" : "text-slate-400"}`} />
+          <span className="text-sm font-medium">Metrônomo</span>
+          {playing && <span className="text-xs text-slate-400">{bpm} BPM ({beatsPerCompasso}/{notaValor})</span>}
+        </button>
+        <button onClick={handleClose} className="ml-1 text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+      </div>
+    );
+  }
 
   return (
     <div 
       style={{ transform: `translate(${mainPos.x}px, ${mainPos.y}px)` }}
       className="fixed bottom-5 left-5 z-50 bg-slate-950 text-slate-100 rounded-2xl shadow-2xl border border-slate-800 w-72 h-[460px] flex flex-col overflow-hidden select-none transition-transform font-sans"
     >
-      {/* CABEÇALHO ESCURO PRINCIPAL */}
+      {/* CABEÇALHO ESCURO PRINCIPAL (ÍCONE REMOVIDO) */}
       <div 
         onMouseDown={handleMouseDown}
-        className={`bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between flex-shrink-0 ${mainLocked ? 'cursor-default' : 'cursor-move'}`}
+        className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between flex-shrink-0 cursor-move"
       >
-        <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase flex items-center gap-1.5">
-          {!mainLocked && <Move className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />}
+        <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
           Metrônomo
         </span>
         
         <div className="flex items-center gap-1">
-          <button 
-            onClick={() => {
-              if (!mainLocked) setMainPos({ x: 0, y: 0 }); 
-              setMainLocked(!mainLocked);
-            }}
-            className="text-slate-400 hover:text-white p-1 transition-colors"
-            title={mainLocked ? "Clique para liberar o movimento" : "Clique para fixar de volta na origem"}
-          >
-            {mainLocked ? <Anchor className="w-4 h-4" /> : <Hand className="w-4 h-4 text-emerald-400" />}
-          </button>
-          
           <button onClick={() => setMinimized(true)} className="text-slate-400 hover:text-white p-1"><Minus className="w-4 h-4" /></button>
           <button onClick={handleClose} className="text-slate-400 hover:text-white p-1"><X className="w-4 h-4" /></button>
         </div>
@@ -235,7 +233,6 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
               </button>
             </div>
 
-            {/* DUAS COLUNAS COM 4 ELEMENTOS SEGUINDO A ORDEM EXATA PEDIDA */}
             <div className="flex-grow overflow-y-auto pr-1 pb-1 grid grid-cols-2 gap-2.5 auto-rows-max">
               {[ 
                 { n: 2, d: 4 }, { n: 2, d: 2 }, 
@@ -295,7 +292,6 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
         ) : (
           /* TELA PADRÃO DO METRÔNOMO */
           <div className="flex-grow flex flex-col justify-between overflow-hidden space-y-4">
-            {/* BOTÕES DE GATILHO */}
             <div className="flex items-center justify-between gap-2">
               <Button 
                 variant="ghost" 
@@ -319,7 +315,6 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
               </button>
             </div>
 
-            {/* CONTROLES DO BPM */}
             <div className="flex items-center justify-center gap-5">
               <button onClick={() => setBpm((b) => Math.max(40, b - 1))} className="w-9 h-9 rounded-full bg-slate-900 border border-slate-800 text-slate-400 font-bold text-lg flex items-center justify-center hover:bg-slate-800 hover:text-white transition">−</button>
               <div className="text-center">
@@ -331,7 +326,6 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
 
             <input type="range" min="40" max="240" value={bpm} onChange={(e) => setBpm(parseInt(e.target.value))} className="w-full accent-emerald-500 h-1.5 bg-slate-900 border border-slate-800 rounded-lg appearance-none cursor-pointer" />
 
-            {/* SELEÇÃO DE SUBDIVISÃO */}
             <div className="space-y-1">
               <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                 {isComposto ? "Modo de Compasso Composto" : "Subdivisão"}
@@ -363,13 +357,11 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
               </Select>
             </div>
 
-            {/* ACENTUAÇÃO */}
             <div className="flex items-center justify-between bg-slate-900/30 border border-slate-900/80 p-2 rounded-xl">
               <Label htmlFor="accent" className="text-xs text-slate-400 font-medium">Acentuar 1º tempo</Label>
               <Switch id="accent" checked={accent} onCheckedChange={setAccent} className="data-[state=checked]:bg-emerald-500" />
             </div>
 
-            {/* CONTROLE DE VOLUME */}
             <div className="space-y-1">
               <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 <span className="flex items-center gap-1"><Volume2 className="w-3.5 h-3.5 text-slate-400" /> Volume</span>
@@ -386,7 +378,6 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
               />
             </div>
 
-            {/* BOTÃO PLAY/STOP */}
             <Button
               onClick={playing ? stop : start}
               className={`w-full h-11 rounded-xl font-black uppercase tracking-wider text-xs border transition shadow-lg gap-2 ${
