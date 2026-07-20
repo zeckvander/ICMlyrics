@@ -1,197 +1,246 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Megaphone, Plus, Trash2, Globe, Shield, User, 
-  Loader2, FileText, Upload, ChevronDown, ChevronUp, Download 
+  ArrowLeft, Plus, Trash2, Globe, Shield, 
+  Loader2, X, ChevronDown, ChevronUp, Pencil 
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function Avisos() {
   const navigate = useNavigate();
-  
+
   // Estados dos Avisos
   const [avisos, setAvisos] = useState([]);
+  const [assuntoAviso, setAssuntoAviso] = useState("");
   const [novoAviso, setNovoAviso] = useState("");
+  const [linksForm, setLinksForm] = useState([{ texto: "", url: "" }]);
+  const [avisoEditandoId, setAvisoEditandoId] = useState(null);
   const [carregandoAvisos, setCarregandoAvisos] = useState(true);
-  
-  // Estados da Igreja e Login
+  const [avisoExpandido, setAvisoExpandido] = useState(null);
+  const [listaExpandida, setListaExpandida] = useState(false);
+
+  // Estados de Usuário / Igreja
   const [nomeIgreja, setNomeIgreja] = useState("Carregando...");
-  const [carregandoIgreja, setCarregandoIgreja] = useState(true);
-  const userRole = localStorage.getItem("icmlyrics_role") || "user"; 
-  const userNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "Geral"; 
-  const podeCriar = userRole === "super_adm" || userRole === "church_admin";
+  const [carregandoValidacao, setCarregandoValidacao] = useState(true);
+  const [userRole, setUserRole] = useState("user");
 
-  // Estados dos Arquivos/Relatórios
-  const [arquivos, setArquivos] = useState([]);
-  const [carregandoArquivos, setCarregandoArquivos] = useState(true);
-  const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
-  const [observacaoArquivo, setObservacaoArquivo] = useState("");
-  const [enviandoArquivo, setEnviandoArquivo] = useState(false);
-  const [itemExpandido, setItemExpandido] = useState(null); // Controla qual linha está aberta
+  // Identificadores locais
+  const userNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
+  const userName = localStorage.getItem("icmlyrics_user") || "Usuário";
 
-  // Tradução da função para exibição
-  const obterNomeAutor = () => userRole === "super_adm" ? "Super Admin" : "Adm Local";
-
-  // 1. CARREGA O NOME DA IGREJA
+  // 1. VALIDAÇÃO DE PERMISSÕES
   useEffect(() => {
-    const buscarNomeIgrejaDoBanco = async () => {
+    const validarAcesso = async () => {
       try {
-        setCarregandoIgreja(true);
-        if (userRole === "super_adm" && (!userNuvem || userNuvem === "Geral")) {
-          setNomeIgreja("Administração Geral");
+        setCarregandoValidacao(true);
+
+        const roleSalva = localStorage.getItem("icmlyrics_role") || "user";
+
+        // Prioridade 1: Super Admin (chave mestra / login geral / storage)
+        if (roleSalva === "super_admin" || userNuvem === "admin_geral") {
+          setUserRole("super_admin");
+          setNomeIgreja(userNuvem || "Administração Geral");
+          setCarregandoValidacao(false);
           return;
         }
+
+        if (!userNuvem.trim()) {
+          setUserRole("user");
+          setNomeIgreja("Modo Offline");
+          setCarregandoValidacao(false);
+          return;
+        }
+
+        // Prioridade 2: Consulta na tabela igrejas_autorizadas
         const { data, error } = await supabase
           .from("igrejas_autorizadas")
-          .select("nome_igreja")
-          .eq("usuario", userNuvem)
+          .select("role, nome_igreja")
+          .eq("usuario", userNuvem.trim())
           .maybeSingle();
 
-        if (error) throw error;
-        setNomeIgreja(data?.nome_igreja || userNuvem);
+        if (!error && data) {
+          const roleDoBanco = data.role?.toLowerCase() || "";
+
+          if (roleDoBanco === "super_admin" || roleDoBanco === "super_adm") {
+            setUserRole("super_admin");
+          } else if (
+            roleDoBanco === "church_admin" || 
+            roleDoBanco === "adm_local" || 
+            roleSalva === "church_admin"
+          ) {
+            setUserRole("church_admin");
+          } else {
+            setUserRole("user");
+          }
+
+          setNomeIgreja(data.nome_igreja || userNuvem);
+        } else {
+          setUserRole(roleSalva);
+          setNomeIgreja(userNuvem);
+        }
       } catch (err) {
-        console.error(err);
-        setNomeIgreja(userNuvem); 
+        console.error("Erro ao validar permissões:", err);
+        setUserRole(localStorage.getItem("icmlyrics_role") || "user");
       } finally {
-        setCarregandoIgreja(false);
+        setCarregandoValidacao(false);
       }
     };
-    buscarNomeIgrejaDoBanco();
-  }, [userNuvem, userRole]);
 
-  // 2. CARREGA AVISOS E ARQUIVOS DO BANCO
-  const buscarDadosDoBanco = async () => {
+    validarAcesso();
+  }, [userNuvem]);
+
+  const podeCriar = userRole === "super_admin" || userRole === "church_admin";
+  const isSuper = userRole === "super_admin";
+
+  // Função auxiliar para verificar permissão sobre um aviso específico
+  const podeModificarAviso = (aviso) => {
+    if (isSuper) return true; // Super Admin altera/exclui tudo
+    if (userRole === "church_admin") {
+      // Adm local só modifica o que for do seu tipo local e da sua nuvem
+      return (
+        aviso.tipo !== "global" &&
+        aviso.nuvem?.toLowerCase() === userNuvem.toLowerCase()
+      );
+    }
+    return false;
+  };
+
+  // 2. BUSCA AVISOS NO SUPABASE
+  const buscarAvisosDoBanco = async () => {
+    setCarregandoAvisos(true);
     try {
-      setCarregandoAvisos(true);
-      setCarregandoArquivos(true);
+      const { data, error } = await supabase
+        .from("avisos")
+        .select(`*, avisos_links(titulo_link, url)`)
+        .order("created_at", { ascending: false });
 
-      // Buscar Avisos
-      const resAvisos = await supabase.from("avisos").select("*").order("created_at", { ascending: false });
-      if (!resAvisos.error) {
-        setAvisos(resAvisos.data.filter(a => a.tipo === "global" || a.nuvem?.toLowerCase() === userNuvem.toLowerCase()));
+      if (!error && data) {
+        setAvisos(
+          data.filter(
+            (a) => a.tipo === "global" || a.nuvem?.toLowerCase() === userNuvem.toLowerCase()
+          )
+        );
       }
-
-      // Buscar Arquivos
-      const resArquivos = await supabase.from("arquivos_enviados").select("*").order("created_at", { ascending: false });
-      if (!resArquivos.error) {
-        setArquivos(resArquivos.data.filter(arq => arq.nuvem?.toLowerCase() === userNuvem.toLowerCase() || userRole === "super_adm"));
-      }
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error("Erro ao buscar avisos:", err);
     } finally {
       setCarregandoAvisos(false);
-      setCarregandoArquivos(false);
     }
   };
 
   useEffect(() => {
-    buscarDadosDoBanco();
+    buscarAvisosDoBanco();
   }, [userNuvem]);
 
-  // 3. CRIAÇÃO DE AVISO TEXTUAL
-  const handleCriarAviso = async () => {
-    if (!novoAviso.trim()) return;
+  // 3. SALVAR OU EDITAR AVISO
+  const handleSalvarAviso = async () => {
+    if (!assuntoAviso.trim() || !novoAviso.trim()) {
+      return alert("Assunto e texto são obrigatórios.");
+    }
+
     try {
-      const { error } = await supabase.from("avisos").insert([{
-        texto: novoAviso,
-        tipo: userRole === "super_adm" ? "global" : "local",
-        nuvem: userRole === "super_adm" ? "todos" : userNuvem,
-        autor: obterNomeAutor()
-      }]);
-      if (error) throw error;
-      setNovoAviso("");
-      buscarDadosDoBanco();
-    } catch (e) {
-      alert("Erro ao publicar o aviso.");
-    }
-  };
+      if (avisoEditandoId) {
+        // Valida se tem permissão antes de salvar a edição
+        const avisoExistente = avisos.find((a) => a.id === avisoEditandoId);
+        if (avisoExistente && !podeModificarAviso(avisoExistente)) {
+          return alert("Você não tem permissão para editar este aviso.");
+        }
 
-  const handleDeletarAviso = async (id) => {
-    if (!window.confirm("Deseja excluir este aviso?")) return;
-    await supabase.from("avisos").delete().eq("id", id);
-    buscarDadosDoBanco();
-  };
+        const { error: errorAviso } = await supabase
+          .from("avisos")
+          .update({
+            assunto: assuntoAviso.trim(),
+            texto: novoAviso.trim(),
+          })
+          .eq("id", avisoEditandoId);
 
-  // 4. LOGICA DE UPLOAD E VALIDAÇÃO DE ARQUIVOS (Máx 2MB, bloqueia áudio)
-  const handleSelecionarArquivo = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+        if (errorAviso) throw errorAviso;
 
-    // Validação de tipo: bloqueia áudios explicitamente
-    if (file.type.startsWith("audio/")) {
-      alert("Arquivos de áudio não são permitidos!");
-      return;
-    }
+        await supabase.from("avisos_links").delete().eq("aviso_id", avisoEditandoId);
 
-    // Validação de tamanho: 2MB = 2 * 1024 * 1024 bytes
-    if (file.size > 2 * 1024 * 1024) {
-      alert("O arquivo é muito grande! O limite máximo permitido é de 2 Megas (2MB).");
-      return;
-    }
+        const linksParaSalvar = linksForm
+          .filter((l) => l.url.trim() !== "")
+          .map((l) => ({
+            aviso_id: avisoEditandoId,
+            titulo_link: l.texto.trim() || "Link",
+            url: l.url.trim(),
+          }));
 
-    setArquivoSelecionado(file);
-  };
+        if (linksParaSalvar.length > 0) {
+          await supabase.from("avisos_links").insert(linksParaSalvar);
+        }
+      } else {
+        const { data: avisoCriado, error: errorCriar } = await supabase
+          .from("avisos")
+          .insert([
+            {
+              assunto: assuntoAviso.trim(),
+              texto: novoAviso.trim(),
+              tipo: isSuper ? "global" : "local",
+              nuvem: isSuper ? "todos" : userNuvem,
+              autor: userName,
+              nome_igreja: nomeIgreja,
+            },
+          ])
+          .select()
+          .single();
 
-  const handleEnviarArquivo = async () => {
-    if (!arquivoSelecionado) return alert("Selecione um arquivo primeiro.");
-    
-    try {
-      setEnviandoArquivo(true);
+        if (errorCriar) throw errorCriar;
 
-      // Gera um nome único para o arquivo não sobrescrever outros no Storage
-      const extensao = arquivoSelecionado.name.split(".").pop();
-      const nomeLimpo = `${Date.now()}_${Math.random().toString(36).substring(7)}.${extensao}`;
-      const caminhoArquivo = `${userNuvem}/${nomeLimpo}`;
+        const linksParaSalvar = linksForm
+          .filter((l) => l.url.trim() !== "")
+          .map((l) => ({
+            aviso_id: avisoCriado.id,
+            titulo_link: l.texto.trim() || "Link",
+            url: l.url.trim(),
+          }));
 
-      // Upload para o Bucket 'arquivos_avisos'
-      const { error: uploadError } = await supabase.storage
-        .from("arquivos_avisos")
-        .upload(caminhoArquivo, arquivoSelecionado);
-
-      if (uploadError) throw uploadError;
-
-      // Pega a URL pública gerada para o arquivo
-      const { data: urlData } = supabase.storage
-        .from("arquivos_avisos")
-        .getPublicUrl(caminhoArquivo);
-
-      // Salva os dados resumidos na tabela arquivos_enviados
-      const { error: dbError } = await supabase.from("arquivos_enviados").insert([{
-        nome_igreja: nomeIgreja,
-        autor: obterNomeAutor(),
-        observacao: observacaoArquivo,
-        nome_arquivo: arquivoSelecionado.name,
-        url_arquivo: urlData.publicUrl,
-        nuvem: userNuvem
-      }]);
-
-      if (dbError) throw dbError;
-
-      setArquivoSelecionado(null);
-      setObservacaoArquivo("");
-      alert("Arquivo enviado com sucesso!");
-      buscarDadosDoBanco();
-    } catch (e) {
-      console.error(e);
-      alert("Falha ao enviar arquivo.");
-    } finally {
-      setEnviandoArquivo(false);
-    }
-  };
-
-  const handleDeletarArquivo = async (id, urlArquivo) => {
-    if (!window.confirm("Deseja apagar este arquivo permanentemente?")) return;
-    try {
-      // Extrai o caminho do arquivo no storage a partir da URL pública
-      const partes = urlArquivo.split("/arquivos_avisos/");
-      if (partes.length > 1) {
-        await supabase.storage.from("arquivos_avisos").remove([partes[1]]);
+        if (linksParaSalvar.length > 0) {
+          await supabase.from("avisos_links").insert(linksParaSalvar);
+        }
       }
-      await supabase.from("arquivos_enviados").delete().eq("id", id);
-      buscarDadosDoBanco();
-    } catch (e) {
-      console.error(e);
+
+      setAvisoEditandoId(null);
+      setAssuntoAviso("");
+      setNovoAviso("");
+      setLinksForm([{ texto: "", url: "" }]);
+      buscarAvisosDoBanco();
+    } catch (err) {
+      console.error("Erro ao salvar aviso:", err);
+      alert(`Erro ao salvar: ${err.message || "Tente novamente."}`);
     }
+  };
+
+  // 4. DELETAR AVISO
+  const handleDeletarAviso = async (aviso) => {
+    if (!podeModificarAviso(aviso)) {
+      return alert("Você não tem permissão para excluir avisos do Super Admin.");
+    }
+
+    if (!window.confirm("Deseja realmente excluir este aviso?")) return;
+    try {
+      await supabase.from("avisos").delete().eq("id", aviso.id);
+      buscarAvisosDoBanco();
+    } catch (err) {
+      console.error("Erro ao deletar aviso:", err);
+    }
+  };
+
+  // 5. INICIAR EDIÇÃO
+  const handleIniciarEdicao = (aviso) => {
+    if (!podeModificarAviso(aviso)) {
+      return alert("Você não tem permissão para editar este aviso.");
+    }
+
+    setAvisoEditandoId(aviso.id);
+    setAssuntoAviso(aviso.assunto || "");
+    setNovoAviso(aviso.texto || "");
+    if (aviso.avisos_links && aviso.avisos_links.length > 0) {
+      setLinksForm(aviso.avisos_links.map((l) => ({ texto: l.titulo_link || "", url: l.url || "" })));
+    } else {
+      setLinksForm([{ texto: "", url: "" }]);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -199,188 +248,296 @@ export default function Avisos() {
       {/* Cabeçalho */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/dashboard")}>
+          <button 
+            onClick={() => navigate("/dashboard")} 
+            className="p-1 hover:bg-slate-800 rounded-lg transition-colors"
+          >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold">Mural & Documentos</h1>
+          <h1 className="text-xl font-bold">Mural</h1>
         </div>
-        <div className="flex flex-col items-end gap-1 text-right">
-          {carregandoIgreja ? <Loader2 className="w-3 h-3 animate-spin text-slate-400" /> : (
-            <span className="text-[11px] font-bold text-slate-300 tracking-wide uppercase">{nomeIgreja}</span>
+
+        {/* Indicador do Nível de Permissão */}
+        <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
+          {carregandoValidacao ? (
+            <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+          ) : (
+            <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
+              {nomeIgreja}
+            </span>
           )}
-          <span className="text-[9px] uppercase font-bold tracking-wider px-2.5 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center gap-1 text-slate-400">
-            {userRole === "super_adm" ? <Globe className="w-2.5 h-2.5 text-amber-400" /> : <Shield className="w-2.5 h-2.5 text-indigo-400" />}
-            {userRole === "super_adm" ? "Super Adm" : userRole === "church_admin" ? "Adm Local" : "Membro"}
+          <span className="text-[9px] uppercase font-bold px-2.5 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center gap-1 text-slate-400">
+            {isSuper ? (
+              <Globe className="w-2.5 h-2.5 text-amber-400" />
+            ) : (
+              <Shield className="w-2.5 h-2.5 text-indigo-400" />
+            )}
+            {isSuper ? "Super Adm" : userRole === "church_admin" ? "Adm Local" : "Membro"}
           </span>
         </div>
       </div>
 
       <div className="p-4 space-y-6 max-w-md mx-auto mt-2">
-        {/* ================= SEÇÃO 1: MURAL DE AVISOS TEXTUAIS ================= */}
+        {/* ÁREA DE CRIAÇÃO/EDIÇÃO */}
         {podeCriar && (
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Plus className="w-4 h-4 text-indigo-600" /> Criar Novo Comunicado
-            </h3>
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                <Plus className="w-4 h-4 text-indigo-600" />
+                {avisoEditandoId ? "Editando Aviso" : "Novo Aviso"}
+              </h3>
+              <button
+                onClick={() => setLinksForm([...linksForm, { texto: "", url: "" }])}
+                className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 bg-indigo-50 px-2.5 py-1 rounded-lg hover:bg-indigo-100 transition-colors"
+              >
+                + Adicionar Link
+              </button>
+            </div>
+
+            <input
+              value={assuntoAviso}
+              onChange={(e) => setAssuntoAviso(e.target.value)}
+              placeholder="Assunto do aviso"
+              className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+
             <textarea
               value={novoAviso}
               onChange={(e) => setNovoAviso(e.target.value)}
-              placeholder={`Escreva um aviso para a nuvem ${nomeIgreja}...`}
-              className="w-full h-20 p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 resize-none text-slate-700"
+              placeholder="Escreva a mensagem do aviso..."
+              className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl resize-none h-32 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <button onClick={handleCriarAviso} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs h-10 flex items-center justify-center gap-2 transition-colors">
-              <Megaphone className="w-4 h-4" /> Publicar Aviso
-            </button>
-          </div>
-        )}
 
-        {/* Lista de Avisos */}
-        <div className="space-y-2">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Avisos Recentes</span>
-          {carregandoAvisos ? <Loader2 className="w-6 h-6 animate-spin text-indigo-600 mx-auto" /> : avisos.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center bg-white p-4 rounded-2xl border border-slate-100">Nenhum aviso ativo.</p>
-          ) : (
+            {/* Links anexos */}
             <div className="space-y-2">
-              {avisos.map((aviso) => (
-                <div key={aviso.id} className={`p-4 rounded-2xl border bg-white flex justify-between shadow-sm ${aviso.tipo === "global" ? "border-amber-100 bg-gradient-to-r from-amber-50/10 to-transparent" : "border-slate-100"}`}>
-                  <div className="space-y-1 w-full">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[8px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-md ${aviso.tipo === "global" ? "bg-amber-100 text-amber-800" : "bg-indigo-100 text-indigo-800"}`}>{aviso.tipo}</span>
-                      <span className="text-[10px] text-slate-400">{new Date(aviso.created_at).toLocaleDateString("pt-BR")}</span>
-                    </div>
-                    <p className="text-xs text-slate-700 font-medium whitespace-pre-wrap mt-1">{aviso.texto}</p>
-                    <span className="text-[10px] text-slate-400 block italic">Por: {aviso.autor}</span>
-                  </div>
-                  {podeCriar && <button onClick={() => handleDeletarAviso(aviso.id)} className="text-slate-300 hover:text-rose-600 p-1"><Trash2 className="w-4 h-4" /></button>}
+              {linksForm.map((link, idx) => (
+                <div key={idx} className="bg-slate-50 p-2 rounded-xl border border-slate-200 relative">
+                  {linksForm.length > 1 && (
+                    <button
+                      onClick={() => setLinksForm(linksForm.filter((_, i) => i !== idx))}
+                      className="absolute right-2 top-2 p-1 hover:bg-slate-200 rounded-full"
+                    >
+                      <X className="w-3 h-3 text-rose-500" />
+                    </button>
+                  )}
+                  <input
+                    placeholder="Título do link (ex: Inscrição)"
+                    className="w-full p-1.5 text-[10px] bg-transparent border-b border-slate-200 outline-none font-medium"
+                    value={link.texto}
+                    onChange={(e) => {
+                      const novos = [...linksForm];
+                      novos[idx].texto = e.target.value;
+                      setLinksForm(novos);
+                    }}
+                  />
+                  <input
+                    placeholder="URL (https://...)"
+                    className="w-full p-1.5 text-[10px] bg-transparent outline-none text-slate-600"
+                    value={link.url}
+                    onChange={(e) => {
+                      const novos = [...linksForm];
+                      novos[idx].url = e.target.value;
+                      setLinksForm(novos);
+                    }}
+                  />
                 </div>
               ))}
             </div>
-          )}
-        </div>
 
-        {/* ================= SEÇÃO 2: CENTRAL DE ARQUIVOS E RELATÓRIOS ================= */}
-        <div className="border-t border-slate-200 pt-4 space-y-4">
-          {podeCriar && (
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Upload className="w-4 h-4 text-emerald-600" /> Enviar Imagem / Documento (Máx 2MB)
-              </h3>
-              <input 
-                type="file" 
-                id="file-upload" 
-                accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .txt" 
-                onChange={handleSelecionarArquivo}
-                className="hidden"
-              />
-              <label htmlFor="file-upload" className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl py-4 cursor-pointer hover:bg-slate-50 transition-colors">
-                <FileText className="w-6 h-6 text-slate-400 mb-1" />
-                <span className="text-xs text-slate-500 font-medium">
-                  {arquivoSelecionado ? arquivoSelecionado.name : "Clique para selecionar o arquivo"}
-                </span>
-              </label>
-
-              <input 
-                type="text" 
-                placeholder="Adicionar alguma observação importante..." 
-                value={observacaoArquivo}
-                onChange={(e) => setObservacaoArquivo(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none"
-              />
-
-              <button 
-                onClick={handleEnviarArquivo} 
-                disabled={enviandoArquivo}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs h-10 flex items-center justify-center gap-2 disabled:bg-slate-300"
+            <div className="flex gap-2 pt-1">
+              {avisoEditandoId && (
+                <button
+                  onClick={() => {
+                    setAvisoEditandoId(null);
+                    setAssuntoAviso("");
+                    setNovoAviso("");
+                    setLinksForm([{ texto: "", url: "" }]);
+                  }}
+                  className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl text-xs font-bold transition-colors"
+                >
+                  Cancelar
+                </button>
+              )}
+              <button
+                onClick={handleSalvarAviso}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm"
               >
-                {enviandoArquivo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                Enviar para a Nuvem
+                {avisoEditandoId ? "Salvar Alterações" : "Publicar Aviso"}
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Lista em formato de Linhas Sanfona (Accordion) */}
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Arquivos Compartilhados</span>
-            
-            {carregandoArquivos ? <Loader2 className="w-6 h-6 animate-spin text-emerald-600 mx-auto" /> : arquivos.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center bg-white p-4 rounded-2xl border border-slate-100">Nenhum documento anexado.</p>
-            ) : (
-              <div className="space-y-1.5">
-                {arquivos.map((arq) => {
-                  const estaExpandido = itemExpandido === arq.id;
-                  return (
-                    <div key={arq.id} className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden transition-all">
-                      
-                      {/* LINHA PRINCIPAL COMPACTA */}
-                      <div 
-                        onClick={() => setItemExpandido(estaExpandido ? null : arq.id)}
-                        className="p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-50/80 transition-colors select-none"
+        {/* LISTAGEM DE AVISOS */}
+        <div className="space-y-4">
+          {carregandoAvisos ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+            </div>
+          ) : avisos.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 text-xs font-bold uppercase tracking-wider">
+              Nenhum aviso no mural
+            </div>
+          ) : !podeCriar ? (
+            /* VISÃO DO MEMBRO / USUÁRIO COMUM */
+            <>
+              {/* Card do aviso mais recente (Texto "Último Aviso" removido) */}
+              <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 shadow-sm">
+                <h3 className="text-sm font-bold text-indigo-950 uppercase mb-2">
+                  {avisos[0].assunto}
+                </h3>
+                <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap mb-3">
+                  {avisos[0].texto}
+                </p>
+                {avisos[0].avisos_links?.map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block text-indigo-700 font-bold text-xs underline mt-1 mr-3"
+                  >
+                    {link.titulo_link}
+                  </a>
+                ))}
+              </div>
+
+              {/* Mensagens Anteriores */}
+              {avisos.length > 1 && (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setListaExpandida(!listaExpandida)}
+                    className="w-full flex justify-between items-center px-1 py-1 text-slate-500 hover:text-slate-800"
+                  >
+                    <span className="text-xs font-bold uppercase">Mensagens Anteriores</span>
+                    {listaExpandida ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {listaExpandida &&
+                    avisos.slice(1).map((aviso) => (
+                      <div
+                        key={aviso.id}
+                        className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm cursor-pointer hover:border-slate-200 transition-all"
+                        onClick={() =>
+                          setAvisoExpandido(avisoExpandido === aviso.id ? null : aviso.id)
+                        }
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="p-1.5 bg-slate-100 rounded-lg text-slate-500 flex-shrink-0">
-                            <FileText className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] font-bold text-slate-700 truncate block max-w-[120px]">{arq.nome_igreja}</span>
-                              <span className="text-[9px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">{arq.autor}</span>
-                            </div>
-                            <span className="text-[10px] text-slate-400">{new Date(arq.created_at).toLocaleDateString("pt-BR")}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {arq.observacao && <span className="text-[10px] text-slate-400 italic max-w-[80px] truncate">({arq.observacao})</span>}
-                          {estaExpandido ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                        <h3 className="text-sm font-bold text-slate-800 uppercase mb-1">
+                          {aviso.assunto}
+                        </h3>
+                        <div className="text-xs text-slate-600">
+                          <p
+                            className={`whitespace-pre-wrap ${
+                              avisoExpandido === aviso.id ? "" : "line-clamp-2"
+                            }`}
+                          >
+                            {aviso.texto}
+                          </p>
+                          {avisoExpandido === aviso.id &&
+                            aviso.avisos_links?.map((link, i) => (
+                              <a
+                                key={i}
+                                href={link.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block text-indigo-600 underline mt-2 font-semibold"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {link.titulo_link}
+                              </a>
+                            ))}
                         </div>
                       </div>
+                    ))}
+                </div>
+              )}
+            </>
+          ) : (
+            /* VISÃO DO ADMINISTRADOR */
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-slate-400 uppercase px-1 block">
+                Gerenciar Avisos ({avisos.length})
+              </span>
 
-                      {/* CONTEÚDO EXPANDIDO (Ao Clicar) */}
-                      {estaExpandido && (
-                        <div className="px-3 pb-3 pt-1 border-t border-slate-50 bg-slate-50/50 space-y-2.5 text-xs text-slate-600 animate-fadeIn">
-                          <div>
-                            <span className="font-semibold block text-[10px] text-slate-400 uppercase">Arquivo original:</span>
-                            <p className="text-slate-700 font-medium break-all">{arq.nome_arquivo}</p>
-                          </div>
-                          
-                          {arq.observacao && (
-                            <div>
-                              <span className="font-semibold block text-[10px] text-slate-400 uppercase">Observações:</span>
-                              <p className="text-slate-700 bg-white p-2 rounded-lg border border-slate-100 whitespace-pre-wrap">{arq.observacao}</p>
-                            </div>
-                          )}
+              {avisos.map((aviso) => {
+                const temPermissaoEdicao = podeModificarAviso(aviso);
 
-                          {/* Ações do arquivo */}
-                          <div className="flex items-center gap-2 pt-1">
-                            <a 
-                              href={arq.url_arquivo} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg text-[11px] flex items-center gap-1.5 hover:bg-slate-800"
-                            >
-                              <Download className="w-3.5 h-3.5" /> Abrir / Baixar
-                            </a>
-                            
-                            {(userRole === "super_adm" || userNuvem === arq.nuvem) && (
-                              <button 
-                                onClick={() => handleDeletarArquivo(arq.id, arq.url_arquivo)} 
-                                className="text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg border border-transparent hover:border-rose-100 transition-colors ml-auto"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                return (
+                  <div
+                    key={aviso.id}
+                    className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm relative cursor-pointer hover:border-slate-200 transition-all"
+                    onClick={() =>
+                      setAvisoExpandido(avisoExpandido === aviso.id ? null : aviso.id)
+                    }
+                  >
+                    {/* Botões de Ação apenas se o Admin tiver permissão para este aviso */}
+                    {temPermissaoEdicao ? (
+                      <div className="absolute top-4 right-4 flex gap-2 z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleIniciarEdicao(aviso);
+                          }}
+                          className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors"
+                          title="Editar aviso"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletarAviso(aviso);
+                          }}
+                          className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
+                          title="Excluir aviso"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      /* Tag indicativa para aviso Global do Super Admin */
+                      <div className="absolute top-4 right-4 flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        <Globe className="w-3 h-3" />
+                        Global
+                      </div>
+                    )}
 
+                    <h3 className="text-sm font-bold text-slate-800 uppercase pr-16 mb-1">
+                      {aviso.assunto}
+                    </h3>
+
+                    <div className="text-xs text-slate-600 pr-12">
+                      <p
+                        className={`whitespace-pre-wrap ${
+                          avisoExpandido === aviso.id ? "" : "line-clamp-3"
+                        }`}
+                      >
+                        {aviso.texto}
+                      </p>
+                      {avisoExpandido === aviso.id &&
+                        aviso.avisos_links?.map((link, i) => (
+                          <a
+                            key={i}
+                            href={link.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block text-indigo-600 underline mt-2 font-semibold"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {link.titulo_link}
+                          </a>
+                        ))}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-
       </div>
     </div>
   );
