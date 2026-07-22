@@ -86,15 +86,14 @@ export default function Louvor() {
     sessionStorage.setItem("louvor_favs_only", String(showFavsOnly));
   }, [search, filterCategoria, filterTema, showFavsOnly]);
 
-  // 6. BUSCA DIRETA, LEVE E SEM ERRO NO SUPABASE
+  // 6. BUSCA DIRETA E LEVE NO SUPABASE
   useEffect(() => {
     const init = async () => {
       setLoading(true);
 
-      // Traz apenas as 4 colunas essenciais existentes no banco
       const { data, error } = await supabase
         .from('louvores')
-        .select('id, numero, nome, categoria')
+        .select('id, numero, nome, categoria, ritmo, letra_musica')
         .order('numero', { ascending: true });
 
       if (error) {
@@ -153,12 +152,12 @@ export default function Louvor() {
   const dispararDownload = (blob, nome) => { const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = nome; a.click(); URL.revokeObjectURL(url); };
   const exportarBackupJson = () => dispararDownload(new Blob([JSON.stringify(louvores, null, 2)], { type: "application/json" }), "backup_louvores.json");
   const exportarBackupCsv = () => {
-    const colunas = ["numero", "nome", "categoria"];
+    const colunas = ["numero", "nome", "categoria", "ritmo"];
     const csv = "\uFEFF" + [colunas.join(";"), ...louvores.map(l => colunas.map(c => `"${String(l[c] || "").replace(/"/g, '""')}"`).join(";"))].join("\n");
     dispararDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "backup_louvores.csv");
   };
   const exportarBackupXlsx = () => {
-    const colunas = ["numero", "nome", "categoria"];
+    const colunas = ["numero", "nome", "categoria", "ritmo"];
     let xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Backup"><Table><Row>`;
     colunas.forEach(c => xml += `<Cell><Data ss:Type="String">${c}</Data></Cell>`);
     xml += `</Row>`;
@@ -189,10 +188,19 @@ export default function Louvor() {
 
   const filtered = louvores.filter((l) => {
     const temaDoLouvor = l.tema || TEMAS_PADRAO.find(t => t.numero === String(l.numero) && t.categoria === l.categoria)?.tema || "Sem Tema";
-    const matchSearch = l.nome?.toLowerCase().includes(search.toLowerCase()) || String(l.numero)?.includes(search);
-    const matchCategoria = filterCategoria === "all" || l.categoria === filterCategoria;
-    const matchTema = filterTema === "all" || temaDoLouvor === filterTema;
+    const searchLower = search.toLowerCase();
+
+    // BUSCA POR: NOME, NÚMERO OU LETRA DA MÚSICA
+    const matchSearch = 
+      l.nome?.toLowerCase().includes(searchLower) || 
+      String(l.numero)?.includes(search) ||
+      l.letra_musica?.toLowerCase().includes(searchLower);
+
+    // SE ESTIVER EM MODO FAVORITOS, IGNORA OS FILTROS DE CATEGORIA E TEMA
+    const matchCategoria = showFavsOnly || filterCategoria === "all" || l.categoria === filterCategoria;
+    const matchTema = showFavsOnly || filterTema === "all" || temaDoLouvor === filterTema;
     const matchFav = !showFavsOnly || getFavorites(musico).includes(String(l.id));
+
     return matchSearch && matchCategoria && matchTema && matchFav;
   }).sort((a, b) => {
     const obterPeso = (item) => {
@@ -242,7 +250,7 @@ export default function Louvor() {
             autoComplete="off"
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Buscar..." 
+            placeholder="Buscar ..." 
             className="pl-9 bg-white border-0 shadow-sm rounded-xl h-11" 
           />
         </div>
