@@ -22,7 +22,6 @@ export default function Louvor() {
   const [saving, setSaving] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   
-  // Estado local que controla os botões baseado na sessão segura
   const [admin, setAdmin] = useState(false); 
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [favTrigger, setFavTrigger] = useState(0);
@@ -34,14 +33,20 @@ export default function Louvor() {
 
   const musico = localStorage.getItem("icmlyrics_user") || localStorage.getItem("icmlyrics_user_nuvem") || "";
 
-  // 1. VERIFICAÇÃO ATUALIZADA: VALIDAÇÃO POR TOKEN CRIPTOGRAFADO DA SESSÃO REAL DO SUPABASE
+  // 1. DESATIVA A RESTAURAÇÃO AUTOMÁTICA DE SCROLL NATIVA DO NAVEGADOR
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  // 2. VALIDAÇÃO DE SESSÃO ADMIN
   useEffect(() => {
     const verificarSessaoAdmin = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
-        
         if (user && !error) {
-          setAdmin(true); // Token legítimo e ativo detectado. Libera a interface!
+          setAdmin(true);
         } else {
           setAdmin(false);
         }
@@ -53,7 +58,7 @@ export default function Louvor() {
     verificarSessaoAdmin();
   }, []);
 
-  // FUNÇÃO PARA VOLTAR AO DASHBOARD E RESETAR OS FILTROS
+  // 3. FUNÇÃO PARA VOLTAR AO DASHBOARD E LIMPAR OS FILTROS DA NAVEGAÇÃO
   const handleVoltar = () => {
     sessionStorage.removeItem("louvor_search");
     sessionStorage.removeItem("louvor_categoria");
@@ -63,6 +68,7 @@ export default function Louvor() {
     navigate("/dashboard", { replace: true });
   };
 
+  // 4. GUARDA A POSIÇÃO DA PÁGINA CONFORME O USUÁRIO ROLA
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 400);
@@ -72,6 +78,7 @@ export default function Louvor() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // 5. GUARDA OS FILTROS NO SESSIONSTORAGE
   useEffect(() => {
     sessionStorage.setItem("louvor_search", search);
     sessionStorage.setItem("louvor_categoria", filterCategoria);
@@ -79,19 +86,41 @@ export default function Louvor() {
     sessionStorage.setItem("louvor_favs_only", String(showFavsOnly));
   }, [search, filterCategoria, filterTema, showFavsOnly]);
 
+  // 6. BUSCA DIRETA, LEVE E SEM ERRO NO SUPABASE
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      const { data } = await supabase.from('louvores').select('*').order('numero', { ascending: true });
-      setLouvores(data || []);
+
+      // Traz apenas as 4 colunas essenciais existentes no banco
+      const { data, error } = await supabase
+        .from('louvores')
+        .select('id, numero, nome, categoria')
+        .order('numero', { ascending: true });
+
+      if (error) {
+        console.error("Erro no Supabase:", error.message);
+      } else {
+        setLouvores(data || []);
+      }
+
       setLoading(false);
-      const pos = sessionStorage.getItem("louvor_scroll_position");
-      if (pos) window.scrollTo({ top: parseInt(pos, 10), behavior: "instant" });
     };
     init();
   }, []);
 
-  // 2. FUNÇÃO DE BARREIRA ATUALIZADA: GARANTE SEGURANÇA ANTES DE ENVIAR REQUISIÇÕES AO BANCO
+  // 7. RESTAURA A POSIÇÃO DE ROLAGEM DEPOIS QUE OS CARDS FORAM RENDERIZADOS
+  useEffect(() => {
+    if (!loading && louvores.length > 0) {
+      const pos = sessionStorage.getItem("louvor_scroll_position");
+      if (pos) {
+        const timer = setTimeout(() => {
+          window.scrollTo({ top: parseInt(pos, 10), behavior: "instant" });
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [loading, louvores]);
+
   const verificarAcessoAdmin = async () => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -105,10 +134,8 @@ export default function Louvor() {
     if (!(await verificarAcessoAdmin())) return alert("Acesso negado");
     setSaving(true);
 
-    // Remove o ID temporário do form para o banco auto-incrementar
     const { id, ...dadosParaSalvar } = form;
 
-    // Se o número for vazio ou só espaços, salva como null
     if (!dadosParaSalvar.numero || String(dadosParaSalvar.numero).trim() === "") {
       dadosParaSalvar.numero = null;
     }
@@ -126,12 +153,12 @@ export default function Louvor() {
   const dispararDownload = (blob, nome) => { const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = nome; a.click(); URL.revokeObjectURL(url); };
   const exportarBackupJson = () => dispararDownload(new Blob([JSON.stringify(louvores, null, 2)], { type: "application/json" }), "backup_louvores.json");
   const exportarBackupCsv = () => {
-    const colunas = ["numero", "nome", "categoria", "tema"];
+    const colunas = ["numero", "nome", "categoria"];
     const csv = "\uFEFF" + [colunas.join(";"), ...louvores.map(l => colunas.map(c => `"${String(l[c] || "").replace(/"/g, '""')}"`).join(";"))].join("\n");
     dispararDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "backup_louvores.csv");
   };
   const exportarBackupXlsx = () => {
-    const colunas = ["numero", "nome", "categoria", "tema"];
+    const colunas = ["numero", "nome", "categoria"];
     let xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Backup"><Table><Row>`;
     colunas.forEach(c => xml += `<Cell><Data ss:Type="String">${c}</Data></Cell>`);
     xml += `</Row>`;
@@ -151,7 +178,11 @@ export default function Louvor() {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const { error } = await supabase.from('louvores').insert(JSON.parse(ev.target.result));
-      if (error) alert("Erro: " + error.message); else window.location.reload();
+      if (error) {
+        alert("Erro: " + error.message);
+      } else {
+        window.location.reload();
+      }
     };
     reader.readAsText(file);
   };
@@ -239,7 +270,6 @@ export default function Louvor() {
           )}
         </div>
         
-        {/* BLOCO ADMINISTRATIVO CONDICIONADO À AUTENTICAÇÃO SEGURA */}
         {admin && (
           <div className="flex gap-2">
             <DropdownMenu>
