@@ -22,7 +22,8 @@ export default function HistoricoListas() {
   const temNuvem = usuario.trim() !== "";
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [dadosModal, setDadosModal] = useState({ rows: [], dataCulto: "" });
+  // Estado do modal atualizado para aceitar também tipo e responsável
+  const [dadosModal, setDadosModal] = useState({ rows: [], dataCulto: "", tipoCulto: "", responsavel: "" });
 
   const carregarLocal = () => {
     try {
@@ -37,13 +38,15 @@ export default function HistoricoListas() {
     if (!temNuvem) return;
     setLoading(true);
     try {
-      // Monta a consulta filtrando pelo usuário
+      // Monta a consulta filtrando pelo usuário e incluindo tipo_culto e responsavel
       let query = supabase
         .from("listas")
         .select(`
           id,
           data_culto,
           dia_semana,
+          tipo_culto,
+          responsavel,
           lista_itens (
             id,
             ordem,
@@ -87,6 +90,8 @@ export default function HistoricoListas() {
             id: lista.id,
             dataCulto: lista.data_culto,
             diaSemana: lista.dia_semana,
+            tipoCulto: lista.tipo_culto || "",       // <--- Mapeando do banco
+            responsavel: lista.responsavel || "",    // <--- Mapeando do banco
             rows: rowsFormatadas,
             origem: "nuvem"
           };
@@ -135,7 +140,9 @@ export default function HistoricoListas() {
   const handleAbrirReimpressao = (lista) => {
     setDadosModal({
       rows: lista.rows || [],
-      dataCulto: lista.dataCulto || ""
+      dataCulto: lista.dataCulto || "",
+      tipoCulto: lista.tipoCulto || lista.tipo_culto || "",
+      responsavel: lista.responsavel || ""
     });
     setModalOpen(true);
   };
@@ -254,6 +261,8 @@ export default function HistoricoListas() {
         mode="image" 
         rows={dadosModal.rows} 
         dataCulto={dadosModal.dataCulto} 
+        tipoCulto={dadosModal.tipoCulto}       
+        responsavel={dadosModal.responsavel}  
       />
     </div>
   );

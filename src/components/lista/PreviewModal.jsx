@@ -6,28 +6,50 @@ import html2canvas from "html2canvas";
 
 const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
-export default function PreviewModal({ open, onOpenChange, mode, rows, dataCulto, tipoCulto, responsavel }) {
+export default function PreviewModal({ 
+  open, 
+  onOpenChange, 
+  rows = [], 
+  dataCulto, 
+  tipoCulto, 
+  responsavel,
+  item,        // Objeto completo vindo da linha do histórico do banco
+  ...rest 
+}) {
   const [copied, setCopied] = useState(false);
   const [loadingImg, setLoadingImg] = useState(false);
   const previewRef = useRef(null);
 
+  // Unifica os dados vindos da tela de criação ou do registro selecionado no histórico
+  const dadosHistorico = item || rest.culto || rest.dados || rest.registro || {};
+
+  // Prioriza as colunas reais do banco: tipo_culto e responsavel
+  const dataFinal = dataCulto || dadosHistorico.data_culto || dadosHistorico.dataCulto || dadosHistorico.data;
+  const cultoFinal = tipoCulto || dadosHistorico.tipo_culto || dadosHistorico.tipoCulto || dadosHistorico.tema || dadosHistorico.tipo;
+  const responsavelFinal = responsavel || dadosHistorico.responsavel || dadosHistorico.lider || dadosHistorico.responsavelLouvor;
+  const rowsFinal = rows.length > 0 ? rows : (dadosHistorico.rows || dadosHistorico.louvores || dadosHistorico.itens || []);
+
   const formatarData = (dataStr) => {
     if (!dataStr) return "";
-    const [ano, mes, dia] = dataStr.split("-");
-    return `${dia}/${mes}/${ano}`;
+    const partes = dataStr.split("T")[0].split("-");
+    if (partes.length === 3) {
+      const [ano, mes, dia] = partes;
+      return `${dia}/${mes}/${ano}`;
+    }
+    return dataStr;
   };
 
-  const diaSemana = dataCulto ? DIAS[new Date(dataCulto + "T00:00:00").getDay()] : "";
+  const diaSemana = dataFinal ? DIAS[new Date(dataFinal.split("T")[0] + "T00:00:00").getDay()] : "";
 
   const gerarTextoCompartilhamento = () => {
     let texto = `Louvores`;
-    if (dataCulto) texto += `\n${formatarData(dataCulto)}${diaSemana ? ` — ${diaSemana}` : ""}`;
-    if (tipoCulto) texto += `\nTema: ${tipoCulto}`;
-    if (responsavel) texto += `\nResponsável: ${responsavel}`;
+    if (dataFinal) texto += `\n${formatarData(dataFinal)}${diaSemana ? ` — ${diaSemana}` : ""}`;
+    if (cultoFinal) texto += `\nCulto: ${cultoFinal}`;
+    if (responsavelFinal) texto += `\nResponsável: ${responsavelFinal}`;
     
     texto += `\n\n-----------\n`;
 
-    rows.forEach((row) => {
+    rowsFinal.forEach((row) => {
       if (row.type === "divider") {
         const nomeSecao = (row.text || row.nome || "Seção").toUpperCase();
         texto += `-- ${nomeSecao}\n`;
@@ -62,7 +84,7 @@ export default function PreviewModal({ open, onOpenChange, mode, rows, dataCulto
           setLoadingImg(false);
           return;
         }
-        const file = new File([blob], `lista-culto-${dataCulto || "geral"}.png`, { type: "image/png" });
+        const file = new File([blob], `lista-culto-${dataFinal || "geral"}.png`, { type: "image/png" });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
@@ -103,7 +125,7 @@ export default function PreviewModal({ open, onOpenChange, mode, rows, dataCulto
       const image = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = image;
-      link.download = `lista-culto-${dataCulto || "geral"}.png`;
+      link.download = `lista-culto-${dataFinal || "geral"}.png`;
       link.click();
     } catch (error) {
       console.error("Erro ao gerar imagem:", error);
@@ -128,26 +150,26 @@ export default function PreviewModal({ open, onOpenChange, mode, rows, dataCulto
               <div className="bg-slate-900 text-white p-5 text-center space-y-2">
                 <h2 className="font-bold text-xl tracking-tight">Lista de Louvores</h2>
                 <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-300 font-medium pt-1">
-                  {dataCulto && (
+                  {dataFinal && (
                     <span className="flex items-center gap-1 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
-                      <Calendar className="w-3.5 h-3.5 text-blue-400" /> {formatarData(dataCulto)} {diaSemana && `- ${diaSemana}`}
+                      <Calendar className="w-3.5 h-3.5 text-blue-400" /> {formatarData(dataFinal)} {diaSemana && `- ${diaSemana}`}
                     </span>
                   )}
-                  {tipoCulto && (
+                  {cultoFinal && (
                     <span className="flex items-center gap-1 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700 uppercase tracking-wider text-[10px]">
-                      <Tag className="w-3.5 h-3.5 text-amber-400" /> {tipoCulto}
+                      <Tag className="w-3.5 h-3.5 text-amber-400" /> {cultoFinal}
                     </span>
                   )}
                 </div>
-                {responsavel && (
+                {responsavelFinal && (
                   <div className="pt-1 text-xs text-slate-300 flex items-center justify-center gap-1">
-                    <User className="w-3.5 h-3.5 text-emerald-400" /> Responsável: <span className="text-white font-semibold">{responsavel}</span>
+                    <User className="w-3.5 h-3.5 text-emerald-400" /> Responsável: <span className="text-white font-semibold">{responsavelFinal}</span>
                   </div>
                 )}
               </div>
 
               <div className="p-5 space-y-2.5 text-sm">
-                {rows.map((row, idx) => {
+                {rowsFinal.map((row, idx) => {
                   if (row.type === "divider") {
                     return (
                       <div key={row.id || idx} className="font-bold text-slate-700 text-center uppercase tracking-wider bg-slate-100 py-1.5 px-3 rounded-lg mt-4 mb-2 text-xs border border-slate-200">
@@ -181,7 +203,6 @@ export default function PreviewModal({ open, onOpenChange, mode, rows, dataCulto
             </div>
           </div>
 
-          {/* Exibe o bloco de texto em qualquer tela/modo */}
           <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Texto para WhatsApp</span>

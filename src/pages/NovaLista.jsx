@@ -13,7 +13,16 @@ import { supabase } from "@/lib/supabaseClient";
 const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 const genId = () => Math.random().toString(36).slice(2, 9);
 
-const emptyRow = () => ({ id: genId(), type: "louvor", categoria: "Avulsos", buscaLouvor: "", observacao: "", nome: "", numero: "" });
+// Agora o padrão inicial é "--"
+const emptyRow = (categoriaPadrao = "--") => ({ 
+  id: genId(), 
+  type: "louvor", 
+  categoria: categoriaPadrao, 
+  buscaLouvor: "", 
+  observacao: "", 
+  nome: "", 
+  numero: "" 
+});
 
 export default function NovaLista() {
   const navigate = useNavigate();
@@ -30,11 +39,16 @@ export default function NovaLista() {
   const [tipoCulto, setTipoCulto] = useState("");
   const [responsavel, setResponsavel] = useState("");
 
-  // Estados para controlar a visibilidade dos campos opcionais
   const [showTema, setShowTema] = useState(false);
   const [showResponsavel, setShowResponsavel] = useState(false);
 
-  const [rows, setRows] = useState([emptyRow(), emptyRow(), emptyRow()]);
+  // Inicializa as 3 primeiras linhas com "--" por padrão
+  const [rows, setRows] = useState([
+    emptyRow("--"),
+    emptyRow("--"),
+    emptyRow("--")
+  ]);
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "image" });
   const [louvoresDB, setLouvoresDB] = useState([]);
@@ -67,12 +81,15 @@ export default function NovaLista() {
       if (listaantiga.rows) setRows(listaantiga.rows);
       if (listaantiga.dataCulto) setDataCulto(listaantiga.dataCulto);
       
-      if (listaantiga.tipoCulto) {
-        setTipoCulto(listaantiga.tipoCulto);
+      const tipoCarregado = listaantiga.tipo_culto || listaantiga.tipoCulto;
+      const responsavelCarregado = listaantiga.responsavel;
+
+      if (tipoCarregado) {
+        setTipoCulto(tipoCarregado);
         setShowTema(true);
       }
-      if (listaantiga.responsavel) {
-        setResponsavel(listaantiga.responsavel);
+      if (responsavelCarregado) {
+        setResponsavel(responsavelCarregado);
         setShowResponsavel(true);
       }
       
@@ -98,7 +115,8 @@ export default function NovaLista() {
 
   const updateRow = (updated) => setRows((rs) => rs.map((r) => r.id === updated.id ? updated : r));
   const removeRow = (id) => setRows((rs) => rs.filter((r) => r.id !== id));
-  const addRow = () => setRows((rs) => [...rs, emptyRow()]);
+  
+  const addRow = () => setRows((rs) => [...rs, emptyRow("--")]);
   const addSection = () => setRows((rs) => [...rs, { id: genId(), type: "divider", text: "" }]);
 
   const salvarListaHibrida = async () => {
@@ -114,6 +132,8 @@ export default function NovaLista() {
         const payloadLista = {
           data_culto: dataCulto,
           dia_semana: diaSemana,
+          tipo_culto: tipoCulto || null,      
+          responsavel: responsavel || null,    
           acesso_usuario: usuarioNuvem,
         };
 
@@ -162,7 +182,7 @@ export default function NovaLista() {
         id: genId(),
         dataCulto,
         diaSemana,
-        tipoCulto,
+        tipo_culto: tipoCulto,
         responsavel,
         rows: linhasValidas
       };
@@ -214,7 +234,6 @@ export default function NovaLista() {
       <DrawerMenu open={drawerOpen} onOpenChange={setDrawerOpen} />
 
       <div className="px-4 mt-4 space-y-4">
-        {/* Bloco de Data e Campos Condicionais */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 space-y-3">
           <div>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Data do Culto</label>
@@ -230,15 +249,14 @@ export default function NovaLista() {
             </div>
           </div>
 
-          {/* Campos condicionais (só aparecem se ativados) */}
           {(showTema || showResponsavel) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
               {showTema && (
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo / Tema do Culto</label>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Culto</label>
                   <Input 
                     type="text" 
-                    placeholder="Ex: Santa Ceia, Vigília..." 
+                    placeholder="Ex: Ceia, Vigília, ESF..." 
                     value={tipoCulto} 
                     onChange={(e) => setTipoCulto(e.target.value)} 
                     className="h-9 mt-1 text-sm" 
@@ -274,7 +292,6 @@ export default function NovaLista() {
           </Droppable>
         </DragDropContext>
 
-        {/* 4 Botões compactos na parte inferior */}
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={addRow} className="h-8 text-xs">
             <Plus className="w-3.5 h-3.5 mr-1" /> louvor

@@ -2,9 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { GripVertical, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const CATEGORIAS = ["Avulsos", "Cias", "Coletânea"];
 
 export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
   const [suggestions, setSuggestions] = useState([]);
@@ -22,8 +19,8 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
 
     if (!value.trim()) {
       setSuggestions([]);
-      // Se limpar o campo de busca, remove as referências do louvor
-      onChange({ ...row, nome: "", numero: "", id_louvor_db: null });
+      // Mantém a categoria atual ou define "--", sem forçar "Avulsos"
+      onChange({ ...row, nome: "", numero: "", id_louvor_db: null, categoria: row.categoria || "--" });
       return;
     }
 
@@ -54,8 +51,9 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
       ...row,
       nome: nomeFinal,
       numero: numeroFinal,
-      categoria: louvor.categoria || row.categoria,
-      id_louvor_db: louvor.id // Guarda o ID primário do Supabase para o relacionamento
+      // Preserva a categoria do banco de dados ou mantém a atual
+      categoria: louvor.categoria || row.categoria || "--",
+      id_louvor_db: louvor.id 
     });
   };
 
@@ -102,13 +100,11 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
               <GripVertical className="w-5 h-5" />
             </span>
             <div className="flex-1 space-y-2 relative">
-              <div className="flex gap-2">
-                <Select value={row.categoria} onValueChange={(v) => onChange({ ...row, categoria: v })}>
-                  <SelectTrigger className="h-9 text-xs w-28 shrink-0"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="flex gap-2 items-center">
+                {/* Exibe o valor atual da categoria sem permitir cliques */}
+                <div className="h-9 px-3 text-xs w-28 shrink-0 bg-slate-100 text-slate-600 font-medium rounded-md border border-slate-200 flex items-center justify-center select-none">
+                  {row.categoria || "--"}
+                </div>
                 
                 <div className="flex-1 relative">
                   <Input 
@@ -132,7 +128,7 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
                             onMouseDown={() => handleSelectSuggestion(l)}
                             className="w-full text-left px-3 py-2 text-xs hover:bg-slate-100 border-b last:border-0 block truncate text-slate-700 font-medium"
                           >
-                            {numeroExibir ? `${numeroExibir} - ` : ""}{nomeExibir} <span className="text-slate-400 font-normal">({l.categoria || "Avulsos"})</span>
+                            {numeroExibir ? `${numeroExibir} - ` : ""}{nomeExibir} <span className="text-slate-400 font-normal">({l.categoria || "--"})</span>
                           </button>
                         );
                       })}
