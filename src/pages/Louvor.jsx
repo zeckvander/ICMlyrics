@@ -250,7 +250,7 @@ export default function Louvor() {
             autoComplete="off"
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Buscar ..." 
+            placeholder="Buscar..." 
             className="pl-9 bg-white border-0 shadow-sm rounded-xl h-11" 
           />
         </div>
