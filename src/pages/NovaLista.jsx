@@ -34,10 +34,12 @@ export default function NovaLista() {
   const [listaSalvaId, setListaSalvaId] = useState(null);
   const [salvando, setSalvando] = useState(false);
 
-  // Credenciais obtidas silenciosamente do localStorage
-  const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
+  // 1. OBTENÇÃO FLEXÍVEL DAS CREDENCIAIS DO LOCALSTORAGE
+  const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || localStorage.getItem("icmlyrics_user") || "";
   const senhaNuvem = localStorage.getItem("icmlyrics_senha_nuvem") || "";
-  const temNuvem = usuarioNuvem.trim() !== "" && senhaNuvem.trim() !== "";
+  
+  // Considera que tem nuvem se houver usuário cadastrado (ou se houver usuário + senha)
+  const temNuvem = usuarioNuvem.trim() !== "";
 
   useEffect(() => {
     async function fetchLouvores() {
@@ -49,7 +51,7 @@ export default function NovaLista() {
         if (error) throw error;
         if (data) setLouvoresDB(data);
       } catch (error) {
-        console.error("Erro ao buscar louvores:", error.message);
+        console.error("Erro ao buscar louvores do Supabase:", error.message);
       }
     }
     fetchLouvores();
@@ -94,22 +96,27 @@ export default function NovaLista() {
       r => r.type === "divider" || r.buscaLouvor || r.nome || r.numero || r.id_louvor_db
     );
 
+    // 2. TENTATIVA DE SALVAMENTO NA NUVEM (SUPABASE)
     if (temNuvem) {
       try {
+        const payloadLista = {
+          data_culto: dataCulto,
+          dia_semana: diaSemana,
+          acesso_usuario: usuarioNuvem
+        };
+
+        if (senhaNuvem.trim() !== "") {
+          payloadLista.acesso_senha = senhaNuvem;
+        }
+
         const { data: novaLista, error: erroLista } = await supabase
           .from("listas")
-          .insert([
-            {
-              data_culto: dataCulto,
-              dia_semana: diaSemana,
-              acesso_usuario: usuarioNuvem,
-              acesso_senha: senhaNuvem
-            }
-          ])
+          .insert([payloadLista])
           .select()
           .single();
 
         if (erroLista) throw erroLista;
+
         const listaId = novaLista.id;
 
         const itensParaInserir = linhasValidas.map((row, index) => ({
@@ -125,17 +132,20 @@ export default function NovaLista() {
           const { error: erroItens } = await supabase
             .from("lista_itens")
             .insert(itensParaInserir);
+          
           if (erroItens) throw erroItens;
         }
 
         setListaSalvaId(listaId);
+        setSalvando(false);
         return listaId;
       } catch (error) {
-        console.error("Erro ao salvar na nuvem:", error.message);
+        console.error("Erro ao salvar na nuvem:", error);
+        alert(`Atenção: Não foi possível salvar na nuvem (${error.message}). A lista será salva apenas neste dispositivo.`);
       }
     }
 
-    // Backup Local se não houver nuvem
+    // 3. BACKUP LOCAL (LIXO DE SEGURANÇA / MODO OFFLINE)
     try {
       const novaListaLocal = {
         id: genId(),
@@ -183,9 +193,9 @@ export default function NovaLista() {
         {/* Ícone Indicador Discreto */}
         <div className="p-2">
           {temNuvem ? (
-            <Cloud className="w-5 h-5 text-emerald-400 drop-shadow" title="Sincronizado na Nuvem" />
+            <Cloud className="w-5 h-5 text-emerald-400 drop-shadow" title={`Sincronizado na Nuvem (${usuarioNuvem})`} />
           ) : (
-            <CloudOff className="w-5 h-5 text-slate-500" title="Salvar apenas localmente" />
+            <CloudOff className="w-5 h-5 text-slate-500" title="Sem usuário em cache: salvando apenas localmente" />
           )}
         </div>
       </div>
@@ -228,10 +238,10 @@ export default function NovaLista() {
         <div className="flex flex-col gap-2 pt-2">
           <div className="flex gap-2">
             <Button onClick={() => handleGerarPreview("image")} className="flex-1" disabled={salvando}>
-              <Image className="w-4 h-4" /> {salvando ? "A processar..." : "Gerar Imagem"}
+              <Image className="w-4 h-4 mr-2" /> {salvando ? "A salvar..." : "Gerar Imagem"}
             </Button>
             <Button onClick={() => handleGerarPreview("image-text")} variant="secondary" className="flex-1" disabled={salvando}>
-              <FileText className="w-4 h-4" /> {salvando ? "A processar..." : "Imagem e Texto"}
+              <FileText className="w-4 h-4 mr-2" /> {salvando ? "A salvar..." : "Imagem e Texto"}
             </Button>
           </div>
         </div>

@@ -14,10 +14,12 @@ export default function HistoricoListas() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Silenciosamente pega as credenciais
-  const usuario = localStorage.getItem("icmlyrics_user_nuvem") || "";
+  // 1. OBTENÇÃO FLEXÍVEL DAS CREDENCIAIS DO LOCALSTORAGE
+  const usuario = localStorage.getItem("icmlyrics_user_nuvem") || localStorage.getItem("icmlyrics_user") || "";
   const senha = localStorage.getItem("icmlyrics_senha_nuvem") || "";
-  const temNuvem = usuario.trim() !== "" && senha.trim() !== "";
+  
+  // Considera ativo na nuvem se houver qualquer identificador de usuário armazenado
+  const temNuvem = usuario.trim() !== "";
 
   const [modalOpen, setModalOpen] = useState(false);
   const [dadosModal, setDadosModal] = useState({ rows: [], dataCulto: "" });
@@ -35,7 +37,8 @@ export default function HistoricoListas() {
     if (!temNuvem) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Monta a consulta filtrando pelo usuário
+      let query = supabase
         .from("listas")
         .select(`
           id,
@@ -55,9 +58,14 @@ export default function HistoricoListas() {
             )
           )
         `)
-        .eq("acesso_usuario", usuario)
-        .eq("acesso_senha", senha)
-        .order("data_culto", { ascending: false });
+        .eq("acesso_usuario", usuario);
+
+      // Adiciona o filtro de senha apenas se houver senha cadastrada localmente
+      if (senha.trim() !== "") {
+        query = query.eq("acesso_senha", senha);
+      }
+
+      const { data, error } = await query.order("data_culto", { ascending: false });
 
       if (error) throw error;
 
@@ -108,7 +116,7 @@ export default function HistoricoListas() {
           if (error) throw error;
           setListasNuvem(prev => prev.filter(l => l.id !== lista.id));
         } catch (e) {
-          alert("Erro ao excluir lista na nuvem.");
+          alert(`Erro ao excluir lista na nuvem: ${e.message}`);
         }
       } else {
         const atualizadas = listasLocais.filter((l) => l.id !== lista.id);
@@ -157,9 +165,9 @@ export default function HistoricoListas() {
           {loading ? (
             <RefreshCw className="w-5 h-5 animate-spin text-indigo-400" />
           ) : temNuvem ? (
-            <Cloud className="w-5 h-5 text-emerald-400 drop-shadow" title="Sincronizado! Clique para atualizar." />
+            <Cloud className="w-5 h-5 text-emerald-400 drop-shadow" title={`Sincronizado (${usuario})! Clique para atualizar.`} />
           ) : (
-            <CloudOff className="w-5 h-5 text-slate-500" title="Apenas local (Sem nuvem definida)" />
+            <CloudOff className="w-5 h-5 text-slate-500" title="Apenas local (Nenhum usuário logado)" />
           )}
         </button>
       </div>
