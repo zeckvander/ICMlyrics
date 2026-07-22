@@ -27,6 +27,13 @@ export default function NovaLista() {
     return `${ano}-${mes}-${d}`;
   });
 
+  const [tipoCulto, setTipoCulto] = useState("");
+  const [responsavel, setResponsavel] = useState("");
+
+  // Estados para controlar a visibilidade dos campos opcionais
+  const [showTema, setShowTema] = useState(false);
+  const [showResponsavel, setShowResponsavel] = useState(false);
+
   const [rows, setRows] = useState([emptyRow(), emptyRow(), emptyRow()]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "image" });
@@ -34,11 +41,8 @@ export default function NovaLista() {
   const [listaSalvaId, setListaSalvaId] = useState(null);
   const [salvando, setSalvando] = useState(false);
 
-  // 1. OBTENÇÃO FLEXÍVEL DAS CREDENCIAIS DO LOCALSTORAGE
   const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || localStorage.getItem("icmlyrics_user") || "";
   const senhaNuvem = localStorage.getItem("icmlyrics_senha_nuvem") || "";
-  
-  // Considera que tem nuvem se houver usuário cadastrado (ou se houver usuário + senha)
   const temNuvem = usuarioNuvem.trim() !== "";
 
   useEffect(() => {
@@ -63,6 +67,15 @@ export default function NovaLista() {
       if (listaantiga.rows) setRows(listaantiga.rows);
       if (listaantiga.dataCulto) setDataCulto(listaantiga.dataCulto);
       
+      if (listaantiga.tipoCulto) {
+        setTipoCulto(listaantiga.tipoCulto);
+        setShowTema(true);
+      }
+      if (listaantiga.responsavel) {
+        setResponsavel(listaantiga.responsavel);
+        setShowResponsavel(true);
+      }
+      
       if (location.state?.dispararImpressao) {
         setModal({ open: true, mode: "image" });
       }
@@ -71,7 +84,7 @@ export default function NovaLista() {
 
   useEffect(() => {
     setListaSalvaId(null);
-  }, [rows, dataCulto]);
+  }, [rows, dataCulto, tipoCulto, responsavel]);
 
   const diaSemana = dataCulto ? DIAS[new Date(dataCulto + "T00:00:00").getDay()] : "";
 
@@ -96,13 +109,12 @@ export default function NovaLista() {
       r => r.type === "divider" || r.buscaLouvor || r.nome || r.numero || r.id_louvor_db
     );
 
-    // 2. TENTATIVA DE SALVAMENTO NA NUVEM (SUPABASE)
     if (temNuvem) {
       try {
         const payloadLista = {
           data_culto: dataCulto,
           dia_semana: diaSemana,
-          acesso_usuario: usuarioNuvem
+          acesso_usuario: usuarioNuvem,
         };
 
         if (senhaNuvem.trim() !== "") {
@@ -145,12 +157,13 @@ export default function NovaLista() {
       }
     }
 
-    // 3. BACKUP LOCAL (LIXO DE SEGURANÇA / MODO OFFLINE)
     try {
       const novaListaLocal = {
         id: genId(),
         dataCulto,
         diaSemana,
+        tipoCulto,
+        responsavel,
         rows: linhasValidas
       };
 
@@ -175,7 +188,6 @@ export default function NovaLista() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-8">
-      {/* Topbar com ícone de Nuvem Discreto no Canto Direito */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
@@ -190,7 +202,6 @@ export default function NovaLista() {
           </div>
         </div>
 
-        {/* Ícone Indicador Discreto */}
         <div className="p-2">
           {temNuvem ? (
             <Cloud className="w-5 h-5 text-emerald-400 drop-shadow" title={`Sincronizado na Nuvem (${usuarioNuvem})`} />
@@ -203,18 +214,51 @@ export default function NovaLista() {
       <DrawerMenu open={drawerOpen} onOpenChange={setDrawerOpen} />
 
       <div className="px-4 mt-4 space-y-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Data do Culto</label>
-          <div className="flex flex-row gap-3 mt-1">
-            <Input type="date" value={dataCulto} onChange={(e) => setDataCulto(e.target.value)} className="h-10 flex-1" />
-            <div className="flex-1 flex items-end pb-0.5">
-              {diaSemana && (
-                <span className="text-base font-bold text-slate-800 leading-none bg-slate-100 px-2.5 py-2.5 rounded-lg border border-slate-200 w-full text-center">
-                  {diaSemana}
-                </span>
-              )}
+        {/* Bloco de Data e Campos Condicionais */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Data do Culto</label>
+            <div className="flex flex-row gap-3 mt-1">
+              <Input type="date" value={dataCulto} onChange={(e) => setDataCulto(e.target.value)} className="h-10 flex-1" />
+              <div className="flex-1 flex items-end pb-0.5">
+                {diaSemana && (
+                  <span className="text-base font-bold text-slate-800 leading-none bg-slate-100 px-2.5 py-2.5 rounded-lg border border-slate-200 w-full text-center">
+                    {diaSemana}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Campos condicionais (só aparecem se ativados) */}
+          {(showTema || showResponsavel) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+              {showTema && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo / Tema do Culto</label>
+                  <Input 
+                    type="text" 
+                    placeholder="Ex: Santa Ceia, Vigília..." 
+                    value={tipoCulto} 
+                    onChange={(e) => setTipoCulto(e.target.value)} 
+                    className="h-9 mt-1 text-sm" 
+                  />
+                </div>
+              )}
+              {showResponsavel && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Responsável</label>
+                  <Input 
+                    type="text" 
+                    placeholder="Nome do responsável" 
+                    value={responsavel} 
+                    onChange={(e) => setResponsavel(e.target.value)} 
+                    className="h-9 mt-1 text-sm" 
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <DragDropContext onDragEnd={onDragEnd}>
@@ -230,9 +274,30 @@ export default function NovaLista() {
           </Droppable>
         </DragDropContext>
 
+        {/* 4 Botões compactos na parte inferior */}
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={addRow}><Plus className="w-4 h-4" /> Adicionar louvor</Button>
-          <Button variant="outline" size="sm" onClick={addSection}><Plus className="w-4 h-4" /> Adicionar Seção</Button>
+          <Button variant="outline" size="sm" onClick={addRow} className="h-8 text-xs">
+            <Plus className="w-3.5 h-3.5 mr-1" /> louvor
+          </Button>
+          <Button variant="outline" size="sm" onClick={addSection} className="h-8 text-xs">
+            <Plus className="w-3.5 h-3.5 mr-1" /> Seção
+          </Button>
+          <Button 
+            variant={showTema ? "secondary" : "outline"} 
+            size="sm" 
+            onClick={() => setShowTema(!showTema)} 
+            className="h-8 text-xs"
+          >
+            Tema
+          </Button>
+          <Button 
+            variant={showResponsavel ? "secondary" : "outline"} 
+            size="sm" 
+            onClick={() => setShowResponsavel(!showResponsavel)} 
+            className="h-8 text-xs"
+          >
+            Responsável
+          </Button>
         </div>
 
         <div className="flex flex-col gap-2 pt-2">
@@ -247,7 +312,15 @@ export default function NovaLista() {
         </div>
       </div>
 
-      <PreviewModal open={modal.open} onOpenChange={(o) => setModal({ ...modal, open: o })} mode={modal.mode} rows={rows} dataCulto={dataCulto} />
+      <PreviewModal 
+        open={modal.open} 
+        onOpenChange={(o) => setModal({ ...modal, open: o })} 
+        mode={modal.mode} 
+        rows={rows} 
+        dataCulto={dataCulto}
+        tipoCulto={tipoCulto}
+        responsavel={responsavel}
+      />
     </div>
   );
 }

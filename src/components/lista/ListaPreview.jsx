@@ -1,56 +1,64 @@
 import React, { forwardRef } from "react";
 
-const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
-function getDiaSemana(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr + "T00:00:00");
-  return DIAS[d.getDay()];
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
 const ListaPreview = forwardRef(({ rows, dataCulto }, ref) => {
-  const visibleRows = rows.filter((r) => r.type === "louvor" || (r.type === "divider" && r.text?.trim()));
-
   return (
-    <div ref={ref} className="bg-white rounded-2xl shadow-lg overflow-hidden" style={{ width: 380 }}>
-      <div className="bg-slate-900 px-6 py-4 text-center">
-        <h2 className="text-xl font-bold text-white tracking-wide">Louvores</h2>
-        {dataCulto && (
-          <p className="text-amber-400 text-sm mt-1">
-            {formatDate(dataCulto)}{getDiaSemana(dataCulto) ? ` — ${getDiaSemana(dataCulto)}` : ""}
-          </p>
-        )}
+    <div
+      ref={ref}
+      className="w-[340px] bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100 text-slate-800 font-sans"
+    >
+      {/* Cabeçalho */}
+      <div className="bg-[#0f172a] text-white p-5 text-center">
+        <h2 className="text-lg font-bold tracking-wide">Louvores</h2>
+        <p className="text-amber-400 text-xs font-medium mt-0.5">
+          {formatDate(dataCulto)}
+        </p>
       </div>
-      <div className="px-5 py-4 space-y-1.5">
-        {visibleRows.map((r) => {
-          if (r.type === "divider") {
+
+      {/* Lista de Louvores */}
+      <div className="p-4 space-y-3">
+        {rows.map((row, idx) => {
+          if (row.type === "divider") {
             return (
-              <div key={r.id} className="bg-rose-50 text-center font-semibold text-slate-800 text-sm w-full" style={{ padding: "14px 0", lineHeight: "1.4" }}>
-                {r.text}
+              <div
+                key={row.id || idx}
+                className="my-3 py-2 px-3 bg-rose-50/80 text-slate-700 text-xs font-semibold text-center rounded-lg border border-rose-100"
+              >
+                {row.text || row.nome || "Seção"}
               </div>
             );
           }
+
+          const numStr = String(row.numero || "").trim();
+          // Se não tem número preenchido ou a categoria for Avulsos, considera AV automaticamente
+          const isAvulso = !row.numero || numStr === "" || row.categoria === "Avulsos" || numStr.startsWith("local_");
+          const isCias = row.categoria === "Cias" || row.categoria === "CIAS";
+          const nomeLouvor = (row.nome || row.buscaLouvor || "").toUpperCase();
+
           return (
-            <div key={r.id} className="flex items-baseline gap-2 text-sm">
-              {r.numero && <span className="font-mono text-slate-500 w-8 shrink-0">{r.numero}</span>}
-              <span className="font-semibold text-slate-800 flex-1 uppercase">{r.nome}</span>
-              {r.observacao && <span className="text-xs text-slate-400 italic">{r.observacao}</span>}
+            <div key={row.id || idx} className="flex items-center gap-3 text-xs font-semibold text-slate-700">
+              {/* Coluna do Número / AV */}
+              <span className="w-8 text-slate-400 font-bold text-right shrink-0">
+                {isAvulso ? "AV" : row.numero}
+              </span>
+
+              {/* Nome do Louvor e indicação CIAS */}
+              <span className="flex-1 truncate">
+                {nomeLouvor} {isCias ? "(CIAS)" : ""}
+              </span>
             </div>
           );
         })}
-        {visibleRows.length === 0 && <p className="text-center text-slate-300 text-sm py-4">Nenhum louvor adicionado</p>}
       </div>
     </div>
   );
 });
+
+ListaPreview.displayName = "ListaPreview";
 
 export default ListaPreview;
