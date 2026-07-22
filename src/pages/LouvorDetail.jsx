@@ -178,13 +178,13 @@ export default function LouvorDetail() {
                 <button className="w-full flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                   <div className="flex items-center gap-2">
                     <Link2 className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-semibold text-blue-700">Ver Links de Referência</span>
+                    <span className="text-sm font-semibold text-blue-700">Links</span>
                   </div>
                   <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{linksValidos.length}</span>
                 </button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
-                <DialogHeader><DialogTitle>Links do Louvor</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Links (Google Drive))</DialogTitle></DialogHeader>
                 <div className="flex flex-col gap-2 py-4">
                   {linksValidos.map((item, i) => (
                     <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 text-sm">

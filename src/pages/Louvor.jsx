@@ -32,8 +32,6 @@ export default function Louvor() {
   const [filterTema, setFilterTema] = useState(() => sessionStorage.getItem("louvor_tema") || "all");
   const [showFavsOnly, setShowFavsOnly] = useState(() => sessionStorage.getItem("louvor_favs_only") === "true");
 
- // const musico = localStorage.getItem("icmlyrics_user_nuvem") || localStorage.getItem("icmlyrics_user") || ""; original e apenas teste
-  // Altere apenas essa linha por volta da linha 25:
   const musico = localStorage.getItem("icmlyrics_user") || localStorage.getItem("icmlyrics_user_nuvem") || "";
 
   // 1. VERIFICAÇÃO ATUALIZADA: VALIDAÇÃO POR TOKEN CRIPTOGRAFADO DA SESSÃO REAL DO SUPABASE
@@ -55,13 +53,15 @@ export default function Louvor() {
     verificarSessaoAdmin();
   }, []);
 
-  useEffect(() => {
-    return () => {
-      sessionStorage.removeItem("louvor_search");
-      sessionStorage.removeItem("louvor_categoria");
-      sessionStorage.removeItem("louvor_tema");
-    };
-  }, []);
+  // FUNÇÃO PARA VOLTAR AO DASHBOARD E RESETAR OS FILTROS
+  const handleVoltar = () => {
+    sessionStorage.removeItem("louvor_search");
+    sessionStorage.removeItem("louvor_categoria");
+    sessionStorage.removeItem("louvor_tema");
+    sessionStorage.removeItem("louvor_favs_only");
+    sessionStorage.removeItem("louvor_scroll_position");
+    navigate("/dashboard", { replace: true });
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -105,10 +105,10 @@ export default function Louvor() {
     if (!(await verificarAcessoAdmin())) return alert("Acesso negado");
     setSaving(true);
 
-    // 🔥 CORREÇÃO: Remove o ID temporário do form para o banco auto-incrementar
+    // Remove o ID temporário do form para o banco auto-incrementar
     const { id, ...dadosParaSalvar } = form;
 
-    // 🔥 CORREÇÃO: Se o número for vazio ou só espaços, salva como null
+    // Se o número for vazio ou só espaços, salva como null
     if (!dadosParaSalvar.numero || String(dadosParaSalvar.numero).trim() === "") {
       dadosParaSalvar.numero = null;
     }
@@ -164,7 +164,6 @@ export default function Louvor() {
     const matchFav = !showFavsOnly || getFavorites(musico).includes(String(l.id));
     return matchSearch && matchCategoria && matchTema && matchFav;
   }).sort((a, b) => {
-    // 🔥 CORREÇÃO: Nova ordenação customizada em blocos de prioridade
     const obterPeso = (item) => {
       const temNumero = item.numero !== null && item.numero !== undefined && String(item.numero).trim() !== "";
       
@@ -180,12 +179,10 @@ export default function Louvor() {
 
     if (pesoA !== pesoB) return pesoA - pesoB;
 
-    // Blocos com número: Ordena matematicamente pelo número
     if (pesoA === 1 || pesoA === 2) {
       return (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0);
     }
 
-    // Blocos sem número: Ordena alfabeticamente pelo nome do louvor
     return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
   });
 
@@ -199,7 +196,7 @@ export default function Louvor() {
       )}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/dashboard")}><ArrowLeft className="w-6 h-6" /></button>
+          <button onClick={handleVoltar}><ArrowLeft className="w-6 h-6" /></button>
           <button onClick={() => setDrawerOpen(true)}><Menu className="w-6 h-6" /></button>
           <div><h1 className="text-xl font-bold">Louvores</h1></div>
         </div>
