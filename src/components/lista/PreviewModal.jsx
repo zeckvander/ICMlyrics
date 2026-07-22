@@ -53,16 +53,44 @@ export default function PreviewModal({ open, onOpenChange, mode, rows, dataCulto
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Lista de Louvores",
-          text: textoFormatado,
-        });
-      } catch (error) {
-        console.log("Erro ao compartilhar:", error);
-      }
-    } else {
+    if (!previewRef.current) return;
+    try {
+      setLoadingImg(true);
+      const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setLoadingImg(false);
+          return;
+        }
+        const file = new File([blob], `lista-culto-${dataCulto || "geral"}.png`, { type: "image/png" });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: "Lista de Louvores",
+              text: textoFormatado,
+              files: [file],
+            });
+            setLoadingImg(false);
+            return;
+          } catch (err) {
+            if (err.name !== "AbortError") console.log("Erro ao compartilhar arquivo:", err);
+          }
+        }
+
+        if (navigator.share) {
+          await navigator.share({
+            title: "Lista de Louvores",
+            text: textoFormatado,
+          });
+        } else {
+          handleCopyText();
+        }
+        setLoadingImg(false);
+      }, "image/png");
+    } catch (error) {
+      console.error("Erro ao gerar imagem para compartilhamento:", error);
+      setLoadingImg(false);
       handleCopyText();
     }
   };
@@ -153,22 +181,21 @@ export default function PreviewModal({ open, onOpenChange, mode, rows, dataCulto
             </div>
           </div>
 
-          {mode === "image-text" && (
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Texto para WhatsApp</span>
-                <Button size="sm" variant="outline" onClick={handleCopyText} className="h-7 text-xs">
-                  {copied ? <Check className="w-3.5 h-3.5 mr-1 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
-                  {copied ? "Copiado!" : "Copiar"}
-                </Button>
-              </div>
-              <textarea 
-                readOnly 
-                value={textoFormatado} 
-                className="w-full h-32 text-xs font-mono p-2.5 bg-slate-50 border border-slate-200 rounded-lg resize-none text-slate-700 focus:outline-none"
-              />
+          {/* Exibe o bloco de texto em qualquer tela/modo */}
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Texto para WhatsApp</span>
+              <Button size="sm" variant="outline" onClick={handleCopyText} className="h-7 text-xs">
+                {copied ? <Check className="w-3.5 h-3.5 mr-1 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
+                {copied ? "Copiado!" : "Copiar"}
+              </Button>
             </div>
-          )}
+            <textarea 
+              readOnly 
+              value={textoFormatado} 
+              className="w-full h-32 text-xs font-mono p-2.5 bg-slate-50 border border-slate-200 rounded-lg resize-none text-slate-700 focus:outline-none"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 pt-2">
@@ -178,8 +205,8 @@ export default function PreviewModal({ open, onOpenChange, mode, rows, dataCulto
               {copied ? "Copiado!" : "Copiar Texto"}
             </Button>
             {navigator.share && (
-              <Button variant="outline" onClick={handleShare} className="flex-1">
-                <Share2 className="w-4 h-4 mr-2" /> Compartilhar
+              <Button variant="outline" onClick={handleShare} disabled={loadingImg} className="flex-1">
+                <Share2 className="w-4 h-4 mr-2" /> {loadingImg ? "Aguarde..." : "Compartilhar"}
               </Button>
             )}
           </div>
