@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Menu, Trash2, Calendar, Music, Printer, Cloud, CloudOff, Edit3, Plus, GripVertical, X, Check, Play } from "lucide-react";
+import { ArrowLeft, Menu, Trash2, Calendar, Music, Printer, Cloud, CloudOff, Edit3, Plus, X, Check, Play, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DrawerMenu from "@/components/louvores/DrawerMenu";
 import PreviewModal from "@/components/lista/PreviewModal";
 import { supabase } from "@/lib/supabaseClient";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 export default function HistoricoListas() {
   const navigate = useNavigate();
@@ -148,11 +147,11 @@ export default function HistoricoListas() {
     setPreviewOpen(true);
   };
 
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
-    const items = Array.from(rows);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+  const moverItem = (index, novoIndex) => {
+    if (novoIndex < 0 || novoIndex >= rows.length) return;
+    const items = [...rows];
+    const [reorderedItem] = items.splice(index, 1);
+    items.splice(novoIndex, 0, reorderedItem);
     setRows(items);
   };
 
@@ -542,7 +541,7 @@ export default function HistoricoListas() {
                           type="text"
                           value={novoNome}
                           onChange={(e) => setNovoNome(e.target.value)}
-                          placeholder="Digite o nome ou número do louvor..."
+                          placeholder="Digite o nome, número ou trecho da letra..."
                           autoFocus
                           className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
@@ -552,7 +551,8 @@ export default function HistoricoListas() {
                               .filter(l => 
                                 (l.nome && l.nome.toLowerCase().includes(novoNome.toLowerCase())) ||
                                 (l.numero && String(l.numero).toLowerCase().includes(novoNome.toLowerCase())) ||
-                                (l.categoria && l.categoria.toLowerCase().includes(novoNome.toLowerCase()))
+                                (l.categoria && l.categoria.toLowerCase().includes(novoNome.toLowerCase())) ||
+                                (l.letra_musica && l.letra_musica.toLowerCase().includes(novoNome.toLowerCase()))
                               )
                               .slice(0, 5)
                               .map((louvor) => (
@@ -622,238 +622,228 @@ export default function HistoricoListas() {
                     </div>
                   )}
 
-                  <p className="text-xs font-semibold text-slate-600 pt-1">Arraste para reordenar ou clique no lápis para editar:</p>
+                  <p className="text-xs font-semibold text-slate-600 pt-1">Utilize as setas para reordenar ou clique no lápis para editar:</p>
 
-                  <DragDropContext onDragEnd={handleDragEnd}>
-                    <Droppable droppableId="modal-historico-rows">
-                      {(provided) => (
-                        <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                          {rows.map((row, index) => {
-                            const termoBusca = (row.nome || "").toLowerCase().trim();
-                            // OTIMIZADO: Removido o filtro em letra_musica para evitar travamento mobile
-                            const resultadosBusca = termoBusca === "" || !row.isEditing || row.type === 'divider' ? [] : todosLouvoresBanco.filter(l => 
-                              (l.nome && l.nome.toLowerCase().includes(termoBusca)) ||
-                              (l.numero && String(l.numero).toLowerCase().includes(termoBusca)) ||
-                              (l.categoria && l.categoria.toLowerCase().includes(termoBusca))
-                            ).slice(0, 5);
+                  <div className="space-y-2">
+                    {rows.map((row, index) => {
+                      const termoBusca = (row.nome || "").toLowerCase().trim();
+                      const resultadosBusca = termoBusca === "" || !row.isEditing || row.type === 'divider' ? [] : todosLouvoresBanco.filter(l => 
+                        (l.nome && l.nome.toLowerCase().includes(termoBusca)) ||
+                        (l.numero && String(l.numero).toLowerCase().includes(termoBusca)) ||
+                        (l.categoria && l.categoria.toLowerCase().includes(termoBusca)) ||
+                        (l.letra_musica && l.letra_musica.toLowerCase().includes(termoBusca))
+                      ).slice(0, 5);
 
-                            const ehCiasModal = row.categoria === "Cias" || row.categoria === "CIAS" || row.categoria === "cias";
-                            const nomeExibicaoModal = ehCiasModal && !(row.nome || "").toLowerCase().includes("(cias)") ? `${row.nome} (Cias)` : row.nome;
+                      const ehCiasModal = row.categoria === "Cias" || row.categoria === "CIAS" || row.categoria === "cias";
+                      const nomeExibicaoModal = ehCiasModal && !(row.nome || "").toLowerCase().includes("(cias)") ? `${row.nome} (Cias)` : row.nome;
 
-                            return (
-                              <Draggable key={row.id || index} draggableId={String(row.id || index)} index={index}>
-                                {(providedDraggable, snapshot) => (
-                                  <div 
-                                    ref={providedDraggable.innerRef}
-                                    {...providedDraggable.draggableProps}
-                                    className={`bg-white p-3 rounded-xl border border-slate-200 shadow-sm transition-all relative ${
-                                      snapshot.isDragging ? "opacity-70 border-indigo-400 bg-indigo-50/30 shadow-md" : ""
-                                    }`}
+                      return (
+                        <div key={row.id || index} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                          {row.isEditing ? (
+                            <div className="space-y-2 relative">
+                              {row.type === 'divider' ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={row.text}
+                                    onChange={(e) => {
+                                      const novasRows = [...rows];
+                                      novasRows[index].text = e.target.value;
+                                      setRows(novasRows);
+                                    }}
+                                    placeholder="Nome da Seção"
+                                    autoFocus
+                                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-600 uppercase"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      const novasRows = [...rows];
+                                      novasRows[index].isEditing = false;
+                                      setRows(novasRows);
+                                    }}
+                                    className="p-1 text-emerald-600 hover:text-emerald-700 transition-colors"
+                                    title="Salvar alteração da seção"
                                   >
-                                    {row.isEditing ? (
-                                      <div className="space-y-2 relative">
-                                        {row.type === 'divider' ? (
-                                          <div className="flex items-center gap-2">
-                                            <div {...providedDraggable.dragHandleProps} className="flex-shrink-0 cursor-grab text-slate-400">
-                                              <GripVertical className="w-4 h-4" />
-                                            </div>
-                                            <input
-                                              type="text"
-                                              value={row.text}
-                                              onChange={(e) => {
-                                                const novasRows = [...rows];
-                                                novasRows[index].text = e.target.value;
-                                                setRows(novasRows);
-                                              }}
-                                              placeholder="Nome da Seção"
-                                              autoFocus
-                                              className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-600 uppercase"
-                                            />
-                                            <button
+                                    <Check className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const novasRows = [...rows];
+                                      novasRows[index].text = novasRows[index].originalText || "";
+                                      novasRows[index].isEditing = false;
+                                      setRows(novasRows);
+                                    }}
+                                    className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                                    title="Cancelar"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="space-y-2 relative">
+                                  <div className="flex items-center gap-2">
+                                    <div className="bg-slate-100 text-slate-600 font-semibold px-2 py-1.5 rounded-lg text-xs w-12 text-center border border-slate-200 flex-shrink-0">
+                                      {row.numero || "—"}
+                                    </div>
+
+                                    <div className="relative flex-1">
+                                      <input
+                                        type="text"
+                                        value={row.nome}
+                                        onChange={(e) => {
+                                          const novasRows = [...rows];
+                                          novasRows[index].nome = e.target.value;
+                                          setRows(novasRows);
+                                        }}
+                                        placeholder="Nome, número ou trecho da letra"
+                                        autoFocus
+                                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                      />
+                                      {resultadosBusca.length > 0 && (
+                                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
+                                          {resultadosBusca.map((louvor) => (
+                                            <div
+                                              key={louvor.id}
                                               onClick={() => {
                                                 const novasRows = [...rows];
-                                                novasRows[index].isEditing = false;
+                                                novasRows[index] = {
+                                                  ...novasRows[index],
+                                                  nome: louvor.nome,
+                                                  numero: louvor.numero,
+                                                  categoria: louvor.categoria || "Coletânea",
+                                                  letra_musica: louvor.letra_musica || "",
+                                                  id_louvor_db: louvor.id,
+                                                  isEditing: false
+                                                };
                                                 setRows(novasRows);
                                               }}
-                                              className="p-1 text-emerald-600 hover:text-emerald-700 transition-colors"
-                                              title="Salvar alteração da seção"
+                                              className="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-none flex items-center justify-between text-xs"
                                             >
-                                              <Check className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                              onClick={() => {
-                                                const novasRows = [...rows];
-                                                novasRows[index].text = novasRows[index].originalText || "";
-                                                novasRows[index].isEditing = false;
-                                                setRows(novasRows);
-                                              }}
-                                              className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
-                                              title="Cancelar"
-                                            >
-                                              <X className="w-4 h-4" />
-                                            </button>
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-2 relative">
-                                            <div className="flex items-center gap-2">
-                                              <div {...providedDraggable.dragHandleProps} className="flex-shrink-0 cursor-grab text-slate-400">
-                                                <GripVertical className="w-4 h-4" />
+                                              <div className="flex items-center gap-2 truncate">
+                                                <span className="font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded w-12 text-center flex-shrink-0">
+                                                  {louvor.numero || "—"}
+                                                </span>
+                                                <span className="text-slate-800 font-medium truncate">
+                                                  {louvor.nome} {louvor.categoria === "Cias" || louvor.categoria === "CIAS" ? "(Cias)" : ""}
+                                                </span>
                                               </div>
-                                              <div className="bg-slate-100 text-slate-600 font-semibold px-2 py-1.5 rounded-lg text-xs w-12 text-center border border-slate-200 flex-shrink-0">
-                                                {row.numero || "—"}
-                                              </div>
-
-                                              <div className="relative flex-1">
-                                                <input
-                                                  type="text"
-                                                  value={row.nome}
-                                                  onChange={(e) => {
-                                                    const novasRows = [...rows];
-                                                    novasRows[index].nome = e.target.value;
-                                                    setRows(novasRows);
-                                                  }}
-                                                  placeholder="Nome ou Número do Louvor"
-                                                  autoFocus
-                                                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                />
-                                                {resultadosBusca.length > 0 && (
-                                                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
-                                                    {resultadosBusca.map((louvor) => (
-                                                      <div
-                                                        key={louvor.id}
-                                                        onClick={() => {
-                                                          const novasRows = [...rows];
-                                                          novasRows[index] = {
-                                                            ...novasRows[index],
-                                                            nome: louvor.nome,
-                                                            numero: louvor.numero,
-                                                            categoria: louvor.categoria || "Coletânea",
-                                                            letra_musica: louvor.letra_musica || "",
-                                                            id_louvor_db: louvor.id,
-                                                            isEditing: false
-                                                          };
-                                                          setRows(novasRows);
-                                                        }}
-                                                        className="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-none flex items-center justify-between text-xs"
-                                                      >
-                                                        <div className="flex items-center gap-2 truncate">
-                                                          <span className="font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded w-12 text-center flex-shrink-0">
-                                                            {louvor.numero || "—"}
-                                                          </span>
-                                                          <span className="text-slate-800 font-medium truncate">
-                                                            {louvor.nome} {louvor.categoria === "Cias" || louvor.categoria === "CIAS" ? "(Cias)" : ""}
-                                                          </span>
-                                                        </div>
-                                                        <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full flex-shrink-0">
-                                                          Selecionar
-                                                        </span>
-                                                      </div>
-                                                    ))}
-                                                  </div>
-                                                )}
-                                              </div>
-
-                                              <button
-                                                onClick={() => {
-                                                  const novasRows = [...rows];
-                                                  novasRows[index].nome = novasRows[index].originalNome || "";
-                                                  novasRows[index].numero = novasRows[index].originalNumero || "";
-                                                  novasRows[index].categoria = novasRows[index].originalCategoria || "Coletânea";
-                                                  novasRows[index].observacao = novasRows[index].originalObservacao || "";
-                                                  novasRows[index].id_louvor_db = novasRows[index].originalIdLouvorDb || null;
-                                                  novasRows[index].isEditing = false;
-                                                  setRows(novasRows);
-                                                }}
-                                                className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
-                                                title="Cancelar edição"
-                                              >
-                                                <X className="w-4 h-4" />
-                                              </button>
-                                            </div>
-                                            <div>
-                                              <input
-                                                type="text"
-                                                value={row.observacao || ""}
-                                                onChange={(e) => {
-                                                  const novasRows = [...rows];
-                                                  novasRows[index].observacao = e.target.value;
-                                                  setRows(novasRows);
-                                                }}
-                                                placeholder="Observação (opcional)"
-                                                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                              />
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center justify-between text-xs">
-                                        <div className="flex items-center gap-2.5 truncate pr-2">
-                                          <div {...providedDraggable.dragHandleProps} className="cursor-grab text-slate-400 flex-shrink-0">
-                                            <GripVertical className="w-4 h-4" />
-                                          </div>
-                                          {row.type === "divider" ? (
-                                            <span className="font-bold text-indigo-600 uppercase tracking-wide">✦ {row.text || "Seção"}</span>
-                                          ) : (
-                                            <div className="flex items-center gap-2.5 truncate">
-                                              <Music className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                                              <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px] text-center w-12 flex-shrink-0">
-                                                {row.numero || (row.categoria === "Avulsos" ? "Av" : (row.categoria || "—"))}
+                                              <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full flex-shrink-0">
+                                                Selecionar
                                               </span>
-                                              <span className="truncate text-slate-800 font-medium">{nomeExibicaoModal}</span>
-                                              {row.observacao && (
-                                                <span className="text-[10px] text-slate-400 italic">({row.observacao})</span>
-                                              )}
                                             </div>
-                                          )}
+                                          ))}
                                         </div>
+                                      )}
+                                    </div>
 
-                                        <div className="flex items-center gap-1 flex-shrink-0">
-                                          <button
-                                            onClick={() => {
-                                              const novasRows = [...rows];
-                                              if (row.type === 'divider') {
-                                                novasRows[index].originalText = novasRows[index].text;
-                                              } else {
-                                                novasRows[index].originalNome = novasRows[index].nome;
-                                                novasRows[index].originalNumero = novasRows[index].numero;
-                                                novasRows[index].originalCategoria = novasRows[index].categoria;
-                                                novasRows[index].originalObservacao = novasRows[index].observacao;
-                                                novasRows[index].originalIdLouvorDb = novasRows[index].id_louvor_db;
-                                                novasRows[index].nome = "";
-                                                novasRows[index].numero = "";
-                                              }
-                                              novasRows[index].isEditing = true;
-                                              setRows(novasRows);
-                                            }}
-                                            className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
-                                            title="Editar item"
-                                          >
-                                            <Edit3 className="w-4 h-4" />
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              const novasRows = rows.filter((_, i) => i !== index);
-                                              setRows(novasRows);
-                                            }}
-                                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors ml-1"
-                                            title="Remover item"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </button>
-                                        </div>
-                                      </div>
+                                    <button
+                                      onClick={() => {
+                                        const novasRows = [...rows];
+                                        novasRows[index].nome = novasRows[index].originalNome || "";
+                                        novasRows[index].numero = novasRows[index].originalNumero || "";
+                                        novasRows[index].categoria = novasRows[index].originalCategoria || "Coletânea";
+                                        novasRows[index].observacao = novasRows[index].originalObservacao || "";
+                                        novasRows[index].id_louvor_db = novasRows[index].originalIdLouvorDb || null;
+                                        novasRows[index].isEditing = false;
+                                        setRows(novasRows);
+                                      }}
+                                      className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                                      title="Cancelar edição"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                  <div>
+                                    <input
+                                      type="text"
+                                      value={row.observacao || ""}
+                                      onChange={(e) => {
+                                        const novasRows = [...rows];
+                                        novasRows[index].observacao = e.target.value;
+                                        setRows(novasRows);
+                                      }}
+                                      placeholder="Observação (opcional)"
+                                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2 truncate pr-2">
+                                {row.type === "divider" ? (
+                                  <span className="font-bold text-indigo-600 uppercase tracking-wide">✦ {row.text || "Seção"}</span>
+                                ) : (
+                                  <div className="flex items-center gap-2 truncate">
+                                    <Music className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                                    <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px] text-center w-12 flex-shrink-0">
+                                      {row.numero || (row.categoria === "Avulsos" ? "Av" : (row.categoria || "—"))}
+                                    </span>
+                                    <span className="truncate text-slate-800 font-medium">{nomeExibicaoModal}</span>
+                                    {row.observacao && (
+                                      <span className="text-[10px] text-slate-400 italic">({row.observacao})</span>
                                     )}
                                   </div>
                                 )}
-                              </Draggable>
-                            );
-                          })}
-                          {provided.placeholder}
+                              </div>
+
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <button
+                                  onClick={() => moverItem(index, index - 1)}
+                                  disabled={index === 0}
+                                  className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors"
+                                  title="Mover para cima"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => moverItem(index, index + 1)}
+                                  disabled={index === rows.length - 1}
+                                  className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors"
+                                  title="Mover para baixo"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const novasRows = [...rows];
+                                    if (row.type === 'divider') {
+                                      novasRows[index].originalText = novasRows[index].text;
+                                    } else {
+                                      novasRows[index].originalNome = novasRows[index].nome;
+                                      novasRows[index].originalNumero = novasRows[index].numero;
+                                      novasRows[index].originalCategoria = novasRows[index].categoria;
+                                      novasRows[index].originalObservacao = novasRows[index].observacao;
+                                      novasRows[index].originalIdLouvorDb = novasRows[index].id_louvor_db;
+                                      novasRows[index].nome = "";
+                                      novasRows[index].numero = "";
+                                    }
+                                    novasRows[index].isEditing = true;
+                                    setRows(novasRows);
+                                  }}
+                                  className="p-1 text-slate-400 hover:text-indigo-600 transition-colors ml-1"
+                                  title="Editar item"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const novasRows = rows.filter((_, i) => i !== index);
+                                    setRows(novasRows);
+                                  }}
+                                  className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                                  title="Remover item"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </Droppable>
-                  </DragDropContext>
+                      );
+                    })}
+                  </div>
 
                   <div className="flex gap-2 pt-3 border-t border-slate-100 mt-4">
                     <button
