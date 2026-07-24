@@ -284,12 +284,10 @@ export default function HistoricoListas() {
     }
   };
 
-  // Nova função para apagar todas as listas da nuvem
   const handleExcluirTodasNuvem = async () => {
     if (!window.confirm("Tem certeza que deseja excluir TODAS as listas salvas na nuvem? Esta ação não pode ser desfeita.")) return;
     setLoading(true);
     try {
-      // 1. Buscar os IDs de todas as listas do usuário
       const { data: listasUser, error: errFetch } = await supabase
         .from("listas")
         .select("id")
@@ -300,7 +298,6 @@ export default function HistoricoListas() {
       if (listasUser && listasUser.length > 0) {
         const ids = listasUser.map(l => l.id);
 
-        // 2. Apagar os itens dessas listas
         const { error: errItens } = await supabase
           .from("lista_itens")
           .delete()
@@ -308,7 +305,6 @@ export default function HistoricoListas() {
 
         if (errItens) throw errItens;
 
-        // 3. Apagar as listas do usuário
         const { error: errListas } = await supabase
           .from("listas")
           .delete()
@@ -328,7 +324,6 @@ export default function HistoricoListas() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
-      {/* Tela 1: Histórico Geral */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
@@ -464,7 +459,6 @@ export default function HistoricoListas() {
         </div>
       </div>
 
-      {/* Modal de Edição */}
       {listaSelecionada && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
@@ -479,7 +473,6 @@ export default function HistoricoListas() {
               </button>
             </div>
 
-            {/* Abas do Modal */}
             <div className="flex border-b border-slate-200 flex-shrink-0">
               <button
                 onClick={() => setAbaAtiva(1)}
@@ -536,7 +529,6 @@ export default function HistoricoListas() {
                 </div>
               ) : (
                 <div className="space-y-4 pt-1 flex flex-col">
-                  {/* Painel de Adição de Louvor por Busca/Autocomplete */}
                   {modoAdicao === 'louvor' && (
                     <div className="bg-indigo-50/50 border border-indigo-100 p-3.5 rounded-xl space-y-3 relative">
                       <div className="flex items-center justify-between">
@@ -562,7 +554,7 @@ export default function HistoricoListas() {
                                 (l.numero && String(l.numero).toLowerCase().includes(novoNome.toLowerCase())) ||
                                 (l.categoria && l.categoria.toLowerCase().includes(novoNome.toLowerCase()))
                               )
-                              .slice(0, 10)
+                              .slice(0, 5)
                               .map((louvor) => (
                                 <div
                                   key={louvor.id}
@@ -637,13 +629,13 @@ export default function HistoricoListas() {
                       {(provided) => (
                         <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
                           {rows.map((row, index) => {
-                            const termoBusca = (row.nome || "").toLowerCase();
-                            const resultadosBusca = termoBusca.trim() === "" || !row.isEditing || row.type === 'divider' ? [] : todosLouvoresBanco.filter(l => 
+                            const termoBusca = (row.nome || "").toLowerCase().trim();
+                            // OTIMIZADO: Removido o filtro em letra_musica para evitar travamento mobile
+                            const resultadosBusca = termoBusca === "" || !row.isEditing || row.type === 'divider' ? [] : todosLouvoresBanco.filter(l => 
                               (l.nome && l.nome.toLowerCase().includes(termoBusca)) ||
                               (l.numero && String(l.numero).toLowerCase().includes(termoBusca)) ||
-                              (l.categoria && l.categoria.toLowerCase().includes(termoBusca)) ||
-                              (l.letra_musica && l.letra_musica.toLowerCase().includes(termoBusca))
-                            ).slice(0, 10);
+                              (l.categoria && l.categoria.toLowerCase().includes(termoBusca))
+                            ).slice(0, 5);
 
                             const ehCiasModal = row.categoria === "Cias" || row.categoria === "CIAS" || row.categoria === "cias";
                             const nomeExibicaoModal = ehCiasModal && !(row.nome || "").toLowerCase().includes("(cias)") ? `${row.nome} (Cias)` : row.nome;
@@ -863,7 +855,6 @@ export default function HistoricoListas() {
                     </Droppable>
                   </DragDropContext>
 
-                  {/* Botões de Ação embaixo, divididos em 50% cada */}
                   <div className="flex gap-2 pt-3 border-t border-slate-100 mt-4">
                     <button
                       onClick={() => setModoAdicao(modoAdicao === 'louvor' ? null : 'louvor')}
@@ -886,7 +877,6 @@ export default function HistoricoListas() {
               )}
             </div>
 
-            {/* Ações do Rodapé do Modal */}
             <div className="flex gap-3 pt-2 border-t border-slate-100 flex-shrink-0">
               <Button 
                 variant="outline" 
