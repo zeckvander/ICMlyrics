@@ -114,6 +114,12 @@ export default function HistoricoListas() {
     }
   };
 
+  // Função dedicada para atualizar/sincronizar manualmente ao clicar na nuvem[cite: 1]
+  const handleSincronizar = () => {
+    carregarBancoLouvores();
+    carregarListas();
+  };
+
   useEffect(() => {
     carregarBancoLouvores();
     carregarListas();
@@ -390,11 +396,19 @@ export default function HistoricoListas() {
               </button>
             )}
 
-            {temNuvem ? (
-              <Cloud className="w-5 h-5 text-emerald-400 fill-emerald-500/20" title="Conectado à nuvem" />
-            ) : (
-              <Cloud className="w-5 h-5 text-slate-400 fill-slate-400/30" title="Modo local (sem nuvem)" />
-            )}
+            {/* Nuvem transformada em botão de atualizar/sincronizar[cite: 1] */}
+            <button
+              onClick={handleSincronizar}
+              disabled={loading}
+              className="p-0.5 hover:scale-110 active:scale-95 transition-all disabled:opacity-50 focus:outline-none"
+              title={temNuvem ? "Clique para sincronizar/atualizar dados da nuvem" : "Clique para atualizar dados locais"}
+            >
+              {temNuvem ? (
+                <Cloud className={`w-5 h-5 text-emerald-400 fill-emerald-500/20 ${loading ? "animate-pulse" : ""}`} />
+              ) : (
+                <Cloud className={`w-5 h-5 text-slate-400 fill-slate-400/30 ${loading ? "animate-pulse" : ""}`} />
+              )}
+            </button>
           </div>
         </div>
       </div>

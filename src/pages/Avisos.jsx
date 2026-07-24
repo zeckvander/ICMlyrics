@@ -268,14 +268,29 @@ export default function Avisos() {
               <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
                 {nomeIgreja}
               </span>
-              <span className="text-[9px] uppercase font-bold px-2.5 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center gap-1 text-slate-400">
-                {isSuper ? (
-                  <Globe className="w-2.5 h-2.5 text-amber-400" />
-                ) : (
-                  <Shield className="w-2.5 h-2.5 text-indigo-400" />
-                )}
-                {isSuper ? "Super Adm" : userRole === "church_admin" ? "Adm Local" : "Membro"}
-              </span>
+              <div className="flex items-center gap-1.5">
+                {/* Nuvem separada em seu próprio badge */}
+                <div 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    buscarAvisosDoBanco();
+                  }}
+                  className="px-2 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors"
+                  title="Clique para atualizar/sincronizar"
+                >
+                  <Cloud className={`w-3 h-3 text-emerald-400 ${carregandoAvisos ? "animate-spin" : ""}`} />
+                </div>
+
+                {/* Badge de Função */}
+                <span className="text-[9px] uppercase font-bold px-2.5 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center gap-1 text-slate-300">
+                  {isSuper ? (
+                    <Globe className="w-2.5 h-2.5 text-amber-400" />
+                  ) : (
+                    <Shield className="w-2.5 h-2.5 text-indigo-400" />
+                  )}
+                  {isSuper ? "Super Adm" : userRole === "church_admin" ? "Adm Local" : "Membro"}
+                </span>
+              </div>
             </>
           )}
         </div>
