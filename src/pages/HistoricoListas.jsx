@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Menu, Trash2, Calendar, Music, Printer, Cloud, CloudOff, Edit3, Plus, X, Check, Play, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowLeft, Menu, Trash2, Calendar, Music, Printer, Cloud, Edit3, Plus, X, Check, Play, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DrawerMenu from "@/components/louvores/DrawerMenu";
 import PreviewModal from "@/components/lista/PreviewModal";
@@ -12,9 +12,13 @@ export default function HistoricoListas() {
   const [loading, setLoading] = useState(false);
   const [listas, setListas] = useState([]);
 
+  // Estado apenas para o nome da igreja
+  const [nomeIgreja, setNomeIgreja] = useState("");
+
   // Credenciais
-  const usuario = localStorage.getItem("icmlyrics_user_nuvem") || localStorage.getItem("icmlyrics_user") || "";
-  const temNuvem = usuario.trim() !== "";
+  const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
+  const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
+  const temNuvem = usuarioNuvem.trim() !== "";
 
   // Estado da lista selecionada para edição/visualização
   const [listaSelecionada, setListaSelecionada] = useState(null);
@@ -37,6 +41,36 @@ export default function HistoricoListas() {
   // Modal de Pré-visualização
   const [previewOpen, setPreviewOpen] = useState(false);
 
+  // Busca o nome oficial da igreja na tabela igrejas_autorizadas filtrando por "usuario"
+  useEffect(() => {
+    const carregarNomeIgreja = async () => {
+      const usuarioAtual = usuarioNuvem || usuarioLocal;
+
+      if (temNuvem && usuarioAtual) {
+        try {
+          const { data, error } = await supabase
+            .from("igrejas_autorizadas")
+            .select("nome_igreja")
+            .eq("usuario", usuarioAtual)
+            .maybeSingle();
+
+          if (!error && data && data.nome_igreja) {
+            setNomeIgreja(data.nome_igreja);
+          } else {
+            setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
+          }
+        } catch (e) {
+          console.error("Erro ao buscar igreja autorizada:", e);
+          setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
+        }
+      } else {
+        setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local");
+      }
+    };
+
+    carregarNomeIgreja();
+  }, [temNuvem, usuarioNuvem, usuarioLocal]);
+
   const carregarBancoLouvores = async () => {
     if (todosLouvoresBanco.length > 0) return;
     try {
@@ -58,7 +92,7 @@ export default function HistoricoListas() {
         const { data, error } = await supabase
           .from("listas")
           .select("*, lista_itens(*, louvores(*))")
-          .eq("acesso_usuario", usuario)
+          .eq("acesso_usuario", usuarioNuvem)
           .order("data_culto", { ascending: false });
 
         if (error) throw error;
@@ -290,7 +324,7 @@ export default function HistoricoListas() {
       const { data: listasUser, error: errFetch } = await supabase
         .from("listas")
         .select("id")
-        .eq("acesso_usuario", usuario);
+        .eq("acesso_usuario", usuarioNuvem);
 
       if (errFetch) throw errFetch;
 
@@ -307,7 +341,7 @@ export default function HistoricoListas() {
         const { error: errListas } = await supabase
           .from("listas")
           .delete()
-          .eq("acesso_usuario", usuario);
+          .eq("acesso_usuario", usuarioNuvem);
 
         if (errListas) throw errListas;
       }
@@ -323,6 +357,7 @@ export default function HistoricoListas() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
+      {/* Cabeçalho limpo exibindo o nome da igreja apenas se conectado à nuvem */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
@@ -337,21 +372,30 @@ export default function HistoricoListas() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {temNuvem && listas.length > 0 && (
-            <button
-              onClick={handleExcluirTodasNuvem}
-              className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
-              title="Apagar todas as listas da nuvem"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Apagar Todas
-            </button>
+        <div className="flex flex-col items-end">
+          {temNuvem && (
+            <span className="text-xs font-bold text-slate-100 tracking-wide uppercase">
+              {nomeIgreja}
+            </span>
           )}
-          {temNuvem ? (
-            <Cloud className="w-5 h-5 text-emerald-400 drop-shadow ml-1" title={`Conectado (${usuario})`} />
-          ) : (
-            <CloudOff className="w-5 h-5 text-slate-500" title="Modo local" />
-          )}
+
+          <div className="flex items-center gap-2.5 mt-2">
+            {temNuvem && listas.length > 0 && (
+              <button
+                onClick={handleExcluirTodasNuvem}
+                className="text-rose-400 hover:text-rose-300 transition-colors p-0.5"
+                title="Apagar todas as listas da nuvem"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+
+            {temNuvem ? (
+              <Cloud className="w-5 h-5 text-emerald-400 fill-emerald-500/20" title="Conectado à nuvem" />
+            ) : (
+              <Cloud className="w-5 h-5 text-slate-400 fill-slate-400/30" title="Modo local (sem nuvem)" />
+            )}
+          </div>
         </div>
       </div>
 
@@ -815,7 +859,7 @@ export default function HistoricoListas() {
                                       novasRows[index].originalNumero = novasRows[index].numero;
                                       novasRows[index].originalCategoria = novasRows[index].categoria;
                                       novasRows[index].originalObservacao = novasRows[index].observacao;
-                                      novasRows[index].originalIdLouvorDb = novasRows[index].id_louvor_db;
+                                      novasRows[index].originalIdLouvorDb = novasRows[index].originalIdLouvorDb;
                                       novasRows[index].nome = "";
                                       novasRows[index].numero = "";
                                     }

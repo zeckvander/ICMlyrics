@@ -42,6 +42,9 @@ export default function NovaLista() {
   const [showTema, setShowTema] = useState(false);
   const [showResponsavel, setShowResponsavel] = useState(false);
 
+  // Estado apenas para o nome da igreja
+  const [nomeIgreja, setNomeIgreja] = useState("");
+
   // Inicializa as 3 primeiras linhas com "--" por padrão
   const [rows, setRows] = useState([
     emptyRow("--"),
@@ -55,9 +58,40 @@ export default function NovaLista() {
   const [listaSalvaId, setListaSalvaId] = useState(null);
   const [salvando, setSalvando] = useState(false);
 
-  const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || localStorage.getItem("icmlyrics_user") || "";
+  const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
+  const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
   const senhaNuvem = localStorage.getItem("icmlyrics_senha_nuvem") || "";
   const temNuvem = usuarioNuvem.trim() !== "";
+
+  // Busca o nome oficial da igreja na tabela igrejas_autorizadas filtrando por "usuario"
+  useEffect(() => {
+    const carregarNomeIgreja = async () => {
+      const usuarioAtual = usuarioNuvem || usuarioLocal;
+
+      if (temNuvem && usuarioAtual) {
+        try {
+          const { data, error } = await supabase
+            .from("igrejas_autorizadas")
+            .select("nome_igreja")
+            .eq("usuario", usuarioAtual)
+            .maybeSingle();
+
+          if (!error && data && data.nome_igreja) {
+            setNomeIgreja(data.nome_igreja);
+          } else {
+            setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
+          }
+        } catch (e) {
+          console.error("Erro ao buscar igreja autorizada:", e);
+          setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
+        }
+      } else {
+        setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local");
+      }
+    };
+
+    carregarNomeIgreja();
+  }, [temNuvem, usuarioNuvem, usuarioLocal]);
 
   useEffect(() => {
     async function fetchLouvores() {
@@ -222,12 +256,20 @@ export default function NovaLista() {
           </div>
         </div>
 
-        <div className="p-2">
-          {temNuvem ? (
-            <Cloud className="w-5 h-5 text-emerald-400 drop-shadow" title={`Sincronizado na Nuvem (${usuarioNuvem})`} />
-          ) : (
-            <CloudOff className="w-5 h-5 text-slate-500" title="Sem usuário em cache: salvando apenas localmente" />
+        <div className="flex flex-col items-end">
+          {temNuvem && (
+            <span className="text-xs font-bold text-slate-100 tracking-wide uppercase">
+              {nomeIgreja}
+            </span>
           )}
+
+          <div className="flex items-center gap-2.5 mt-2">
+            {temNuvem ? (
+              <Cloud className="w-5 h-5 text-emerald-400 fill-emerald-500/20" title="Conectado à nuvem" />
+            ) : (
+              <Cloud className="w-5 h-5 text-slate-400 fill-slate-400/30" title="Modo local (sem nuvem)" />
+            )}
+          </div>
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Plus, Trash2, Globe, Shield, 
-  Loader2, X, ChevronDown, ChevronUp, Pencil 
+  Loader2, X, ChevronDown, ChevronUp, Pencil, Cloud 
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -261,19 +261,23 @@ export default function Avisos() {
         <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
           {carregandoValidacao ? (
             <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+          ) : !userNuvem.trim() ? (
+            <Cloud className="w-6 h-6 text-slate-400" />
           ) : (
-            <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
-              {nomeIgreja}
-            </span>
+            <>
+              <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
+                {nomeIgreja}
+              </span>
+              <span className="text-[9px] uppercase font-bold px-2.5 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center gap-1 text-slate-400">
+                {isSuper ? (
+                  <Globe className="w-2.5 h-2.5 text-amber-400" />
+                ) : (
+                  <Shield className="w-2.5 h-2.5 text-indigo-400" />
+                )}
+                {isSuper ? "Super Adm" : userRole === "church_admin" ? "Adm Local" : "Membro"}
+              </span>
+            </>
           )}
-          <span className="text-[9px] uppercase font-bold px-2.5 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center gap-1 text-slate-400">
-            {isSuper ? (
-              <Globe className="w-2.5 h-2.5 text-amber-400" />
-            ) : (
-              <Shield className="w-2.5 h-2.5 text-indigo-400" />
-            )}
-            {isSuper ? "Super Adm" : userRole === "church_admin" ? "Adm Local" : "Membro"}
-          </span>
         </div>
       </div>
 
@@ -381,7 +385,7 @@ export default function Avisos() {
           ) : !podeCriar ? (
             /* VISÃO DO MEMBRO / USUÁRIO COMUM */
             <>
-              {/* Card do aviso mais recente (Texto "Último Aviso" removido) */}
+              {/* Card do aviso mais recente */}
               <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 shadow-sm">
                 <h3 className="text-sm font-bold text-indigo-950 uppercase mb-2">
                   {avisos[0].assunto}
