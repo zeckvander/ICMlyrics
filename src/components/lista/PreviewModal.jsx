@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Copy, Download, Check, Share2, Calendar, User, Tag } from "lucide-react";
-import html2canvas from "html2canvas";
+import { toBlob, toPng } from "html-to-image";
 
 const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
@@ -13,17 +13,15 @@ export default function PreviewModal({
   dataCulto, 
   tipoCulto, 
   responsavel,
-  item,        // Objeto completo vindo da linha do histórico do banco
+  item,        
   ...rest 
 }) {
   const [copied, setCopied] = useState(false);
   const [loadingImg, setLoadingImg] = useState(false);
   const previewRef = useRef(null);
 
-  // Unifica os dados vindos da tela de criação ou do registro selecionado no histórico
   const dadosHistorico = item || rest.culto || rest.dados || rest.registro || {};
 
-  // Prioriza as colunas reais do banco: tipo_culto e responsavel
   const dataFinal = dataCulto || dadosHistorico.data_culto || dadosHistorico.dataCulto || dadosHistorico.data;
   const cultoFinal = tipoCulto || dadosHistorico.tipo_culto || dadosHistorico.tipoCulto || dadosHistorico.tema || dadosHistorico.tipo;
   const responsavelFinal = responsavel || dadosHistorico.responsavel || dadosHistorico.lider || dadosHistorico.responsavelLouvor;
@@ -41,6 +39,32 @@ export default function PreviewModal({
 
   const diaSemana = dataFinal ? DIAS[new Date(dataFinal.split("T")[0] + "T00:00:00").getDay()] : "";
 
+  const getCategoriaInfo = (row) => {
+    const cat = (row.categoria || row.tipo || "").trim().toUpperCase();
+    const isCias = cat.includes("CIAS");
+    const isAvulso = cat.includes("AVULSO") || cat === "AV";
+    return { isCias, isAvulso };
+  };
+
+  const obterIdentificador = (row) => {
+    if (row.numero) return String(row.numero);
+    const { isCias, isAvulso } = getCategoriaInfo(row);
+    if (isAvulso) return "AV";
+    if (isCias) return "CIAS";
+    return "";
+  };
+
+  const obterNomeFormatado = (row) => {
+    let nome = row.nome || row.buscaLouvor || "";
+    const { isCias } = getCategoriaInfo(row);
+    if (isCias && row.numero) {
+      if (!nome.toUpperCase().includes("(CIAS)")) {
+        nome += " (CIAS)";
+      }
+    }
+    return nome;
+  };
+
   const gerarTextoCompartilhamento = () => {
     let texto = `Louvores`;
     if (dataFinal) texto += `\n${formatarData(dataFinal)}${diaSemana ? ` — ${diaSemana}` : ""}`;
@@ -54,11 +78,14 @@ export default function PreviewModal({
         const nomeSecao = (row.text || row.nome || "Seção").toUpperCase();
         texto += `-- ${nomeSecao}\n`;
       } else {
-        const num = row.numero ? `${row.numero}` : (row.categoria === "Avulsos" ? "AV" : "");
-        const nome = row.nome || row.buscaLouvor || "";
+        const num = obterIdentificador(row);
+        const nome = obterNomeFormatado(row);
         const obs = row.observacao ? ` (${row.observacao})` : "";
+        
         if (num || nome) {
-          texto += `${num ? `${num} - ` : ""}${nome}${obs}\n`;
+          // Alinha todos os identificadores considerando o espaço de 4 caracteres ("CIAS")
+          const numFormatado = num ? num.padEnd(4, ' ') : '';
+          texto += `${numFormatado}${num ? ' - ' : ''}${nome}${obs}\n`;
         }
       }
     });
@@ -78,38 +105,36 @@ export default function PreviewModal({
     if (!previewRef.current) return;
     try {
       setLoadingImg(true);
-      const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setLoadingImg(false);
-          return;
-        }
-        const file = new File([blob], `lista-culto-${dataFinal || "geral"}.png`, { type: "image/png" });
+      const blob = await toBlob(previewRef.current, { cacheBust: true, pixelRatio: 2 });
+      if (!blob) {
+        setLoadingImg(false);
+        return;
+      }
+      const file = new File([blob], `lista-culto-${dataFinal || "geral"}.png`, { type: "image/png" });
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              title: "Lista de Louvores",
-              text: textoFormatado,
-              files: [file],
-            });
-            setLoadingImg(false);
-            return;
-          } catch (err) {
-            if (err.name !== "AbortError") console.log("Erro ao compartilhar arquivo:", err);
-          }
-        }
-
-        if (navigator.share) {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
           await navigator.share({
             title: "Lista de Louvores",
             text: textoFormatado,
+            files: [file],
           });
-        } else {
-          handleCopyText();
+          setLoadingImg(false);
+          return;
+        } catch (err) {
+          if (err.name !== "AbortError") console.log("Erro ao compartilhar arquivo:", err);
         }
-        setLoadingImg(false);
-      }, "image/png");
+      }
+
+      if (navigator.share) {
+        await navigator.share({
+          title: "Lista de Louvores",
+          text: textoFormatado,
+        });
+      } else {
+        handleCopyText();
+      }
+      setLoadingImg(false);
     } catch (error) {
       console.error("Erro ao gerar imagem para compartilhamento:", error);
       setLoadingImg(false);
@@ -121,10 +146,9 @@ export default function PreviewModal({
     if (!previewRef.current) return;
     try {
       setLoadingImg(true);
-      const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
-      const image = canvas.toDataURL("image/png");
+      const dataUrl = await toPng(previewRef.current, { cacheBust: true, pixelRatio: 2 });
       const link = document.createElement("a");
-      link.href = image;
+      link.href = dataUrl;
       link.download = `lista-culto-${dataFinal || "geral"}.png`;
       link.click();
     } catch (error) {
@@ -151,19 +175,22 @@ export default function PreviewModal({
                 <h2 className="font-bold text-xl tracking-tight">Lista de Louvores</h2>
                 <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-300 font-medium pt-1">
                   {dataFinal && (
-                    <span className="flex items-center gap-1 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
-                      <Calendar className="w-3.5 h-3.5 text-blue-400" /> {formatarData(dataFinal)} {diaSemana && `- ${diaSemana}`}
+                    <span className="inline-flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
+                      <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" /> 
+                      <span>{formatarData(dataFinal)} {diaSemana && `- ${diaSemana}`}</span>
                     </span>
                   )}
                   {cultoFinal && (
-                    <span className="flex items-center gap-1 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700 uppercase tracking-wider text-[10px]">
-                      <Tag className="w-3.5 h-3.5 text-amber-400" /> {cultoFinal}
+                    <span className="inline-flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700 uppercase tracking-wider text-[10px]">
+                      <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" /> 
+                      <span>{cultoFinal}</span>
                     </span>
                   )}
                 </div>
                 {responsavelFinal && (
-                  <div className="pt-1 text-xs text-slate-300 flex items-center justify-center gap-1">
-                    <User className="w-3.5 h-3.5 text-emerald-400" /> Responsável: <span className="text-white font-semibold">{responsavelFinal}</span>
+                  <div className="pt-1 text-xs text-slate-300 flex items-center justify-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 
+                    <span>Responsável: <span className="text-white font-semibold">{responsavelFinal}</span></span>
                   </div>
                 )}
               </div>
@@ -177,15 +204,19 @@ export default function PreviewModal({
                       </div>
                     );
                   }
-                  const nomeLouvor = row.nome || row.buscaLouvor;
+                  const nomeLouvor = obterNomeFormatado(row);
                   if (!nomeLouvor && !row.numero) return null;
-                  const identificador = row.numero ? row.numero : (row.categoria === "Avulsos" ? "AV" : "");
+                  
+                  const identificador = obterIdentificador(row);
 
                   return (
                     <div key={row.id || idx} className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0">
                       <div className="flex items-center gap-2.5">
                         {identificador && (
-                          <span className="bg-slate-100 text-slate-800 font-bold px-2 py-0.5 rounded text-xs border border-slate-200 min-w-[32px] text-center">
+                          <span 
+                            style={{ width: '52px' }} 
+                            className="inline-flex items-center justify-center bg-slate-100 text-slate-800 font-bold py-1 rounded text-xs border border-slate-200 text-center shrink-0"
+                          >
                             {identificador}
                           </span>
                         )}

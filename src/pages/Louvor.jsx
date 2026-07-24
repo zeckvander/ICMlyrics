@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Filter, Loader2, Star, Menu, ArrowLeft, Upload, ChevronDown, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -86,14 +86,52 @@ export default function Louvor() {
     sessionStorage.setItem("louvor_favs_only", String(showFavsOnly));
   }, [search, filterCategoria, filterTema, showFavsOnly]);
 
-  // 6. BUSCA DIRETA E LEVE NO SUPABASE
+  // Se a categoria mudar, valida se o tema atual pertence a ela; se não, reseta para "all"
+  useEffect(() => {
+    if (filterTema !== "all") {
+      const existeNoPadrao = TEMAS_PADRAO.some(t => 
+        t.tema === filterTema && (filterCategoria === "all" || t.categoria === filterCategoria)
+      );
+      const existeNoBanco = louvores.some(l => {
+        const temNumero = l.numero !== null && l.numero !== undefined && String(l.numero).trim() !== "";
+        return !temNumero && l.tema === filterTema && (filterCategoria === "all" || l.categoria === filterCategoria);
+      });
+
+      if (!existeNoPadrao && !existeNoBanco) {
+        setFilterTema("all");
+      }
+    }
+  }, [filterCategoria, louvores]);
+
+  // Geração dinâmica dos temas disponíveis (incluindo padrões do arquivo e personalizados do banco para sem número)
+  const temasDisponiveis = useMemo(() => {
+    let filtrados = TEMAS_PADRAO;
+    if (filterCategoria !== "all") {
+      filtrados = TEMAS_PADRAO.filter(t => t.categoria === filterCategoria);
+    }
+    const temasSet = new Set(filtrados.map(t => t.tema));
+
+    // Adiciona temas vindos do banco para músicas sem número
+    louvores.forEach(l => {
+      const temNumero = l.numero !== null && l.numero !== undefined && String(l.numero).trim() !== "";
+      if (!temNumero && l.tema) {
+        if (filterCategoria === "all" || l.categoria === filterCategoria) {
+          temasSet.add(l.tema);
+        }
+      }
+    });
+
+    return [...temasSet];
+  }, [filterCategoria, louvores]);
+
+  // 6. BUSCA DIRETA NO SUPABASE (INCLUINDO A COLUNA TEMA)
   useEffect(() => {
     const init = async () => {
       setLoading(true);
 
       const { data, error } = await supabase
         .from('louvores')
-        .select('id, numero, nome, categoria, ritmo, letra_musica')
+        .select('id, numero, nome, categoria, ritmo, letra_musica, tema')
         .order('numero', { ascending: true });
 
       if (error) {
@@ -152,12 +190,12 @@ export default function Louvor() {
   const dispararDownload = (blob, nome) => { const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = nome; a.click(); URL.revokeObjectURL(url); };
   const exportarBackupJson = () => dispararDownload(new Blob([JSON.stringify(louvores, null, 2)], { type: "application/json" }), "backup_louvores.json");
   const exportarBackupCsv = () => {
-    const colunas = ["numero", "nome", "categoria", "ritmo"];
+    const colunas = ["numero", "nome", "categoria", "ritmo", "tema"];
     const csv = "\uFEFF" + [colunas.join(";"), ...louvores.map(l => colunas.map(c => `"${String(l[c] || "").replace(/"/g, '""')}"`).join(";"))].join("\n");
     dispararDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "backup_louvores.csv");
   };
   const exportarBackupXlsx = () => {
-    const colunas = ["numero", "nome", "categoria", "ritmo"];
+    const colunas = ["numero", "nome", "categoria", "ritmo", "tema"];
     let xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Backup"><Table><Row>`;
     colunas.forEach(c => xml += `<Cell><Data ss:Type="String">${c}</Data></Cell>`);
     xml += `</Row>`;
@@ -187,7 +225,19 @@ export default function Louvor() {
   };
 
   const filtered = louvores.filter((l) => {
-    const temaDoLouvor = l.tema || TEMAS_PADRAO.find(t => t.numero === String(l.numero) && t.categoria === l.categoria)?.tema || "Sem Tema";
+    // Lógica Híbrida: Se tem número, busca no arquivo padrão. Se não tem, busca na coluna `tema` do banco.
+    const temNumero = l.numero !== null && l.numero !== undefined && String(l.numero).trim() !== "";
+    
+    let temaDoLouvor = "Sem Tema";
+    if (temNumero) {
+      const padrao = TEMAS_PADRAO.find(t => 
+        parseInt(t.numero, 10) === parseInt(l.numero, 10) && t.categoria === l.categoria
+      );
+      if (padrao) temaDoLouvor = padrao.tema;
+    } else {
+      temaDoLouvor = l.tema || "Sem Tema";
+    }
+    
     const searchLower = search.toLowerCase();
 
     // BUSCA POR: NOME, NÚMERO OU LETRA DA MÚSICA
@@ -219,7 +269,7 @@ export default function Louvor() {
     if (pesoA !== pesoB) return pesoA - pesoB;
 
     if (pesoA === 1 || pesoA === 2) {
-      return (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0);
+      return (parseInt(a.numero, 10) || 0) - (parseInt(b.numero, 10) || 0);
     }
 
     return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
@@ -263,7 +313,7 @@ export default function Louvor() {
             <SelectTrigger id="tema-select" className="w-full bg-white border-0 shadow-sm rounded-xl h-10"><Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" /><SelectValue placeholder="Tema" /></SelectTrigger>
             <SelectContent className="max-h-[300px]">
               <SelectItem value="all">Tema</SelectItem>
-              {["Clamor", "Invocação e Comunhão", "Dedicação", "Morte, Ressureição e Salvação", "Consolo e Encorajamento", "Santificação e Derramamento do Espírito Santo", "Volta de Jesus e Eternidade", "Louvor", "Salmos de Louvor", "Grupo de Louvor", "Corinhos"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              {temasDisponiveis.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
           {(getFavorites(musico).length > 0 || showFavsOnly) && (

@@ -14,11 +14,16 @@ const TEMAS_COLETANEA = [
   ...Array.from({length: 64}, (_, i) => ({ numero: (i + 731).toString(), tema: "Corinhos", categoria: "Coletânea" }))
 ];
 
-// 2. Regras para "Cias" (Deixamos pronto para você preencher depois)
+// 2. Regras para "Cias" atualizadas com os intervalos solicitados
 const TEMAS_CIAS = [
-  // Exemplo futuro: 
-  // { numero: "1", tema: "Abertura", categoria: "Cias" },
-  // ...Array.from({length: 10}, (_, i) => ({ numero: (i + 1).toString(), tema: "Tema Exemplo Cias", categoria: "Cias" }))
+  ...Array.from({length: 12}, (_, i) => ({ numero: (i + 1).toString(), tema: "Clamor", categoria: "Cias" })),
+  ...Array.from({length: 10}, (_, i) => ({ numero: (i + 13).toString(), tema: "Invocação e Comunhão", categoria: "Cias" })),
+  ...Array.from({length: 37}, (_, i) => ({ numero: (i + 23).toString(), tema: "Dedicação", categoria: "Cias" })),
+  ...Array.from({length: 47}, (_, i) => ({ numero: (i + 60).toString(), tema: "Morte, Ressureição e Salvação", categoria: "Cias" })),
+  ...Array.from({length: 26}, (_, i) => ({ numero: (i + 107).toString(), tema: "Consolo e Encorajamento", categoria: "Cias" })),
+  ...Array.from({length: 48}, (_, i) => ({ numero: (i + 133).toString(), tema: "Santificação e Derramamento do Espírito Santo", categoria: "Cias" })),
+  ...Array.from({length: 39}, (_, i) => ({ numero: (i + 181).toString(), tema: "Volta de Jesus e Eternidade", categoria: "Cias" })),
+  ...Array.from({length: 22}, (_, i) => ({ numero: (i + 220).toString(), tema: "Louvor", categoria: "Cias" }))
 ];
 
 // 3. Regras para "Avulsos" (Deixamos pronto para você preencher depois)
