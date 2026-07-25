@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Home, ListPlus, Music2, FolderOpen, LogOut, History } from "lucide-react";
+// Ícone ListMusic importado para o botão de Repertório
+import { Home, ListPlus, Music2, FolderOpen, LogOut, History, Bell, ListMusic } from "lucide-react";
 import { logoutAdmin } from "@/lib/adminAuth";
 
 export default function DrawerMenu({ open, onOpenChange, onAdminLogout }) {
@@ -33,20 +34,28 @@ export default function DrawerMenu({ open, onOpenChange, onAdminLogout }) {
             <Home className="w-5 h-5 text-slate-400" /> Início
           </button>
           
-          <button onClick={() => handleNav("/historico-listas")} className="flex items-center gap-3 w-full px-6 py-3 text-sm text-slate-700 hover:bg-slate-100 transition-colors">
-            <History className="w-5 h-5 text-slate-400" /> Histórico de Listas
-          </button>
-          
-          <button onClick={() => handleNav("/inicio")} className="flex items-center gap-3 w-full px-6 py-3 text-sm text-slate-700 hover:bg-slate-100 transition-colors">
+          <button onClick={() => handleNav("/louvor")} className="flex items-center gap-3 w-full px-6 py-3 text-sm text-slate-700 hover:bg-slate-100 transition-colors">
             <Music2 className="w-5 h-5 text-slate-400" /> Louvores
           </button>
-          
+
           <button onClick={() => handleNav("/nova-lista")} className="flex items-center gap-3 w-full px-6 py-3 text-sm text-slate-700 hover:bg-slate-100 transition-colors">
             <ListPlus className="w-5 h-5 text-slate-400" /> Nova Lista
           </button>
           
+          <button onClick={() => handleNav("/historico-listas")} className="flex items-center gap-3 w-full px-6 py-3 text-sm text-slate-700 hover:bg-slate-100 transition-colors">
+            <History className="w-5 h-5 text-slate-400" /> Histórico de Listas
+          </button>
+
+          <button onClick={() => handleNav("/repertorio")} className="flex items-center gap-3 w-full px-6 py-3 text-sm text-slate-700 hover:bg-slate-100 transition-colors">
+            <ListMusic className="w-5 h-5 text-slate-400" /> Repertório
+          </button>
+          
           <button onClick={() => handleNav("/drive")} className="flex items-center gap-3 w-full px-6 py-3 text-sm text-slate-700 hover:bg-slate-100 transition-colors">
             <FolderOpen className="w-5 h-5 text-slate-400" /> Drive
+          </button>
+
+          <button onClick={() => handleNav("/avisos")} className="flex items-center gap-3 w-full px-6 py-3 text-sm text-slate-700 hover:bg-slate-100 transition-colors">
+            <Bell className="w-5 h-5 text-slate-400" /> Avisos
           </button>
         </div>
         

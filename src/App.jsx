@@ -22,7 +22,8 @@ import Chat from '@/pages/Chat';
 import Biblia from '@/pages/biblia'; 
 import ModoPlaylist from '@/pages/ModoPlaylist';
 import Backup from '@/pages/Backup'; 
-import Avisos from '@/pages/Avisos'; // IMPORTADO AQUI
+import Avisos from '@/pages/Avisos';
+import Repertorio from '@/pages/Repertorio'; // IMPORTADO AQUI
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 
 const PrivateLayout = ({ children }) => {
@@ -95,11 +96,11 @@ function App() {
             <Route path="/chat" element={<PrivateLayout><Chat /></PrivateLayout>} />
             <Route path="/modo-playlist" element={<PrivateLayout><ModoPlaylist /></PrivateLayout>} />
             <Route path="/biblia" element={<PrivateLayout><Biblia /></PrivateLayout>} />
-            
             <Route path="/backup" element={<PrivateLayout><Backup /></PrivateLayout>} />
-            
-            {/* ROTA DO MURAL DE AVISOS ADICIONADA */}
             <Route path="/avisos" element={<PrivateLayout><Avisos /></PrivateLayout>} />
+            
+            {/* ROTA DO REPERTÓRIO ADICIONADA */}
+            <Route path="/repertorio" element={<PrivateLayout><Repertorio /></PrivateLayout>} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>

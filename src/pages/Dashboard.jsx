@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, AlertTriangle, Database, Megaphone } from "lucide-react";
+import { Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, AlertTriangle, Database, Megaphone, ListMusic } from "lucide-react";
 import { useTools } from "@/components/tools/ToolsProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,15 +15,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // 🛠️ CORRIGIDO: Agora puxa "openAfinador" com I do ToolsProvider
   const { openMetronomo, openAfinador } = useTools();
   const musico = localStorage.getItem("icmlyrics_user") || "Usuário";
 
-  // Estados dos Modais
   const [configOpen, setConfigOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false); 
 
-  // Estados de Autenticação na Nuvem
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [conectarComoAdmin, setConectarComoAdmin] = useState(false);
@@ -34,16 +31,13 @@ export default function Dashboard() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarSenhaAdmin, setMostrarSenhaAdmin] = useState(false);
   
-  // Estados do Perfil Conectado
   const [nuvemAtiva, setNuvemAtiva] = useState(false);
   const [userRole, setUserRole] = useState("user");
 
-  // Opção de limpar dados locais no Logout
   const [limparFavoritos, setLimparFavoritos] = useState(false);
 
   const SEU_WHATSAPP_LINK = "https://wa.me/5527999999999"; 
 
-  // 1. Captura da URL da chave mestra do Super Admin
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const chaveRecebida = queryParams.get("master");
@@ -60,7 +54,6 @@ export default function Dashboard() {
     }
   }, [location, navigate]);
 
-  // 2. Validação de Segurança no Carregamento do App
   useEffect(() => {
     const validarSessaoSegura = async () => {
       const userSalvo = localStorage.getItem("icmlyrics_user_nuvem") || "";
@@ -133,7 +126,6 @@ export default function Dashboard() {
     }
   };
 
-  // Login Seguro
   const handleConectar = async () => {
     setErroAuth("");
 
@@ -202,7 +194,6 @@ export default function Dashboard() {
     }
   };
 
-  // Execução Final do Logout Seguro
   const handleLogoutCompleto = async () => {
     if (limparFavoritos) {
       const usuarioAtual = localStorage.getItem("icmlyrics_user");
@@ -252,17 +243,17 @@ export default function Dashboard() {
     setNuvemAtiva(false);
   };
 
-  // BOTÕES DOS ATALHOS - BÍBLIA E AVISOS EM PERFEITA ORDEM
+  // BOTÕES DOS ATALHOS - REPERTÓRIO LOGO AO LADO DE AVISOS (NO FIM DA LISTA)
   const atalhos = [
     { label: "Louvores", icon: Music2, path: "/louvor", color: "bg-teal-500" },
     { label: "Nova Lista", icon: ListPlus, path: "/nova-lista", color: "bg-amber-500" },
     { label: "Histórico de Listas", icon: History, path: "/historico-listas", color: "bg-indigo-500" },
     { label: "Drive", icon: FolderOpen, path: "/drive", color: "bg-blue-500" },
     { label: "Bíblia", icon: BookOpen, path: "/biblia", color: "bg-emerald-600" },
-    { label: "Avisos", icon: Megaphone, path: "/avisos", color: "bg-orange-500" }
+    { label: "Avisos", icon: Megaphone, path: "/avisos", color: "bg-orange-500" },
+    { label: "Repertório", icon: ListMusic, path: "/repertorio", color: "bg-pink-500" }
   ];
 
-  // BOTÕES DE FERRAMENTAS - 🛠️ CORRIGIDO PARA openAfinador
   const ferramentas = [
     { label: "Metrônomo", icon: Gauge, color: "bg-purple-500", onClick: openMetronomo },
     { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfinador },
@@ -272,7 +263,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 pb-28 relative flex flex-col justify-between">
       <div>
-        {/* Banner do Cabeçalho */}
         <div className="bg-slate-900 text-white relative overflow-hidden min-h-[180px] flex flex-col justify-end">
           <img src={bannerImg} alt="ICMlyrics Banner" className="absolute inset-0 w-full h-full object-cover opacity-80" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0" />
@@ -305,7 +295,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Grid de Atalhos e Ferramentas */}
         <div className="px-4 -mt-4 space-y-6 relative z-20">
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -344,7 +333,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Suporte Técnico */}
       <div className="px-4 mt-8 pb-4">
         <div className="bg-white rounded-2xl border border-slate-100 p-3 shadow-sm flex items-center justify-between text-xs text-slate-500">
           <div className="flex flex-col">
@@ -357,7 +345,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* MODAL 1: Sincronização */}
       <Dialog open={configOpen} onOpenChange={setConfigOpen}>
         <DialogContent className="max-w-xs sm:max-w-md rounded-2xl p-6">
           <DialogHeader>
@@ -493,7 +480,6 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL 2: CONFIRMAÇÃO DE LOGOUT */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <DialogContent className="max-w-xs rounded-2xl p-6">
           <DialogHeader>
@@ -504,7 +490,7 @@ export default function Dashboard() {
           </DialogHeader>
           
           <p className="text-xs text-slate-500 leading-relaxed mt-1">
-            Sua sessão atual e a sincronização com as listas da nuvem serão encerradas neste dispositivo.
+            Sua sessão atual e a sincronização com las listas da nuvem serão encerradas neste dispositivo.
           </p>
 
           <div className="flex items-start gap-2.5 py-3 mt-2 border-t border-b border-slate-100 select-none">
