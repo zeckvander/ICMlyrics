@@ -103,7 +103,7 @@ export default function Louvor() {
     }
   }, [filterCategoria, louvores]);
 
-  // Geração dinâmica dos temas disponíveis (incluindo padrões do arquivo e personalizados do banco para sem número)
+  // Geração dinâmica dos temas disponíveis
   const temasDisponiveis = useMemo(() => {
     let filtrados = TEMAS_PADRAO;
     if (filterCategoria !== "all") {
@@ -124,25 +124,25 @@ export default function Louvor() {
     return [...temasSet];
   }, [filterCategoria, louvores]);
 
-  // 6. BUSCA DIRETA NO SUPABASE (INCLUINDO A COLUNA TEMA)
+  // 6. FUNÇÃO PARA BUSCAR OS LOUVORES DO BANCO (Substitui o window.location.reload)
+  const carregarLouvores = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('louvores')
+      .select('id, numero, nome, categoria, ritmo, letra_musica, tema')
+      .order('numero', { ascending: true });
+
+    if (error) {
+      console.error("Erro no Supabase:", error.message);
+    } else {
+      setLouvores(data || []);
+    }
+    setLoading(false);
+  };
+
+  // Chama a busca inicial
   useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-
-      const { data, error } = await supabase
-        .from('louvores')
-        .select('id, numero, nome, categoria, ritmo, letra_musica, tema')
-        .order('numero', { ascending: true });
-
-      if (error) {
-        console.error("Erro no Supabase:", error.message);
-      } else {
-        setLouvores(data || []);
-      }
-
-      setLoading(false);
-    };
-    init();
+    carregarLouvores();
   }, []);
 
   // 7. RESTAURA A POSIÇÃO DE ROLAGEM DEPOIS QUE OS CARDS FORAM RENDERIZADOS
@@ -182,18 +182,28 @@ export default function Louvor() {
       alert("Erro ao salvar: " + error.message);
     } else { 
       setSheetOpen(false); 
-      window.location.reload(); 
+      carregarLouvores(); // Atualiza a lista suavemente sem recarregar a tela
     }
     setSaving(false);
   };
 
-  const dispararDownload = (blob, nome) => { const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = nome; a.click(); URL.revokeObjectURL(url); };
+  const dispararDownload = (blob, nome) => { 
+    const url = URL.createObjectURL(blob); 
+    const a = document.createElement("a"); 
+    a.href = url; 
+    a.download = nome; 
+    a.click(); 
+    URL.revokeObjectURL(url); 
+  };
+  
   const exportarBackupJson = () => dispararDownload(new Blob([JSON.stringify(louvores, null, 2)], { type: "application/json" }), "backup_louvores.json");
+  
   const exportarBackupCsv = () => {
     const colunas = ["numero", "nome", "categoria", "ritmo", "tema"];
     const csv = "\uFEFF" + [colunas.join(";"), ...louvores.map(l => colunas.map(c => `"${String(l[c] || "").replace(/"/g, '""')}"`).join(";"))].join("\n");
     dispararDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "backup_louvores.csv");
   };
+  
   const exportarBackupXlsx = () => {
     const colunas = ["numero", "nome", "categoria", "ritmo", "tema"];
     let xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Backup"><Table><Row>`;
@@ -218,7 +228,7 @@ export default function Louvor() {
       if (error) {
         alert("Erro: " + error.message);
       } else {
-        window.location.reload();
+        carregarLouvores(); // Atualiza a lista suavemente
       }
     };
     reader.readAsText(file);
@@ -240,10 +250,10 @@ export default function Louvor() {
     
     const searchLower = search.toLowerCase();
 
-    // BUSCA POR: NOME, NÚMERO OU LETRA DA MÚSICA
+    // BUSCA POR: NOME, NÚMERO OU LETRA DA MÚSICA (Com correção para evitar buscar o texto 'null')
     const matchSearch = 
       l.nome?.toLowerCase().includes(searchLower) || 
-      String(l.numero)?.includes(search) ||
+      (l.numero ? String(l.numero).includes(search) : false) ||
       l.letra_musica?.toLowerCase().includes(searchLower);
 
     // SE ESTIVER EM MODO FAVORITOS, IGNORA OS FILTROS DE CATEGORIA E TEMA
@@ -291,7 +301,9 @@ export default function Louvor() {
         </div>
       </div>
       <DrawerMenu open={drawerOpen} onOpenChange={setDrawerOpen} onAdminLogout={() => setAdmin(false)} />
+      
       <div className="px-4 -mt-3 space-y-3">
+        {/* Barra de Busca */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input 
@@ -304,18 +316,36 @@ export default function Louvor() {
             className="pl-9 bg-white border-0 shadow-sm rounded-xl h-11" 
           />
         </div>
+        
+        {/* Filtros */}
         <div className="flex gap-2">
+          {/* Categoria Select */}
           <Select value={filterCategoria} onValueChange={setFilterCategoria}>
-            <SelectTrigger id="categoria-select" className="w-full bg-white border-0 shadow-sm rounded-xl h-10"><Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" /><SelectValue placeholder="Categoria" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Categoria</SelectItem><SelectItem value="Avulsos">Avulsos</SelectItem><SelectItem value="Cias">Cias</SelectItem><SelectItem value="Coletânea">Coletânea</SelectItem></SelectContent>
+            <SelectTrigger id="categoria-select" className="w-full bg-white border-0 shadow-sm rounded-xl h-10">
+              <Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Categoria</SelectItem>
+              <SelectItem value="Avulsos">Avulsos</SelectItem>
+              <SelectItem value="Cias">Cias</SelectItem>
+              <SelectItem value="Coletânea">Coletânea</SelectItem>
+            </SelectContent>
           </Select>
+
+          {/* Tema Select */}
           <Select value={filterTema} onValueChange={setFilterTema}>
-            <SelectTrigger id="tema-select" className="w-full bg-white border-0 shadow-sm rounded-xl h-10"><Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" /><SelectValue placeholder="Tema" /></SelectTrigger>
+            <SelectTrigger id="tema-select" className="w-full bg-white border-0 shadow-sm rounded-xl h-10">
+              <Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+              <SelectValue placeholder="Tema" />
+            </SelectTrigger>
             <SelectContent className="max-h-[300px]">
               <SelectItem value="all">Tema</SelectItem>
               {temasDisponiveis.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
+
+          {/* Favoritos Toggle */}
           {(getFavorites(musico).length > 0 || showFavsOnly) && (
             <Button size="icon" variant={showFavsOnly ? "default" : "outline"} className="rounded-xl h-10 w-10 shrink-0 bg-white border-0 shadow-sm relative" onClick={() => setShowFavsOnly(!showFavsOnly)}>
               <Star className={`w-5 h-5 ${showFavsOnly ? "fill-amber-400 text-amber-400" : "text-slate-400"}`} />
@@ -328,12 +358,22 @@ export default function Louvor() {
           )}
         </div>
         
+        {/* Painel de Admin */}
         {admin && (
           <div className="flex gap-2">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button variant="outline" className="rounded-xl shadow-sm">Exportar <ChevronDown className="w-4 h-4 ml-1" /></Button></DropdownMenuTrigger>
-              <DropdownMenuContent className="rounded-xl"><DropdownMenuItem onClick={exportarBackupJson}>JSON</DropdownMenuItem><DropdownMenuItem onClick={exportarBackupCsv}>CSV</DropdownMenuItem><DropdownMenuItem onClick={exportarBackupXlsx}>XLS</DropdownMenuItem></DropdownMenuContent>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="rounded-xl shadow-sm">
+                  Exportar <ChevronDown className="w-4 h-4 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="rounded-xl">
+                <DropdownMenuItem onClick={exportarBackupJson}>JSON</DropdownMenuItem>
+                <DropdownMenuItem onClick={exportarBackupCsv}>CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={exportarBackupXlsx}>XLS</DropdownMenuItem>
+              </DropdownMenuContent>
             </DropdownMenu>
+
             <label className="cursor-pointer bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
               <Upload className="w-5 h-5 text-slate-500"/>
               <input type="file" id="import-json" name="file-import" className="hidden" onChange={handleImportJson}/>
@@ -354,7 +394,10 @@ export default function Louvor() {
           </div>
         )}
 
-        {loading ? <Loader2 className="animate-spin mx-auto mt-10" /> : filtered.length === 0 ? (
+        {/* Listagem */}
+        {loading ? (
+          <Loader2 className="animate-spin mx-auto mt-10" />
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
             <p className="text-slate-500 font-medium">Nenhum louvor encontrado</p>
             <Button variant="outline" onClick={() => setShowFavsOnly(false)} className="rounded-xl">Voltar</Button>
@@ -362,7 +405,13 @@ export default function Louvor() {
         ) : (
           <div className="space-y-2 pb-8">
             {filtered.map((l) => (
-              <SongCard key={l.id} louvor={l} isAdmin={admin} isFavorited={getFavorites(musico).includes(String(l.id))} onToggleFav={() => setFavTrigger(prev => prev + 1)} />
+              <SongCard 
+                key={l.id} 
+                louvor={l} 
+                isAdmin={admin} 
+                isFavorited={getFavorites(musico).includes(String(l.id))} 
+                onToggleFav={() => setFavTrigger(prev => prev + 1)} 
+              />
             ))}
           </div>
         )}

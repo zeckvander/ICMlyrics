@@ -114,7 +114,7 @@ export default function HistoricoListas() {
     }
   };
 
-  // Função dedicada para atualizar/sincronizar manualmente ao clicar na nuvem[cite: 1]
+  // Função dedicada para atualizar/sincronizar manualmente ao clicar na nuvem
   const handleSincronizar = () => {
     carregarBancoLouvores();
     carregarListas();
@@ -363,7 +363,7 @@ export default function HistoricoListas() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
-      {/* Cabeçalho limpo exibindo o nome da igreja apenas se conectado à nuvem */}
+      {/* Cabeçalho limpo exibindo o nome da igreja e controle de sincronização */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
@@ -378,14 +378,15 @@ export default function HistoricoListas() {
           </div>
         </div>
 
-        <div className="flex flex-col items-end">
+        {/* Indicador do Usuário/Igreja e Nuvem */}
+        <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
           {temNuvem && (
-            <span className="text-xs font-bold text-slate-100 tracking-wide uppercase">
+            <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
               {nomeIgreja}
             </span>
           )}
 
-          <div className="flex items-center gap-2.5 mt-2">
+          <div className="flex items-center gap-2 mt-1">
             {temNuvem && listas.length > 0 && (
               <button
                 onClick={handleExcluirTodasNuvem}
@@ -396,19 +397,17 @@ export default function HistoricoListas() {
               </button>
             )}
 
-            {/* Nuvem transformada em botão de atualizar/sincronizar[cite: 1] */}
-            <button
-              onClick={handleSincronizar}
-              disabled={loading}
-              className="p-0.5 hover:scale-110 active:scale-95 transition-all disabled:opacity-50 focus:outline-none"
+            {/* Nuvem transformada em botão de atualizar/sincronizar */}
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSincronizar();
+              }}
+              className="px-2 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors"
               title={temNuvem ? "Clique para sincronizar/atualizar dados da nuvem" : "Clique para atualizar dados locais"}
             >
-              {temNuvem ? (
-                <Cloud className={`w-5 h-5 text-emerald-400 fill-emerald-500/20 ${loading ? "animate-pulse" : ""}`} />
-              ) : (
-                <Cloud className={`w-5 h-5 text-slate-400 fill-slate-400/30 ${loading ? "animate-pulse" : ""}`} />
-              )}
-            </button>
+              <Cloud className={`w-3 h-3 ${temNuvem ? "text-emerald-400" : "text-slate-400"} ${loading ? "animate-spin" : ""}`} />
+            </div>
           </div>
         </div>
       </div>

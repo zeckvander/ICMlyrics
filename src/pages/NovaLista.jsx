@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
-import { ArrowLeft, Menu, Plus, Image, FileText, Cloud, CloudOff } from "lucide-react";
+import { ArrowLeft, Menu, Plus, Image, FileText, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ListaRow from "@/components/lista/ListaRow";
@@ -13,7 +13,6 @@ import { supabase } from "@/lib/supabaseClient";
 const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 const genId = () => Math.random().toString(36).slice(2, 9);
 
-// Agora o padrão inicial é "--"
 const emptyRow = (categoriaPadrao = "--") => ({ 
   id: genId(), 
   type: "louvor", 
@@ -44,6 +43,7 @@ export default function NovaLista() {
 
   // Estado apenas para o nome da igreja
   const [nomeIgreja, setNomeIgreja] = useState("");
+  const [carregandoIgreja, setCarregandoIgreja] = useState(false);
 
   // Inicializa as 3 primeiras linhas com "--" por padrão
   const [rows, setRows] = useState([
@@ -64,32 +64,36 @@ export default function NovaLista() {
   const temNuvem = usuarioNuvem.trim() !== "";
 
   // Busca o nome oficial da igreja na tabela igrejas_autorizadas filtrando por "usuario"
-  useEffect(() => {
-    const carregarNomeIgreja = async () => {
-      const usuarioAtual = usuarioNuvem || usuarioLocal;
+  const carregarNomeIgreja = async () => {
+    setCarregandoIgreja(true);
+    const usuarioAtual = usuarioNuvem || usuarioLocal;
 
-      if (temNuvem && usuarioAtual) {
-        try {
-          const { data, error } = await supabase
-            .from("igrejas_autorizadas")
-            .select("nome_igreja")
-            .eq("usuario", usuarioAtual)
-            .maybeSingle();
+    if (temNuvem && usuarioAtual) {
+      try {
+        const { data, error } = await supabase
+          .from("igrejas_autorizadas")
+          .select("nome_igreja")
+          .eq("usuario", usuarioAtual)
+          .maybeSingle();
 
-          if (!error && data && data.nome_igreja) {
-            setNomeIgreja(data.nome_igreja);
-          } else {
-            setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
-          }
-        } catch (e) {
-          console.error("Erro ao buscar igreja autorizada:", e);
+        if (!error && data && data.nome_igreja) {
+          setNomeIgreja(data.nome_igreja);
+        } else {
           setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
         }
-      } else {
-        setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local");
+      } catch (e) {
+        console.error("Erro ao buscar igreja autorizada:", e);
+        setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
+      } finally {
+        setCarregandoIgreja(false);
       }
-    };
+    } else {
+      setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local");
+      setCarregandoIgreja(false);
+    }
+  };
 
+  useEffect(() => {
     carregarNomeIgreja();
   }, [temNuvem, usuarioNuvem, usuarioLocal]);
 
@@ -256,19 +260,25 @@ export default function NovaLista() {
           </div>
         </div>
 
-        <div className="flex flex-col items-end">
+        {/* Indicador do Usuário/Igreja e Nuvem */}
+        <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
           {temNuvem && (
-            <span className="text-xs font-bold text-slate-100 tracking-wide uppercase">
+            <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
               {nomeIgreja}
             </span>
           )}
 
-          <div className="flex items-center gap-2.5 mt-2">
-            {temNuvem ? (
-              <Cloud className="w-5 h-5 text-emerald-400 fill-emerald-500/20" title="Conectado à nuvem" />
-            ) : (
-              <Cloud className="w-5 h-5 text-slate-400 fill-slate-400/30" title="Modo local (sem nuvem)" />
-            )}
+          <div className="flex items-center gap-1.5">
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                carregarNomeIgreja();
+              }}
+              className="px-2 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors"
+              title="Clique para atualizar/sincronizar"
+            >
+              <Cloud className={`w-3 h-3 ${temNuvem ? "text-emerald-400" : "text-slate-400"} ${carregandoIgreja ? "animate-spin" : ""}`} />
+            </div>
           </div>
         </div>
       </div>
