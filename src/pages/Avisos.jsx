@@ -36,7 +36,6 @@ export default function Avisos() {
 
         const roleSalva = localStorage.getItem("icmlyrics_role") || "user";
 
-        // Prioridade 1: Super Admin (chave mestra / login geral / storage)
         if (roleSalva === "super_admin" || userNuvem === "admin_geral") {
           setUserRole("super_admin");
           setNomeIgreja(userNuvem || "Administração Geral");
@@ -51,7 +50,6 @@ export default function Avisos() {
           return;
         }
 
-        // Prioridade 2: Consulta na tabela igrejas_autorizadas
         const { data, error } = await supabase
           .from("igrejas_autorizadas")
           .select("role, nome_igreja")
@@ -89,14 +87,42 @@ export default function Avisos() {
     validarAcesso();
   }, [userNuvem]);
 
+  // CAPTURA CORRETA DOS DADOS VINDO DO REPERTÓRIO (icmlyrics_aviso_pendente)
+  useEffect(() => {
+    const dadosTemporarios = localStorage.getItem('icmlyrics_aviso_pendente');
+
+    if (dadosTemporarios) {
+      try {
+        const dados = JSON.parse(dadosTemporarios);
+
+        const assuntoFinal = dados.titulo || dados.assunto || "";
+        const mensagemFinal = dados.mensagem || dados.texto || dados.observacao || "";
+        const linksFinais = dados.links || [];
+
+        if (assuntoFinal) setAssuntoAviso(assuntoFinal);
+        if (mensagemFinal) setNovoAviso(mensagemFinal);
+        
+        if (linksFinais.length > 0) {
+          const linksMapeados = linksFinais.map(l => ({
+            texto: l.titulo || l.texto || "",
+            url: l.url || ""
+          }));
+          setLinksForm(linksMapeados);
+        }
+      } catch (e) {
+        console.error("Erro ao processar dados pendentes do repertório:", e);
+      } finally {
+        localStorage.removeItem('icmlyrics_aviso_pendente');
+      }
+    }
+  }, []);
+
   const podeCriar = userRole === "super_admin" || userRole === "church_admin";
   const isSuper = userRole === "super_admin";
 
-  // Função auxiliar para verificar permissão sobre um aviso específico
   const podeModificarAviso = (aviso) => {
-    if (isSuper) return true; // Super Admin altera/exclui tudo
+    if (isSuper) return true;
     if (userRole === "church_admin") {
-      // Adm local só modifica o que for do seu tipo local e da sua nuvem
       return (
         aviso.tipo !== "global" &&
         aviso.nuvem?.toLowerCase() === userNuvem.toLowerCase()
@@ -105,7 +131,6 @@ export default function Avisos() {
     return false;
   };
 
-  // 2. BUSCA AVISOS NO SUPABASE
   const buscarAvisosDoBanco = async () => {
     setCarregandoAvisos(true);
     try {
@@ -132,7 +157,6 @@ export default function Avisos() {
     buscarAvisosDoBanco();
   }, [userNuvem]);
 
-  // 3. SALVAR OU EDITAR AVISO
   const handleSalvarAviso = async () => {
     if (!assuntoAviso.trim() || !novoAviso.trim()) {
       return alert("Assunto e texto são obrigatórios.");
@@ -140,7 +164,6 @@ export default function Avisos() {
 
     try {
       if (avisoEditandoId) {
-        // Valida se tem permissão antes de salvar a edição
         const avisoExistente = avisos.find((a) => a.id === avisoEditandoId);
         if (avisoExistente && !podeModificarAviso(avisoExistente)) {
           return alert("Você não tem permissão para editar este aviso.");
@@ -211,7 +234,6 @@ export default function Avisos() {
     }
   };
 
-  // 4. DELETAR AVISO
   const handleDeletarAviso = async (aviso) => {
     if (!podeModificarAviso(aviso)) {
       return alert("Você não tem permissão para excluir avisos do Super Admin.");
@@ -226,7 +248,6 @@ export default function Avisos() {
     }
   };
 
-  // 5. INICIAR EDIÇÃO
   const handleIniciarEdicao = (aviso) => {
     if (!podeModificarAviso(aviso)) {
       return alert("Você não tem permissão para editar este aviso.");
@@ -245,7 +266,6 @@ export default function Avisos() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
-      {/* Cabeçalho */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button 
@@ -257,7 +277,6 @@ export default function Avisos() {
           <h1 className="text-xl font-bold">Mural</h1>
         </div>
 
-        {/* Indicador do Nível de Permissão */}
         <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
           {carregandoValidacao ? (
             <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
@@ -269,7 +288,6 @@ export default function Avisos() {
                 {nomeIgreja}
               </span>
               <div className="flex items-center gap-1.5">
-                {/* Nuvem separada em seu próprio badge */}
                 <div 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -281,7 +299,6 @@ export default function Avisos() {
                   <Cloud className={`w-3 h-3 text-emerald-400 ${carregandoAvisos ? "animate-spin" : ""}`} />
                 </div>
 
-                {/* Badge de Função */}
                 <span className="text-[9px] uppercase font-bold px-2.5 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center gap-1 text-slate-300">
                   {isSuper ? (
                     <Globe className="w-2.5 h-2.5 text-amber-400" />
@@ -297,7 +314,6 @@ export default function Avisos() {
       </div>
 
       <div className="p-4 space-y-6 max-w-md mx-auto mt-2">
-        {/* ÁREA DE CRIAÇÃO/EDIÇÃO */}
         {podeCriar && (
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
             <div className="flex justify-between items-center">
@@ -327,7 +343,6 @@ export default function Avisos() {
               className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl resize-none h-32 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
 
-            {/* Links anexos */}
             <div className="space-y-2">
               {linksForm.map((link, idx) => (
                 <div key={idx} className="bg-slate-50 p-2 rounded-xl border border-slate-200 relative">
@@ -387,7 +402,6 @@ export default function Avisos() {
           </div>
         )}
 
-        {/* LISTAGEM DE AVISOS */}
         <div className="space-y-4">
           {carregandoAvisos ? (
             <div className="flex justify-center py-8">
@@ -398,9 +412,7 @@ export default function Avisos() {
               Nenhum aviso no mural
             </div>
           ) : !podeCriar ? (
-            /* VISÃO DO MEMBRO / USUÁRIO COMUM */
             <>
-              {/* Card do aviso mais recente */}
               <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 shadow-sm">
                 <h3 className="text-sm font-bold text-indigo-950 uppercase mb-2">
                   {avisos[0].assunto}
@@ -421,7 +433,6 @@ export default function Avisos() {
                 ))}
               </div>
 
-              {/* Mensagens Anteriores */}
               {avisos.length > 1 && (
                 <div className="space-y-2">
                   <button
@@ -476,7 +487,6 @@ export default function Avisos() {
               )}
             </>
           ) : (
-            /* VISÃO DO ADMINISTRADOR */
             <div className="space-y-3">
               <span className="text-xs font-bold text-slate-400 uppercase px-1 block">
                 Gerenciar Avisos ({avisos.length})
@@ -493,7 +503,6 @@ export default function Avisos() {
                       setAvisoExpandido(avisoExpandido === aviso.id ? null : aviso.id)
                     }
                   >
-                    {/* Botões de Ação apenas se o Admin tiver permissão para este aviso */}
                     {temPermissaoEdicao ? (
                       <div className="absolute top-4 right-4 flex gap-2 z-10">
                         <button
@@ -518,7 +527,6 @@ export default function Avisos() {
                         </button>
                       </div>
                     ) : (
-                      /* Tag indicativa para aviso Global do Super Admin */
                       <div className="absolute top-4 right-4 flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                         <Globe className="w-3 h-3" />
                         Global

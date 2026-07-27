@@ -431,7 +431,16 @@ export default function ListaRepertorio() {
           <DialogFooter className="flex flex-col gap-2 pt-2 border-t border-slate-100">
             <div className="grid grid-cols-2 gap-2 w-full">
               <Button variant="outline" onClick={() => setModalNovaListaOpen(false)} className="h-9 text-xs border-slate-200">Cancelar</Button>
-              <Button onClick={() => { setModalNovaListaOpen(false); navigate("/avisos"); }} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5">
+              <Button onClick={() => { 
+                const linksValidos = linksNovaLista.filter(l => l.titulo.trim() || l.url.trim());
+                localStorage.setItem("icmlyrics_aviso_pendente", JSON.stringify({
+                  titulo: nomeNovaLista,
+                  mensagem: obsNovaLista,
+                  links: linksValidos
+                }));
+                setModalNovaListaOpen(false); 
+                navigate("/avisos"); 
+              }} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5">
                 <Bell className="w-3.5 h-3.5" /> Criar Aviso
               </Button>
             </div>
@@ -483,9 +492,23 @@ export default function ListaRepertorio() {
             </div>
 
           </div>
-          <DialogFooter className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-            <Button variant="outline" onClick={() => setModalEditarListaOpen(false)} className="h-9 text-xs border-slate-200">Cancelar</Button>
-            <Button onClick={handleSalvarEdicao} className="h-9 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs">Salvar Alterações</Button>
+          <DialogFooter className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <Button variant="outline" onClick={() => setModalEditarListaOpen(false)} className="h-9 text-xs border-slate-200">Cancelar</Button>
+              <Button onClick={() => { 
+                const linksValidos = linksEdicao.filter(l => l.titulo.trim() || l.url.trim());
+                localStorage.setItem("icmlyrics_aviso_pendente", JSON.stringify({
+                  titulo: nomeEdicao,
+                  mensagem: obsEdicao,
+                  links: linksValidos
+                }));
+                setModalEditarListaOpen(false); 
+                navigate("/avisos"); 
+              }} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5">
+                <Bell className="w-3.5 h-3.5" /> Criar Aviso
+              </Button>
+            </div>
+            <Button onClick={handleSalvarEdicao} className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs">Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -524,7 +547,15 @@ export default function ListaRepertorio() {
             {podeCriar && (
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" onClick={() => setModalVisualizarOpen(false)} className="h-9 text-xs border-slate-200">Cancelar</Button>
-                <Button onClick={() => { setModalVisualizarOpen(false); setNomeNovaLista(""); setDataNovaLista(new Date().toISOString().split('T')[0]); setObsNovaLista(""); setLinksNovaLista([]); setModalNovaListaOpen(true); }} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5">
+                <Button onClick={() => { 
+                  localStorage.setItem("icmlyrics_aviso_pendente", JSON.stringify({
+                    titulo: listaVisualizando?.nome || "",
+                    mensagem: listaVisualizando?.observacoes || "",
+                    links: listaVisualizando?.links || []
+                  }));
+                  setModalVisualizarOpen(false); 
+                  navigate("/avisos"); 
+                }} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5">
                   <Bell className="w-3.5 h-3.5" /> Criar Aviso
                 </Button>
               </div>
