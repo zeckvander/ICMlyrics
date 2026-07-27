@@ -9,7 +9,9 @@ import {
   Search,
   Star,
   Plus,
-  X
+  X,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -90,7 +92,8 @@ export default function ListaRepertorio() {
         const mapeados = itensData.map(item => ({
           ...item.louvores,
           cifra_tom_original: item.tom_especial || item.louvores?.cifra_tom_original,
-          item_lista_id: item.id
+          item_lista_id: item.id,
+          ordem: item.ordem ?? 0
         })).filter(l => l !== null);
 
         setLouvoresLista(mapeados);
@@ -127,6 +130,7 @@ export default function ListaRepertorio() {
   };
 
   const handleAdicionarLouvorNaLista = async (louvorId) => {
+    if (!podeCriar) return;
     try {
       const proximaOrdem = louvoresLista.length + 1;
       const { error } = await supabase
@@ -164,6 +168,37 @@ export default function ListaRepertorio() {
       } else {
         carregarDetalhesLista();
       }
+    }
+  };
+
+  // Função para mudar a ordem do louvor para cima ou para baixo
+  const handleMudarOrdem = async (index, direcao, e) => {
+    e.stopPropagation();
+    if (!podeCriar) return;
+
+    const novoIndiceDestino = direcao === 'subir' ? index - 1 : index + 1;
+
+    if (novoIndiceDestino < 0 || novoIndiceDestino >= louvoresLista.length) return;
+
+    const listaCopia = [...louvoresLista];
+    const itemAtual = listaCopia[index];
+    const itemTroca = listaCopia[novoIndiceDestino];
+
+    listaCopia[index] = itemTroca;
+    listaCopia[novoIndiceDestino] = itemAtual;
+
+    const atualizacoes = listaCopia.map((item, idx) => ({
+      id: item.item_lista_id,
+      ordem: idx + 1
+    }));
+
+    setLouvoresLista(listaCopia);
+
+    for (const atualizacao of atualizacoes) {
+      await supabase
+        .from('itens_repertorio')
+        .update({ ordem: atualizacao.ordem })
+        .eq('id', atualizacao.id);
     }
   };
 
@@ -306,7 +341,7 @@ export default function ListaRepertorio() {
             <Loader2 className="animate-spin w-8 h-8 text-slate-400" />
           </div>
         ) : louvoresFiltrados.length > 0 ? (
-          louvoresFiltrados.map((item) => {
+          louvoresFiltrados.map((item, index) => {
             const isFavorito = favoritos.includes(item.id);
             const nomeFormatado = formatarNomeLouvor(item);
             return (
@@ -328,7 +363,28 @@ export default function ListaRepertorio() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  {podeCriar && (
+                    <div className="flex flex-col gap-0.5 mr-1">
+                      <button
+                        onClick={(e) => handleMudarOrdem(index, 'subir', e)}
+                        disabled={index === 0}
+                        className="p-0.5 text-slate-400 hover:text-slate-900 disabled:opacity-25 transition-colors"
+                        title="Subir na lista"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => handleMudarOrdem(index, 'descer', e)}
+                        disabled={index === louvoresLista.length - 1}
+                        className="p-0.5 text-slate-400 hover:text-slate-900 disabled:opacity-25 transition-colors"
+                        title="Descer na lista"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
                   {podeCriar && (
                     <button
                       onClick={(e) => handleRemoverDaLista(item.item_lista_id, e)}
