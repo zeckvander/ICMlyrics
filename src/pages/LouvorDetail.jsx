@@ -48,7 +48,6 @@ export default function LouvorDetail() {
 
   const loadLouvor = async () => {
     setLoading(true);
-    // 🔥 CORREÇÃO: Buscando pela chave primária 'id' única e usando maybeSingle() para evitar erros 406
     const { data, error } = await supabase
       .from('louvores')
       .select('*')
@@ -90,10 +89,22 @@ export default function LouvorDetail() {
         alert("Erro ao excluir: " + error.message);
       } else {
         alert("Louvor excluído com sucesso!");
-        navigate("/louvor"); // Retorna para a listagem geral limpa
+        handleVoltar(); // Retorna respeitando a origem ou o padrão
       }
     } catch (err) {
       alert("Erro na conexão com o servidor.");
+    }
+  };
+
+  // 🛡️ FUNÇÃO DE RETORNO INTELIGENTE VIA STORAGE
+  const handleVoltar = () => {
+    const rotaRetorno = localStorage.getItem("icmlyrics_retorno_repertorio");
+    
+    if (rotaRetorno) {
+      localStorage.removeItem("icmlyrics_retorno_repertorio"); // Limpa após o uso
+      navigate(rotaRetorno);
+    } else {
+      navigate("/louvor"); // Rota padrão caso não tenha vindo de uma lista específica
     }
   };
 
@@ -107,7 +118,12 @@ export default function LouvorDetail() {
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
-  if (!louvor) return <div className="flex flex-col items-center justify-center min-h-screen gap-3"><p className="text-slate-400">Louvor não encontrado</p><Button variant="outline" onClick={() => navigate("/louvor")}>Voltar</Button></div>;
+  if (!louvor) return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-3">
+      <p className="text-slate-400">Louvor não encontrado</p>
+      <Button variant="outline" onClick={handleVoltar}>Voltar</Button>
+    </div>
+  );
 
   const temaReal = getTemaReal(louvor.numero, louvor.categoria);
   
@@ -123,7 +139,9 @@ export default function LouvorDetail() {
   return (
     <div className="min-h-screen bg-slate-50 pb-8">
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6">
-        <button onClick={() => navigate("/louvor")} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm mb-4 transition-colors"><ArrowLeft className="w-4 h-4" /> Voltar</button>
+        <button onClick={handleVoltar} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm mb-4 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Voltar
+        </button>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -137,9 +155,10 @@ export default function LouvorDetail() {
             </div>
           </div>
           <div className="flex gap-1.5 shrink-0 items-center">
-            <Button size="icon" variant="ghost" className="text-white/60 hover:text-amber-400" onClick={() => setFav(toggleFavorite(musico, louvor.id))}><Star className={`w-5 h-5 ${fav ? "fill-amber-400 text-amber-400" : ""}`} /></Button>
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-amber-400" onClick={() => setFav(toggleFavorite(musico, louvor.id))}>
+              <Star className={`w-5 h-5 ${fav ? "fill-amber-400 text-amber-400" : ""}`} />
+            </Button>
             
-            {/* 🛡️ SE FOR ADMIN, EXIBE O LÁPIS E A LIXEIRA LADO A LADO COM EFEITO HOVER INDIVIDUAL */}
             {admin && (
               <>
                 <Button size="icon" variant="ghost" className="text-white/60 hover:text-amber-400" onClick={() => setEditOpen(true)}>
@@ -184,7 +203,7 @@ export default function LouvorDetail() {
                 </button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
-                <DialogHeader><DialogTitle>Links (Google Drive))</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Links (Google Drive)</DialogTitle></DialogHeader>
                 <div className="flex flex-col gap-2 py-4">
                   {linksValidos.map((item, i) => (
                     <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 text-sm">
@@ -214,7 +233,6 @@ export default function LouvorDetail() {
       </div>
 
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
-        {/* 🔥 CORREÇÃO VISUAL: Impedindo o scroll forçado e o foco automático ao abrir */}
         <SheetContent 
           side="bottom" 
           className="rounded-t-2xl max-h-[92vh] overflow-y-auto"

@@ -23,7 +23,8 @@ import Biblia from '@/pages/biblia';
 import ModoPlaylist from '@/pages/ModoPlaylist';
 import Backup from '@/pages/Backup'; 
 import Avisos from '@/pages/Avisos';
-import Repertorio from '@/pages/Repertorio'; // IMPORTADO AQUI
+import Repertorio from '@/pages/Repertorio'; 
+import ListaRepertorio from '@/pages/ListaRepertorio'; 
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 
 const PrivateLayout = ({ children }) => {
@@ -99,8 +100,9 @@ function App() {
             <Route path="/backup" element={<PrivateLayout><Backup /></PrivateLayout>} />
             <Route path="/avisos" element={<PrivateLayout><Avisos /></PrivateLayout>} />
             
-            {/* ROTA DO REPERTÓRIO ADICIONADA */}
+            {/* ROTAS DE REPERTÓRIO */}
             <Route path="/repertorio" element={<PrivateLayout><Repertorio /></PrivateLayout>} />
+            <Route path="/repertorio/lista/:id" element={<PrivateLayout><ListaRepertorio /></PrivateLayout>} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>
