@@ -331,7 +331,7 @@ export default function ListaRepertorio() {
           </div>
           {(dataListaAtual || (linksListaAtual && linksListaAtual.length > 0)) && (
             <div className="mt-4 pt-3 border-t border-slate-800 flex flex-col gap-2 text-xs text-slate-300">
-              {dataListaAtual && <div className="flex items-center gap-1.5 text-slate-200"><Calendar className="w-3.5 h-3.5 text-slate-400" /><span>Data do Culto/Evento: <strong>{new Date(dataListaAtual + 'T00:00:00').toLocaleDateString('pt-BR')}</strong></span></div>}
+              {dataListaAtual && <div className="flex items-center gap-1.5 text-slate-200"><Calendar className="w-3.5 h-3.5 text-slate-400" /><span>Data: <strong>{new Date(dataListaAtual + 'T00:00:00').toLocaleDateString('pt-BR')}</strong></span></div>}
               {linksListaAtual && linksListaAtual.length > 0 && (
                 <div className="flex flex-col gap-1 mt-1">
                   <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Links Anexos:</span>
@@ -460,7 +460,7 @@ export default function ListaRepertorio() {
                 <Input placeholder="Ex: Culto de Domingo..." value={nomeNovaLista} onChange={(e) => setNomeNovaLista(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 border-slate-200" />
               </div>
               <div className="w-[35%]">
-                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Data do Evento</label>
+                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Data</label>
                 <Input type="date" value={dataNovaLista} onChange={(e) => setDataNovaLista(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 border-slate-200 px-2" />
               </div>
             </div>
@@ -564,7 +564,7 @@ export default function ListaRepertorio() {
         <DialogContent className="max-w-[92vw] sm:max-w-lg w-full max-h-[90vh] rounded-2xl p-6 border-slate-100 flex flex-col">
           <DialogHeader><DialogTitle className="text-slate-900 font-semibold text-lg">{listaVisualizando?.nome}</DialogTitle></DialogHeader>
           <div className="my-4 flex flex-col gap-4 text-xs text-slate-600 flex-1 overflow-y-auto">
-            {listaVisualizando?.data_evento && <div className="flex items-center gap-2 text-slate-700 font-medium bg-slate-50 p-2.5 rounded-lg border border-slate-100"><Calendar className="w-4 h-4 text-slate-400" /><span>Data do Evento: {new Date(listaVisualizando.data_evento + 'T00:00:00').toLocaleDateString('pt-BR')}</span></div>}
+            {listaVisualizando?.data_evento && <div className="flex items-center gap-2 text-slate-700 font-medium bg-slate-50 p-2.5 rounded-lg border border-slate-100"><Calendar className="w-4 h-4 text-slate-400" /><span>Data: {new Date(listaVisualizando.data_evento + 'T00:00:00').toLocaleDateString('pt-BR')}</span></div>}
 
             {listaVisualizando?.links && listaVisualizando.links.length > 0 && (
               <div className="flex flex-col gap-2">
@@ -585,7 +585,7 @@ export default function ListaRepertorio() {
           </div>
           
           <div className="pt-3 border-t border-slate-100">
-            <Button onClick={() => { const idLista = listaVisualizando?.id; setModalVisualizarOpen(false); navigate(`/repertorio/lista/${idLista}`); }} className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs">Continuar para a Lista</Button>
+            <Button onClick={() => { const idLista = listaVisualizando?.id; setModalVisualizarOpen(false); navigate(`/repertorio/lista/${idLista}`); }} className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs">Repertório</Button>
           </div>
         </DialogContent>
       </Dialog>

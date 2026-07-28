@@ -280,7 +280,7 @@ export default function NovaLista() {
           </button>
           <div>
             <h1 className="text-xl font-bold tracking-tight">Nova Lista</h1>
-            <p className="text-slate-400 text-xs">Crie uma lista para o culto</p>
+            <p className="text-slate-400 text-xs">Crie uma nova lista</p>
           </div>
         </div>
 

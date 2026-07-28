@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, AlertTriangle, Database, Megaphone, ListMusic } from "lucide-react";
+import { Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, AlertTriangle, Database, Megaphone, ListMusic, Sparkles } from "lucide-react";
 import { useTools } from "@/components/tools/ToolsProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export default function Dashboard() {
 
   const [configOpen, setConfigOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false); 
+  const [modalNovidadesOpen, setModalNovidadesOpen] = useState(false);
 
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
@@ -36,8 +37,15 @@ export default function Dashboard() {
 
   const [limparFavoritos, setLimparFavoritos] = useState(false);
 
-  const SEU_WHATSAPP_LINK = "https://wa.me/5527999999999"; 
+  // Contador de novidades não lidas
+  const [novidades, setNovidades] = useState({
+    avisos: 0,
+    repertorio: 0
+  });
 
+  const SEU_TELEGRAM_LINK = "https://t.me/Ezequielvander"; 
+
+  // 1. Validação de Sessão / Nuvem
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const chaveRecebida = queryParams.get("master");
@@ -51,10 +59,9 @@ export default function Dashboard() {
       setNuvemAtiva(true);
 
       navigate(location.pathname, { replace: true });
+      return;
     }
-  }, [location, navigate]);
 
-  useEffect(() => {
     const validarSessaoSegura = async () => {
       const userSalvo = localStorage.getItem("icmlyrics_user_nuvem") || "";
       const roleSalva = localStorage.getItem("icmlyrics_role") || "user";
@@ -84,13 +91,10 @@ export default function Dashboard() {
         }
 
         let roleFinal = "user";
-        
-        if (roleSalva === "church_admin") {
+        if (roleSalva === "church_admin" || data.role === "church_admin") {
           roleFinal = "church_admin";
         } else if (data.role === "super_admin") {
           roleFinal = "super_admin";
-        } else if (data.role === "church_admin") {
-          roleFinal = "church_admin";
         }
 
         localStorage.setItem("icmlyrics_role", roleFinal);
@@ -104,7 +108,68 @@ export default function Dashboard() {
     };
 
     validarSessaoSegura();
-  }, [configOpen]);
+  }, [location]);
+
+  // 2. Consulta de Novidades (Avisos + Repertório)
+  useEffect(() => {
+    const verificarNovidades = async () => {
+      try {
+        const lastSeenAvisos = localStorage.getItem("icmlyrics_last_seen_avisos") || "1970-01-01T00:00:00.000Z";
+        const lastSeenRepertorio = localStorage.getItem("icmlyrics_last_seen_repertorio") || "1970-01-01T00:00:00.000Z";
+
+        let novosAvisosCount = 0;
+        let novosRepertorioCount = 0;
+
+        // --- AVISOS ---
+        let queryAvisos = supabase
+          .from("avisos")
+          .select("*", { count: "exact", head: true })
+          .gt("created_at", lastSeenAvisos);
+
+        if (nuvemAtiva && usuario) {
+          queryAvisos = queryAvisos.or(`nuvem.eq.${usuario},nuvem.eq.todos,tipo.eq.global`);
+        } else {
+          queryAvisos = queryAvisos.or(`nuvem.eq.todos,tipo.eq.global`);
+        }
+
+        const { count: countAvisos, error: errAvisos } = await queryAvisos;
+        if (!errAvisos && countAvisos) novosAvisosCount = countAvisos;
+
+        // --- REPERTÓRIO ---
+        let queryRepertorio = supabase
+          .from("listas_repertorio")
+          .select("*", { count: "exact", head: true })
+          .gt("data_criacao", lastSeenRepertorio);
+
+        if (nuvemAtiva && usuario) {
+          queryRepertorio = queryRepertorio.or(`nuvem.eq.${usuario},nuvem.eq.admin_geral`);
+        } else {
+          queryRepertorio = queryRepertorio.or(`nuvem.eq.admin_geral,nuvem.is.null`);
+        }
+
+        const { count: countRepertorio, error: errRepertorio } = await queryRepertorio;
+        if (!errRepertorio && countRepertorio) novosRepertorioCount = countRepertorio;
+
+        setNovidades({
+          avisos: novosAvisosCount,
+          repertorio: novosRepertorioCount
+        });
+
+        const totalNovidades = novosAvisosCount + novosRepertorioCount;
+        const jaViuModalNessaSessao = sessionStorage.getItem("icmlyrics_modal_novidades_visto");
+
+        // Abre o modal se houver novidades e ainda não tiver exibido nesta sessão
+        if (totalNovidades > 0 && !jaViuModalNessaSessao) {
+          setModalNovidadesOpen(true);
+          sessionStorage.setItem("icmlyrics_modal_novidades_visto", "true");
+        }
+      } catch (err) {
+        console.error("Erro ao verificar novidades:", err);
+      }
+    };
+
+    verificarNovidades();
+  }, [nuvemAtiva, usuario]);
 
   const normalizarTexto = (texto) => {
     if (!texto) return "";
@@ -118,11 +183,11 @@ export default function Dashboard() {
   const obterNomeRole = (role) => {
     switch(role) {
       case "super_admin":
-        return "Admin Geral 👑";
+        return "Admin Geral";
       case "church_admin":
-        return "Admin da Igreja ⚙️";
+        return "Admin da Igreja";
       default:
-        return "Membro/Usuário Comum 👤"; 
+        return "Membro"; 
     }
   };
 
@@ -180,6 +245,9 @@ export default function Dashboard() {
         roleFinal = "church_admin";
       }
 
+      // 🔄 Reseta a trava do modal para que ao conectar a novidade apareça imediatamente
+      sessionStorage.removeItem("icmlyrics_modal_novidades_visto");
+
       localStorage.setItem("icmlyrics_user_nuvem", usuario.trim());
       localStorage.setItem("icmlyrics_role", roleFinal);
       
@@ -195,24 +263,20 @@ export default function Dashboard() {
   };
 
   const handleLogoutCompleto = async () => {
-    if (limparFavoritos) {
-      const usuarioAtual = localStorage.getItem("icmlyrics_user");
-      
-      if (usuarioAtual) {
-        localStorage.removeItem(`icmlyrics_favoritos_${usuarioAtual}`);
-        localStorage.removeItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`);
-        localStorage.removeItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`);
-      }
-    }
-
-    localStorage.removeItem("icmlyrics_user");
-    localStorage.removeItem("icmlyrics_user_nuvem");
-    localStorage.removeItem("icmlyrics_role");
-
     try {
       await supabase.auth.signOut();
     } catch (err) {
       console.error("Erro ao registrar encerramento no Supabase:", err);
+    }
+
+    if (limparFavoritos) {
+      localStorage.clear();
+      sessionStorage.clear();
+    } else {
+      localStorage.removeItem("icmlyrics_user");
+      localStorage.removeItem("icmlyrics_user_nuvem");
+      localStorage.removeItem("icmlyrics_role");
+      sessionStorage.removeItem("icmlyrics_modal_novidades_visto");
     }
 
     setUsuario("");
@@ -222,7 +286,7 @@ export default function Dashboard() {
     setUserRole("user");
     setNuvemAtiva(false);
     setLogoutOpen(false);
-    setLimparFavoritos(false); 
+    setLimparFavoritos(false);
 
     navigate("/");
   };
@@ -235,6 +299,7 @@ export default function Dashboard() {
   const handleDesconectarSilencioso = () => {
     localStorage.removeItem("icmlyrics_user_nuvem");
     localStorage.removeItem("icmlyrics_role");
+    sessionStorage.removeItem("icmlyrics_modal_novidades_visto");
     setUsuario("");
     setSenha("");
     setNomeAdmin("");
@@ -243,15 +308,45 @@ export default function Dashboard() {
     setNuvemAtiva(false);
   };
 
-  // BOTÕES DOS ATALHOS - REPERTÓRIO LOGO AO LADO DE AVISOS (NO FIM DA LISTA)
+  const handleNavegarComLeitura = (path, modulo) => {
+    const agora = new Date().toISOString();
+    if (modulo === "avisos") {
+      localStorage.setItem("icmlyrics_last_seen_avisos", agora);
+      setNovidades(prev => ({ ...prev, avisos: 0 }));
+    } else if (modulo === "repertorio") {
+      localStorage.setItem("icmlyrics_last_seen_repertorio", agora);
+      setNovidades(prev => ({ ...prev, repertorio: 0 }));
+    }
+    navigate(path);
+  };
+
+  const formatarSobrescrito = (num) => {
+    const mapa = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+    return String(num).split('').map(n => mapa[n] || n).join('');
+  };
+
   const atalhos = [
     { label: "Louvores", icon: Music2, path: "/louvor", color: "bg-teal-500" },
     { label: "Nova Lista", icon: ListPlus, path: "/nova-lista", color: "bg-amber-500" },
     { label: "Histórico de Listas", icon: History, path: "/historico-listas", color: "bg-indigo-500" },
     { label: "Drive", icon: FolderOpen, path: "/drive", color: "bg-blue-500" },
     { label: "Bíblia", icon: BookOpen, path: "/biblia", color: "bg-emerald-600" },
-    { label: "Avisos", icon: Megaphone, path: "/avisos", color: "bg-orange-500" },
-    { label: "Repertório", icon: ListMusic, path: "/repertorio", color: "bg-pink-500" }
+    { 
+      label: "Avisos", 
+      icon: Megaphone, 
+      path: "/avisos", 
+      color: "bg-orange-500", 
+      count: novidades.avisos,
+      key: "avisos"
+    },
+    { 
+      label: "Repertório", 
+      icon: ListMusic, 
+      path: "/repertorio", 
+      color: "bg-pink-500", 
+      count: novidades.repertorio,
+      key: "repertorio"
+    }
   ];
 
   const ferramentas = [
@@ -298,18 +393,37 @@ export default function Dashboard() {
         <div className="px-4 -mt-4 space-y-6 relative z-20">
           <div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {atalhos.map((a) => (
-                <button 
-                  key={a.label} 
-                  onClick={() => navigate(a.path)} 
-                  className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow"
-                >
-                  <div className={`w-11 h-11 rounded-xl ${a.color} flex items-center justify-center`}>
-                    <a.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-xs font-medium text-slate-700 text-center leading-tight">{a.label}</span>
-                </button>
-              ))}
+              {atalhos.map((a) => {
+                const temNovidade = a.count > 0;
+                return (
+                  <button 
+                    key={a.label} 
+                    onClick={() => handleNavegarComLeitura(a.path, a.key)} 
+                    className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow relative overflow-hidden"
+                  >
+                    {temNovidade && (
+                      <span className="absolute top-2 right-2 flex items-center justify-center bg-rose-600 text-white font-extrabold text-[11px] h-5 min-w-[20px] px-1.5 rounded-full border-2 border-white shadow-sm animate-pulse">
+                        {formatarSobrescrito(a.count)}
+                      </span>
+                    )}
+
+                    <div className={`w-11 h-11 rounded-xl ${a.color} flex items-center justify-center relative`}>
+                      <a.icon className="w-5 h-5 text-white" />
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-medium text-slate-700 text-center leading-tight">
+                        {a.label}
+                      </span>
+                      {temNovidade && (
+                        <span className="text-rose-600 font-bold text-xs">
+                          {formatarSobrescrito(a.count)}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -336,15 +450,95 @@ export default function Dashboard() {
       <div className="px-4 mt-8 pb-4">
         <div className="bg-white rounded-2xl border border-slate-100 p-3 shadow-sm flex items-center justify-between text-xs text-slate-500">
           <div className="flex flex-col">
-            <span className="font-semibold text-slate-700">Dúvidas ou problemas?</span>
+            <span className="font-semibold text-slate-700">Dúvidas, problemas ou sugestão?</span>
             <span className="text-[10px] text-slate-400">Solicite novos acessos ou suporte técnico</span>
           </div>
-          <a href={SEU_WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl font-bold transition-colors">
+          <a href={SEU_TELEGRAM_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl font-bold transition-colors">
             <MessageSquare className="w-4 h-4" /> Suporte
           </a>
         </div>
       </div>
 
+      {/* Modal de Alerta de Novidades */}
+      <Dialog open={modalNovidadesOpen} onOpenChange={setModalNovidadesOpen}>
+        <DialogContent className="max-w-xs sm:max-w-sm rounded-3xl p-6">
+          <DialogHeader className="text-center flex flex-col items-center">
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-2">
+              <Sparkles className="w-6 h-6 text-amber-600" />
+            </div>
+            <DialogTitle className="text-base font-bold text-slate-900">
+              Você tem novas atualizações!
+            </DialogTitle>
+          </DialogHeader>
+
+          <p className="text-xs text-slate-500 text-center leading-relaxed">
+            Há novos conteúdos postados desde o seu último acesso. Confira o que há de novo:
+          </p>
+
+          <div className="space-y-2.5 my-3">
+            {novidades.avisos > 0 && (
+              <div 
+                onClick={() => {
+                  setModalNovidadesOpen(false);
+                  handleNavegarComLeitura("/avisos", "avisos");
+                }}
+                className="bg-orange-50 border border-orange-100 p-3 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-orange-100/80 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-orange-500 text-white rounded-xl">
+                    <Megaphone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-orange-950">Novos Avisos</p>
+                    <p className="text-[10px] text-orange-700">
+                      {novidades.avisos} {novidades.avisos === 1 ? 'novo aviso publicado' : 'novos avisos publicados'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-extrabold text-orange-600 bg-white px-2 py-0.5 rounded-full border border-orange-200">
+                  {formatarSobrescrito(novidades.avisos)}
+                </span>
+              </div>
+            )}
+
+            {novidades.repertorio > 0 && (
+              <div 
+                onClick={() => {
+                  setModalNovidadesOpen(false);
+                  handleNavegarComLeitura("/repertorio", "repertorio");
+                }}
+                className="bg-pink-50 border border-pink-100 p-3 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-pink-100/80 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-pink-500 text-white rounded-xl">
+                    <ListMusic className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-pink-950">Novo no Repertório</p>
+                    <p className="text-[10px] text-pink-700">
+                      {novidades.repertorio} {novidades.repertorio === 1 ? 'nova lista criada' : 'novas listas criadas'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-extrabold text-pink-600 bg-white px-2 py-0.5 rounded-full border border-pink-200">
+                  {formatarSobrescrito(novidades.repertorio)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              onClick={() => setModalNovidadesOpen(false)}
+              className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl"
+            >
+              Entendido, vou dar uma olhada
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Sincronização */}
       <Dialog open={configOpen} onOpenChange={setConfigOpen}>
         <DialogContent className="max-w-xs sm:max-w-md rounded-2xl p-6">
           <DialogHeader>
@@ -480,6 +674,7 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
+      {/* Modal de Logout */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <DialogContent className="max-w-xs rounded-2xl p-6">
           <DialogHeader>
@@ -490,7 +685,7 @@ export default function Dashboard() {
           </DialogHeader>
           
           <p className="text-xs text-slate-500 leading-relaxed mt-1">
-            Sua sessão atual e a sincronização com las listas da nuvem serão encerradas neste dispositivo.
+            Sua sessão atual e a sincronização com as listas da nuvem serão encerradas neste dispositivo.
           </p>
 
           <div className="flex items-start gap-2.5 py-3 mt-2 border-t border-b border-slate-100 select-none">

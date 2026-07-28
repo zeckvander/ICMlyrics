@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClientInstance } from '@/lib/query-client'
+import { Toaster } from "@/components/ui/toaster";
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClientInstance } from '@/lib/query-client';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -56,9 +56,12 @@ function App() {
     const savedVersion = localStorage.getItem("app_version");
 
     if (savedVersion !== APP_VERSION) {
-      console.log("Atualização detectada. Preservando sessão e limpando cache antigo...");
+      console.log("Atualização detectada. Preservando sessão e dados do app...");
       
-      const keysToKeep = Object.keys(localStorage).filter(key => key.startsWith('sb-'));
+      // Mantém chaves do Supabase (sb-) E chaves do aplicativo (icmlyrics_)
+      const keysToKeep = Object.keys(localStorage).filter(
+        key => key.startsWith('sb-') || key.startsWith('icmlyrics_')
+      );
       
       Object.keys(localStorage).forEach(key => {
         if (!keysToKeep.includes(key) && key !== 'app_version') {

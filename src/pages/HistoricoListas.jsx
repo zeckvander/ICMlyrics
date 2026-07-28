@@ -422,8 +422,8 @@ export default function HistoricoListas() {
             <Menu className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Histórico</h1>
-            <p className="text-slate-400 text-xs">Listas passadas do culto</p>
+            <h1 className="text-xl font-bold tracking-tight">Histórico Listas</h1>
+            <p className="text-slate-400 text-xs">Listas anteriores</p>
           </div>
         </div>
 
@@ -584,7 +584,7 @@ export default function HistoricoListas() {
                     : "border-transparent text-slate-400 hover:text-slate-600"
                 }`}
               >
-                1. Informações do Culto
+                Informações do Culto
               </button>
               <button
                 onClick={() => setAbaAtiva(2)}
@@ -594,7 +594,7 @@ export default function HistoricoListas() {
                     : "border-transparent text-slate-400 hover:text-slate-600"
                 }`}
               >
-                2. Louvores / Itens ({rows.length})
+                Louvores / Itens ({rows.length})
               </button>
             </div>
 
@@ -717,7 +717,7 @@ export default function HistoricoListas() {
                     </div>
                   )}
 
-                  <p className="text-xs font-semibold text-slate-600 pt-1">Utilize as setas para reordenar ou clique no lápis para editar:</p>
+                  <p className="text-xs font-semibold text-slate-600 pt-1">Utilize as setas para reordenar ou o lápis para editar:</p>
 
                   <div className="space-y-2">
                     {rows.map((row, index) => {
