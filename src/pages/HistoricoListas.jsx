@@ -6,46 +6,97 @@ import DrawerMenu from "@/components/louvores/DrawerMenu";
 import PreviewModal from "@/components/lista/PreviewModal";
 import { supabase } from "@/lib/supabaseClient";
 
+// Função para remover acentos e pontuações (.,!?- etc.)
+const normalizarTexto = (texto) =>
+  String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"¡!¿]/g, "") // Remove pontuações
+    .trim();
+
+// Função de busca e ordenação com prioridade para número exato
+const buscarELimitarLouvores = (listaLouvores, queryText, limite = 5) => {
+  const termoBruto = (queryText || "").trim();
+  if (!termoBruto) return [];
+
+  const termoNormalizado = normalizarTexto(queryText);
+  const buscaNum = termoBruto.toLowerCase();
+
+  return listaLouvores
+    .filter((l) => {
+      const numStr = l.numero !== null && l.numero !== undefined ? String(l.numero).trim().toLowerCase() : "";
+      const matchNumero = numStr ? numStr.startsWith(buscaNum) : false;
+      const matchNome = normalizarTexto(l.nome).includes(termoNormalizado);
+      const matchLetra = normalizarTexto(l.letra_musica).includes(termoNormalizado);
+      const matchCategoria = normalizarTexto(l.categoria).includes(termoNormalizado);
+
+      return matchNumero || matchNome || matchLetra || matchCategoria;
+    })
+    .sort((a, b) => {
+      // 🏆 PRIORIDADE 1: Correspondência EXATA do número vai para o topo!
+      if (buscaNum) {
+        const numA = (a.numero !== null && a.numero !== undefined) ? String(a.numero).trim().toLowerCase() : "";
+        const numB = (b.numero !== null && b.numero !== undefined) ? String(b.numero).trim().toLowerCase() : "";
+
+        const exatoA = numA === buscaNum;
+        const exatoB = numB === buscaNum;
+
+        if (exatoA && !exatoB) return -1;
+        if (!exatoA && exatoB) return 1;
+      }
+
+      // 🏆 PRIORIDADE 2: Ordenação Padrão por Categoria e Número / Nome
+      const obterPeso = (item) => {
+        const temNumero = item.numero !== null && item.numero !== undefined && String(item.numero).trim() !== "";
+        if (item.categoria === "Coletânea" && temNumero) return 1;
+        if (item.categoria === "Cias" && temNumero) return 2;
+        if (item.categoria === "Cias" && !temNumero) return 3;
+        if (item.categoria === "Avulsos") return 4;
+        return 5;
+      };
+
+      const pesoA = obterPeso(a);
+      const pesoB = obterPeso(b);
+
+      if (pesoA !== pesoB) return pesoA - pesoB;
+
+      if (pesoA === 1 || pesoA === 2) {
+        return (parseInt(a.numero, 10) || 0) - (parseInt(b.numero, 10) || 0);
+      }
+
+      return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+    })
+    .slice(0, limite);
+};
+
 export default function HistoricoListas() {
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [listas, setListas] = useState([]);
-
-  // Estado apenas para o nome da igreja
   const [nomeIgreja, setNomeIgreja] = useState("");
 
-  // Credenciais
   const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
   const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
   const temNuvem = usuarioNuvem.trim() !== "";
 
-  // Estado da lista selecionada para edição/visualização
   const [listaSelecionada, setListaSelecionada] = useState(null);
   const [rows, setRows] = useState([]);
   const [dataCulto, setDataCulto] = useState("");
   const [tipoCulto, setTipoCulto] = useState("");
   const [responsavel, setResponsavel] = useState("");
 
-  // Banco de louvores para autocomplete
   const [todosLouvoresBanco, setTodosLouvoresBanco] = useState([]);
-
-  // Estado para aba ativa no modal (1: Informações, 2: Louvores)
   const [abaAtiva, setAbaAtiva] = useState(1);
-
-  // Estado para adicionar novo item na edição
-  const [modoAdicao, setModoAdicao] = useState(null); // 'louvor' | 'divider' | null
+  const [modoAdicao, setModoAdicao] = useState(null);
   const [novoNome, setNovoNome] = useState("");
   const [novoTextoSecao, setNovoTextoSecao] = useState("");
-
-  // Modal de Pré-visualização
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // Busca o nome oficial da igreja na tabela igrejas_autorizadas filtrando por "usuario"
   useEffect(() => {
     const carregarNomeIgreja = async () => {
       const usuarioAtual = usuarioNuvem || usuarioLocal;
-
       if (temNuvem && usuarioAtual) {
         try {
           const { data, error } = await supabase
@@ -67,7 +118,6 @@ export default function HistoricoListas() {
         setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local");
       }
     };
-
     carregarNomeIgreja();
   }, [temNuvem, usuarioNuvem, usuarioLocal]);
 
@@ -93,7 +143,8 @@ export default function HistoricoListas() {
           .from("listas")
           .select("*, lista_itens(*, louvores(*))")
           .eq("acesso_usuario", usuarioNuvem)
-          .order("data_culto", { ascending: false });
+          .order("data_culto", { ascending: false })
+          .limit(12);
 
         if (error) throw error;
         setListas(data || []);
@@ -105,7 +156,7 @@ export default function HistoricoListas() {
     } else {
       try {
         const local = JSON.parse(localStorage.getItem("icmlyrics_historico_listas") || "[]");
-        setListas(local);
+        setListas(local.slice(0, 12));
       } catch (e) {
         console.error("Erro ao carregar local:", e);
       } finally {
@@ -114,7 +165,6 @@ export default function HistoricoListas() {
     }
   };
 
-  // Função dedicada para atualizar/sincronizar manualmente ao clicar na nuvem
   const handleSincronizar = () => {
     carregarBancoLouvores();
     carregarListas();
@@ -170,7 +220,7 @@ export default function HistoricoListas() {
     setDataCulto(lista.data_culto || lista.dataCulto || "");
     setTipoCulto(lista.tipo_culto || lista.tipoCulto || "");
     setResponsavel(lista.responsavel || "");
-    
+
     const itensBrutos = lista.lista_itens || lista.rows || [];
     const itensFormatados = itensBrutos.map((item, idx) => ({
       id: item.id || `item_${idx}`,
@@ -363,7 +413,6 @@ export default function HistoricoListas() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
-      {/* Cabeçalho limpo exibindo o nome da igreja e controle de sincronização */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
@@ -378,7 +427,6 @@ export default function HistoricoListas() {
           </div>
         </div>
 
-        {/* Indicador do Usuário/Igreja e Nuvem */}
         <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
           {temNuvem && (
             <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
@@ -397,7 +445,6 @@ export default function HistoricoListas() {
               </button>
             )}
 
-            {/* Nuvem transformada em botão de atualizar/sincronizar */}
             <div 
               onClick={(e) => {
                 e.stopPropagation();
@@ -518,7 +565,6 @@ export default function HistoricoListas() {
       {listaSelecionada && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
-            
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-shrink-0">
               <h2 className="text-lg font-bold text-slate-900">Editar Lista do Culto</h2>
               <button 
@@ -604,48 +650,40 @@ export default function HistoricoListas() {
                         />
                         {novoNome.trim() !== "" && (
                           <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
-                            {todosLouvoresBanco
-                              .filter(l => 
-                                (l.nome && l.nome.toLowerCase().includes(novoNome.toLowerCase())) ||
-                                (l.numero && String(l.numero).toLowerCase().includes(novoNome.toLowerCase())) ||
-                                (l.categoria && l.categoria.toLowerCase().includes(novoNome.toLowerCase())) ||
-                                (l.letra_musica && l.letra_musica.toLowerCase().includes(novoNome.toLowerCase()))
-                              )
-                              .slice(0, 5)
-                              .map((louvor) => (
-                                <div
-                                  key={louvor.id}
-                                  onClick={() => {
-                                    const novoItem = {
-                                      id: `local_new_${Date.now()}`,
-                                      type: "louvor",
-                                      numero: louvor.numero || "",
-                                      nome: louvor.nome || "",
-                                      categoria: louvor.categoria || "Coletânea",
-                                      observacao: "",
-                                      letra_musica: louvor.letra_musica || "",
-                                      id_louvor_db: louvor.id,
-                                      isEditing: false
-                                    };
-                                    setRows([...rows, novoItem]);
-                                    setNovoNome("");
-                                    setModoAdicao(null);
-                                  }}
-                                  className="px-3 py-2.5 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-none flex items-center justify-between text-xs"
-                                >
-                                  <div className="flex items-center gap-2 truncate">
-                                    <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded w-12 text-center flex-shrink-0">
-                                      {louvor.numero || "—"}
-                                    </span>
-                                    <span className="text-slate-800 font-medium truncate">
-                                      {louvor.nome} {louvor.categoria === "Cias" || louvor.categoria === "CIAS" ? "(Cias)" : ""}
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full flex-shrink-0">
-                                    Selecionar
+                            {buscarELimitarLouvores(todosLouvoresBanco, novoNome, 5).map((louvor) => (
+                              <div
+                                key={louvor.id}
+                                onClick={() => {
+                                  const novoItem = {
+                                    id: `local_new_${Date.now()}`,
+                                    type: "louvor",
+                                    numero: louvor.numero || "",
+                                    nome: louvor.nome || "",
+                                    categoria: louvor.categoria || "Coletânea",
+                                    observacao: "",
+                                    letra_musica: louvor.letra_musica || "",
+                                    id_louvor_db: louvor.id,
+                                    isEditing: false
+                                  };
+                                  setRows([...rows, novoItem]);
+                                  setNovoNome("");
+                                  setModoAdicao(null);
+                                }}
+                                className="px-3 py-2.5 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-none flex items-center justify-between text-xs"
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded w-12 text-center flex-shrink-0">
+                                    {louvor.numero || "—"}
+                                  </span>
+                                  <span className="text-slate-800 font-medium truncate">
+                                    {louvor.nome} {louvor.categoria === "Cias" || louvor.categoria === "CIAS" ? "(Cias)" : ""}
                                   </span>
                                 </div>
-                              ))}
+                                <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full flex-shrink-0">
+                                  Selecionar
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -683,13 +721,9 @@ export default function HistoricoListas() {
 
                   <div className="space-y-2">
                     {rows.map((row, index) => {
-                      const termoBusca = (row.nome || "").toLowerCase().trim();
-                      const resultadosBusca = termoBusca === "" || !row.isEditing || row.type === 'divider' ? [] : todosLouvoresBanco.filter(l => 
-                        (l.nome && l.nome.toLowerCase().includes(termoBusca)) ||
-                        (l.numero && String(l.numero).toLowerCase().includes(termoBusca)) ||
-                        (l.categoria && l.categoria.toLowerCase().includes(termoBusca)) ||
-                        (l.letra_musica && l.letra_musica.toLowerCase().includes(termoBusca))
-                      ).slice(0, 5);
+                      const resultadosBusca = !row.isEditing || row.type === 'divider' 
+                        ? [] 
+                        : buscarELimitarLouvores(todosLouvoresBanco, row.nome, 5);
 
                       const ehCiasModal = row.categoria === "Cias" || row.categoria === "CIAS" || row.categoria === "cias";
                       const nomeExibicaoModal = ehCiasModal && !(row.nome || "").toLowerCase().includes("(cias)") ? `${row.nome} (Cias)` : row.nome;
@@ -872,7 +906,7 @@ export default function HistoricoListas() {
                                       novasRows[index].originalNumero = novasRows[index].numero;
                                       novasRows[index].originalCategoria = novasRows[index].categoria;
                                       novasRows[index].originalObservacao = novasRows[index].observacao;
-                                      novasRows[index].originalIdLouvorDb = novasRows[index].originalIdLouvorDb;
+                                      novasRows[index].originalIdLouvorDb = novasRows[index].id_louvor_db;
                                       novasRows[index].nome = "";
                                       novasRows[index].numero = "";
                                     }
@@ -909,7 +943,7 @@ export default function HistoricoListas() {
                         modoAdicao === 'louvor' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                       }`}
                     >
-                      <Plus className="w-3.5 h-3.5" /> louvor
+                      <Plus className="w-3.5 h-3.5" /> Louvor
                     </button>
                     <button
                       onClick={() => setModoAdicao(modoAdicao === 'divider' ? null : 'divider')}
@@ -940,7 +974,6 @@ export default function HistoricoListas() {
                 <Check className="w-4 h-4" /> {loading ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </div>
-
           </div>
         </div>
       )}

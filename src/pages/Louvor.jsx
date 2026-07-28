@@ -14,6 +14,15 @@ import { TEMAS_PADRAO } from "@/data/louvores_coletanea_tema";
 import { supabase } from "@/lib/supabaseClient";
 import imagemFundo from "../assets/Tromb_mundo.jpg";
 
+// Função para remover acentos e pontuações (.,!?- etc.)
+const normalizarTexto = (texto) =>
+  String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"¡!¿]/g, "") // Remove pontuações
+    .trim();
+
 export default function Louvor() {
   const navigate = useNavigate();
   const [louvores, setLouvores] = useState([]);
@@ -124,7 +133,7 @@ export default function Louvor() {
     return [...temasSet];
   }, [filterCategoria, louvores]);
 
-  // 6. FUNÇÃO PARA BUSCAR OS LOUVORES DO BANCO (Substitui o window.location.reload)
+  // 6. FUNÇÃO PARA BUSCAR OS LOUVORES DO BANCO
   const carregarLouvores = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -140,7 +149,6 @@ export default function Louvor() {
     setLoading(false);
   };
 
-  // Chama a busca inicial
   useEffect(() => {
     carregarLouvores();
   }, []);
@@ -182,7 +190,7 @@ export default function Louvor() {
       alert("Erro ao salvar: " + error.message);
     } else { 
       setSheetOpen(false); 
-      carregarLouvores(); // Atualiza a lista suavemente sem recarregar a tela
+      carregarLouvores();
     }
     setSaving(false);
   };
@@ -228,14 +236,18 @@ export default function Louvor() {
       if (error) {
         alert("Erro: " + error.message);
       } else {
-        carregarLouvores(); // Atualiza a lista suavemente
+        carregarLouvores();
       }
     };
     reader.readAsText(file);
   };
 
+  // --- LÓGICA DE FILTRAGEM E ORDENAÇÃO ATUALIZADA ---
+  const termoBruto = (search || "").trim();
+  const termoNormalizado = normalizarTexto(search);
+  const buscaNum = termoBruto.toLowerCase();
+
   const filtered = louvores.filter((l) => {
-    // Lógica Híbrida: Se tem número, busca no arquivo padrão. Se não tem, busca na coluna `tema` do banco.
     const temNumero = l.numero !== null && l.numero !== undefined && String(l.numero).trim() !== "";
     
     let temaDoLouvor = "Sem Tema";
@@ -247,14 +259,14 @@ export default function Louvor() {
     } else {
       temaDoLouvor = l.tema || "Sem Tema";
     }
-    
-    const searchLower = search.toLowerCase();
 
-    // BUSCA POR: NOME, NÚMERO OU LETRA DA MÚSICA (Com correção para evitar buscar o texto 'null')
-    const matchSearch = 
-      l.nome?.toLowerCase().includes(searchLower) || 
-      (l.numero ? String(l.numero).includes(search) : false) ||
-      l.letra_musica?.toLowerCase().includes(searchLower);
+    // BUSCA NORMALIZADA: NÚMERO, NOME OU LETRA
+    const numStr = temNumero ? String(l.numero).trim().toLowerCase() : "";
+    const matchNumero = numStr ? numStr.startsWith(buscaNum) : false;
+    const matchNome = normalizarTexto(l.nome).includes(termoNormalizado);
+    const matchLetra = normalizarTexto(l.letra_musica).includes(termoNormalizado);
+
+    const matchSearch = !termoBruto || matchNumero || matchNome || matchLetra;
 
     // SE ESTIVER EM MODO FAVORITOS, IGNORA OS FILTROS DE CATEGORIA E TEMA
     const matchCategoria = showFavsOnly || filterCategoria === "all" || l.categoria === filterCategoria;
@@ -263,6 +275,19 @@ export default function Louvor() {
 
     return matchSearch && matchCategoria && matchTema && matchFav;
   }).sort((a, b) => {
+    // 🏆 PRIORIDADE 1: Se houver busca de número, correspondência EXATA vai direto pro topo!
+    if (buscaNum) {
+      const numA = (a.numero !== null && a.numero !== undefined) ? String(a.numero).trim().toLowerCase() : "";
+      const numB = (b.numero !== null && b.numero !== undefined) ? String(b.numero).trim().toLowerCase() : "";
+
+      const exatoA = numA === buscaNum;
+      const exatoB = numB === buscaNum;
+
+      if (exatoA && !exatoB) return -1;
+      if (!exatoA && exatoB) return 1;
+    }
+
+    // 🏆 PRIORIDADE 2: Ordenação Padrão por Categoria e Número / Nome
     const obterPeso = (item) => {
       const temNumero = item.numero !== null && item.numero !== undefined && String(item.numero).trim() !== "";
       

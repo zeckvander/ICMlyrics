@@ -4,7 +4,6 @@ import { ArrowLeft, Plus, Trash2, Music, ChevronRight, FolderPlus, Loader2, Sear
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function ListaRepertorio() {
@@ -22,19 +21,16 @@ export default function ListaRepertorio() {
 
   const [nomeNovaLista, setNomeNovaLista] = useState("");
   const [dataNovaLista, setDataNovaLista] = useState(dataHoje);
-  const [obsNovaLista, setObsNovaLista] = useState("");
   const [statusNovaLista, setStatusNovaLista] = useState("planejada");
   const [linksNovaLista, setLinksNovaLista] = useState([]);
 
   const [nomeEdicao, setNomeEdicao] = useState("");
   const [dataEdicao, setDataEdicao] = useState("");
-  const [obsEdicao, setObsEdicao] = useState("");
   const [statusEdicao, setStatusEdicao] = useState("planejada");
   const [linksEdicao, setLinksEdicao] = useState([]);
 
   const [nomeListaAtual, setNomeListaAtual] = useState("");
   const [dataListaAtual, setDataListaAtual] = useState("");
-  const [obsListaAtual, setObsListaAtual] = useState("");
   const [statusListaAtual, setStatusListaAtual] = useState("");
   const [linksListaAtual, setLinksListaAtual] = useState([]);
 
@@ -114,7 +110,6 @@ export default function ListaRepertorio() {
       if (listaData) { 
         setNomeListaAtual(listaData.nome); 
         setDataListaAtual(listaData.data_evento || ""); 
-        setObsListaAtual(listaData.observacoes || ""); 
         setStatusListaAtual(listaData.status || "planejada");
         setLinksListaAtual(listaData.links || []);
       }
@@ -127,17 +122,46 @@ export default function ListaRepertorio() {
     } finally { setLoading(false); }
   };
 
+  // VERIFICAÇÃO DE LIMITE (MÁXIMO 10 LISTAS POR NUVEM)
+  const verificarLimiteListas = async () => {
+    const nuvemAlvo = isSuper ? "todos" : userNuvem;
+    const { count, error } = await supabase
+      .from('listas_repertorio')
+      .select('id', { count: 'exact', head: true })
+      .eq('nuvem', nuvemAlvo);
+
+    if (!error && count >= 10) {
+      alert("Sua nuvem já atingiu o limite máximo de 10 listas de repertório. Exclua uma lista existente para poder criar uma nova.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleAbrirModalCriar = async () => {
+    if (!podeCriar) return alert("Você não tem permissão para criar listas.");
+    const limiteOk = await verificarLimiteListas();
+    if (!limiteOk) return;
+
+    setNomeNovaLista(""); 
+    setDataNovaLista(new Date().toISOString().split('T')[0]); 
+    setLinksNovaLista([]); 
+    setModalNovaListaOpen(true);
+  };
+
   const handleCriarLista = async () => {
     if (!estaNaNuvem) return;
     if (!podeCriar) return alert("Você não tem permissão para criar listas.");
     if (!nomeNovaLista.trim()) return alert("Digite um nome para a lista.");
     
+    const limiteOk = await verificarLimiteListas();
+    if (!limiteOk) return;
+
     const linksValidos = linksNovaLista.filter(l => l.titulo.trim() || l.url.trim());
     
     const { error } = await supabase.from('listas_repertorio').insert([{ 
       nome: nomeNovaLista.trim(), 
       data_evento: dataNovaLista || null, 
-      observacoes: obsNovaLista.trim() || null, 
+      observacoes: null, 
       status: statusNovaLista || "planejada", 
       links: linksValidos.length > 0 ? linksValidos : null,
       nuvem: isSuper ? "todos" : userNuvem, 
@@ -152,11 +176,52 @@ export default function ListaRepertorio() {
     } else { 
       setNomeNovaLista(""); 
       setDataNovaLista(new Date().toISOString().split('T')[0]); 
-      setObsNovaLista(""); 
       setStatusNovaLista("planejada");
       setLinksNovaLista([]); 
       setModalNovaListaOpen(false); 
       carregarListas(); 
+    }
+  };
+
+  const handleCriarListaEAviso = async () => {
+    if (!estaNaNuvem) return;
+    if (!podeCriar) return alert("Você não tem permissão para criar listas.");
+    if (!nomeNovaLista.trim()) return alert("Digite um nome para a lista.");
+
+    const limiteOk = await verificarLimiteListas();
+    if (!limiteOk) return;
+
+    const linksValidos = linksNovaLista.filter(l => l.titulo.trim() || l.url.trim());
+
+    const { data, error } = await supabase.from('listas_repertorio').insert([{ 
+      nome: nomeNovaLista.trim(), 
+      data_evento: dataNovaLista || null, 
+      observacoes: null, 
+      status: statusNovaLista || "planejada", 
+      links: linksValidos.length > 0 ? linksValidos : null,
+      nuvem: isSuper ? "todos" : userNuvem, 
+      tipo: isSuper ? "global" : "local", 
+      autor: usuarioAtual, 
+      nome_igreja: nomeIgreja 
+    }]).select('id').single();
+
+    if (error) { 
+      console.error("Detalhes do erro do Supabase:", error); 
+      alert("Erro ao criar lista: " + error.message);
+    } else { 
+      localStorage.setItem("icmlyrics_aviso_pendente", JSON.stringify({
+        titulo: nomeNovaLista.trim(),
+        mensagem: "",
+        links: linksValidos,
+        repertorio_id: data.id,
+        repertorio_nome: nomeNovaLista.trim()
+      }));
+      setNomeNovaLista(""); 
+      setDataNovaLista(new Date().toISOString().split('T')[0]); 
+      setStatusNovaLista("planejada");
+      setLinksNovaLista([]); 
+      setModalNovaListaOpen(false); 
+      navigate("/avisos"); 
     }
   };
 
@@ -166,7 +231,6 @@ export default function ListaRepertorio() {
     setListaEditando(lista); 
     setNomeEdicao(lista.nome || ""); 
     setDataEdicao(lista.data_evento || ""); 
-    setObsEdicao(lista.observacoes || ""); 
     setStatusEdicao(lista.status || "planejada");
     setLinksEdicao(lista.links ? [...lista.links] : []);
     setModalEditarListaOpen(true);
@@ -187,7 +251,7 @@ export default function ListaRepertorio() {
     const { error } = await supabase.from('listas_repertorio').update({ 
       nome: nomeEdicao.trim(), 
       data_evento: dataEdicao || null, 
-      observacoes: obsEdicao.trim() || null, 
+      observacoes: null, 
       status: statusEdicao || "planejada",
       links: linksValidos.length > 0 ? linksValidos : null 
     }).eq('id', listaEditando.id);
@@ -265,10 +329,9 @@ export default function ListaRepertorio() {
               <span className="text-[9px] uppercase font-bold px-2 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center gap-1 text-slate-300">{isSuper ? <Globe className="w-2.5 h-2.5 text-amber-400" /> : <Shield className="w-2.5 h-2.5 text-indigo-400" />}{isSuper ? "Super Adm" : userRole === "church_admin" ? "Adm Local" : "Membro"}</span>
             </div>
           </div>
-          {(dataListaAtual || obsListaAtual || (linksListaAtual && linksListaAtual.length > 0)) && (
+          {(dataListaAtual || (linksListaAtual && linksListaAtual.length > 0)) && (
             <div className="mt-4 pt-3 border-t border-slate-800 flex flex-col gap-2 text-xs text-slate-300">
               {dataListaAtual && <div className="flex items-center gap-1.5 text-slate-200"><Calendar className="w-3.5 h-3.5 text-slate-400" /><span>Data do Culto/Evento: <strong>{new Date(dataListaAtual + 'T00:00:00').toLocaleDateString('pt-BR')}</strong></span></div>}
-              {obsListaAtual && <div className="flex items-start gap-1.5 text-slate-300"><Info className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" /><span className="italic">Obs: {obsListaAtual}</span></div>}
               {linksListaAtual && linksListaAtual.length > 0 && (
                 <div className="flex flex-col gap-1 mt-1">
                   <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Links Anexos:</span>
@@ -376,12 +439,12 @@ export default function ListaRepertorio() {
               );
             })}
           </div>
-        ) : <div className="text-center py-20 px-4"><Music className="w-8 h-8 text-slate-300 mx-auto mb-2" /><p className="text-xs font-medium text-slate-600">Nenhuma lista de repertório criada</p>{podeCriar && <p className="text-[11px] text-slate-400 mt-1">Crie sua primeira lista usando o botão de mais abaixo.</p>}</div>}
+        ) : <div className="text-center py-20 px-4"><Music className="w-8 h-8 text-slate-300 mx-auto mb-2" /><p className="text-xs font-medium text-slate-600">Nenhuma lista de repertório criada</p>{podeCriar && <p className="text-[11px] text-slate-400 mt-1">Crie sua primeira lista usando o botão de mais abaixo (máx. 10 listas).</p>}</div>}
       </div>
 
       {podeCriar && (
         <div className="fixed bottom-6 right-6 z-30">
-          <button onClick={() => { setNomeNovaLista(""); setDataNovaLista(new Date().toISOString().split('T')[0]); setObsNovaLista(""); setLinksNovaLista([]); setModalNovaListaOpen(true); }} className="w-12 h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-105 active:scale-95"><Plus className="w-5 h-5" /></button>
+          <button onClick={handleAbrirModalCriar} className="w-12 h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-105 active:scale-95"><Plus className="w-5 h-5" /></button>
         </div>
       )}
 
@@ -389,7 +452,7 @@ export default function ListaRepertorio() {
       <Dialog open={modalNovaListaOpen} onOpenChange={setModalNovaListaOpen}>
         <DialogContent className="max-w-[92vw] sm:max-w-lg w-full max-h-[90vh] rounded-2xl p-6 border-slate-100 flex flex-col">
           <DialogHeader><DialogTitle className="text-slate-900 font-semibold text-base">Nova Lista de Repertório</DialogTitle></DialogHeader>
-          <div className="my-4 flex flex-col gap-3 flex-1 overflow-y-auto no-scrollbar">
+          <div className="my-4 flex flex-col gap-4 flex-1 overflow-y-auto no-scrollbar">
             
             <div className="flex gap-3 w-full">
               <div className="w-[65%]">
@@ -400,11 +463,6 @@ export default function ListaRepertorio() {
                 <label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Data do Evento</label>
                 <Input type="date" value={dataNovaLista} onChange={(e) => setDataNovaLista(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 border-slate-200 px-2" />
               </div>
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Observações</label>
-              <Textarea placeholder="Ex: Culto de jovens..." value={obsNovaLista} onChange={(e) => setObsNovaLista(e.target.value)} className="mt-1 text-xs bg-slate-50 border-slate-200 resize-none h-28" />
             </div>
 
             <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
@@ -431,16 +489,7 @@ export default function ListaRepertorio() {
           <DialogFooter className="flex flex-col gap-2 pt-2 border-t border-slate-100">
             <div className="grid grid-cols-2 gap-2 w-full">
               <Button variant="outline" onClick={() => setModalNovaListaOpen(false)} className="h-9 text-xs border-slate-200">Cancelar</Button>
-              <Button onClick={() => { 
-                const linksValidos = linksNovaLista.filter(l => l.titulo.trim() || l.url.trim());
-                localStorage.setItem("icmlyrics_aviso_pendente", JSON.stringify({
-                  titulo: nomeNovaLista,
-                  mensagem: obsNovaLista,
-                  links: linksValidos
-                }));
-                setModalNovaListaOpen(false); 
-                navigate("/avisos"); 
-              }} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5">
+              <Button onClick={handleCriarListaEAviso} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5">
                 <Bell className="w-3.5 h-3.5" /> Criar Aviso
               </Button>
             </div>
@@ -464,11 +513,6 @@ export default function ListaRepertorio() {
                 <label className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Data do Evento</label>
                 <Input type="date" value={dataEdicao} onChange={(e) => setDataEdicao(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 border-slate-200 px-2" />
               </div>
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Observações</label>
-              <Textarea placeholder="Ex: Culto de jovens..." value={obsEdicao} onChange={(e) => setObsEdicao(e.target.value)} className="mt-1 text-xs bg-slate-50 border-slate-200 resize-none h-28" />
             </div>
 
             <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
@@ -499,8 +543,10 @@ export default function ListaRepertorio() {
                 const linksValidos = linksEdicao.filter(l => l.titulo.trim() || l.url.trim());
                 localStorage.setItem("icmlyrics_aviso_pendente", JSON.stringify({
                   titulo: nomeEdicao,
-                  mensagem: obsEdicao,
-                  links: linksValidos
+                  mensagem: "",
+                  links: linksValidos,
+                  repertorio_id: listaEditando?.id,
+                  repertorio_nome: nomeEdicao
                 }));
                 setModalEditarListaOpen(false); 
                 navigate("/avisos"); 
@@ -519,11 +565,6 @@ export default function ListaRepertorio() {
           <DialogHeader><DialogTitle className="text-slate-900 font-semibold text-lg">{listaVisualizando?.nome}</DialogTitle></DialogHeader>
           <div className="my-4 flex flex-col gap-4 text-xs text-slate-600 flex-1 overflow-y-auto">
             {listaVisualizando?.data_evento && <div className="flex items-center gap-2 text-slate-700 font-medium bg-slate-50 p-2.5 rounded-lg border border-slate-100"><Calendar className="w-4 h-4 text-slate-400" /><span>Data do Evento: {new Date(listaVisualizando.data_evento + 'T00:00:00').toLocaleDateString('pt-BR')}</span></div>}
-            
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex-1 flex flex-col">
-              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-2">Observações:</p>
-              <div className="flex-1 overflow-y-auto max-h-[160px]"><p className="text-slate-700 whitespace-pre-wrap leading-relaxed text-xs">{listaVisualizando?.observacoes || "Nenhuma observação informada."}</p></div>
-            </div>
 
             {listaVisualizando?.links && listaVisualizando.links.length > 0 && (
               <div className="flex flex-col gap-2">
@@ -543,23 +584,7 @@ export default function ListaRepertorio() {
             )}
           </div>
           
-          <div className="flex flex-col gap-2 pt-3 border-t border-slate-100">
-            {podeCriar && (
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => setModalVisualizarOpen(false)} className="h-9 text-xs border-slate-200">Cancelar</Button>
-                <Button onClick={() => { 
-                  localStorage.setItem("icmlyrics_aviso_pendente", JSON.stringify({
-                    titulo: listaVisualizando?.nome || "",
-                    mensagem: listaVisualizando?.observacoes || "",
-                    links: listaVisualizando?.links || []
-                  }));
-                  setModalVisualizarOpen(false); 
-                  navigate("/avisos"); 
-                }} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5">
-                  <Bell className="w-3.5 h-3.5" /> Criar Aviso
-                </Button>
-              </div>
-            )}
+          <div className="pt-3 border-t border-slate-100">
             <Button onClick={() => { const idLista = listaVisualizando?.id; setModalVisualizarOpen(false); navigate(`/repertorio/lista/${idLista}`); }} className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs">Continuar para a Lista</Button>
           </div>
         </DialogContent>

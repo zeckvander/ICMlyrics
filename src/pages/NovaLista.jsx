@@ -167,6 +167,18 @@ export default function NovaLista() {
 
     if (temNuvem) {
       try {
+        // 1. Consulta se o usuário já possui 12 ou mais listas no Supabase
+        const { count, error: erroCount } = await supabase
+          .from("listas")
+          .select("*", { count: "exact", head: true })
+          .eq("acesso_usuario", usuarioNuvem);
+
+        if (!erroCount && count !== null && count >= 12) {
+          alert("Limite de 12 listas atingido! Exclua uma lista anterior para criar uma nova.");
+          setSalvando(false);
+          return null;
+        }
+
         const payloadLista = {
           data_culto: dataCulto,
           dia_semana: diaSemana,
@@ -215,7 +227,18 @@ export default function NovaLista() {
       }
     }
 
+    // Salvar Localmente
     try {
+      const localListas = localStorage.getItem("icmlyrics_historico_listas");
+      const historicoAtual = localListas ? JSON.parse(localListas) : [];
+
+      // 2. Consulta no LocalStorage se possui 12 ou mais listas
+      if (historicoAtual.length >= 12) {
+        alert("Limite de 12 listas atingido localmente! Exclua uma lista anterior para criar uma nova.");
+        setSalvando(false);
+        return null;
+      }
+
       const novaListaLocal = {
         id: genId(),
         dataCulto,
@@ -225,8 +248,6 @@ export default function NovaLista() {
         rows: linhasValidas
       };
 
-      const localListas = localStorage.getItem("icmlyrics_historico_listas");
-      const historicoAtual = localListas ? JSON.parse(localListas) : [];
       const novoHistorico = [novaListaLocal, ...historicoAtual];
       
       localStorage.setItem("icmlyrics_historico_listas", JSON.stringify(novoHistorico));
@@ -234,14 +255,17 @@ export default function NovaLista() {
       return novaListaLocal.id;
     } catch (e) {
       console.error("Erro ao salvar localmente", e);
+      return null;
     } finally {
       setSalvando(false);
     }
   };
 
   const handleGerarPreview = async (mode) => {
-    await salvarListaHibrida();
-    setModal({ open: true, mode });
+    const idSalvo = await salvarListaHibrida();
+    if (idSalvo) {
+      setModal({ open: true, mode });
+    }
   };
 
   return (

@@ -3,6 +3,15 @@ import { Draggable } from "@hello-pangea/dnd";
 import { GripVertical, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
+// Função para remover acentos e caracteres especiais (pontos, vírgulas, exclamações, etc.)
+const normalizarTexto = (texto) =>
+  String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"¡!¿]/g, "") // Remove pontuações
+    .trim();
+
 export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
   const [suggestions, setSuggestions] = useState([]);
   const [inputValue, setInputValue] = useState("");
@@ -17,24 +26,51 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
   const handleInputChange = (value) => {
     setInputValue(value);
 
-    if (!value.trim()) {
+    const termoBruto = value.trim();
+    if (!termoBruto) {
       setSuggestions([]);
-      // Mantém a categoria atual ou define "--", sem forçar "Avulsos"
       onChange({ ...row, nome: "", numero: "", id_louvor_db: null, categoria: row.categoria || "--" });
       return;
     }
 
+    const termoNormalizado = normalizarTexto(value);
+    const buscaNum = termoBruto.toLowerCase();
+
     const filtered = (louvores || [])
       .filter((l) => {
+        // Filtra pela categoria se estiver definida e diferente de "--"
+        const bateCategoria = !row.categoria || row.categoria === "--" || l.categoria === row.categoria;
+        if (!bateCategoria) return false;
+
         const nomeLouvor = l.nome || l.text || "";
-        const numeroLouvor = l.numero && !String(l.numero).startsWith("local_") ? l.numero : "";
-        
-        const porNumero = numeroLouvor ? String(numeroLouvor).toLowerCase().includes(value.toLowerCase()) : false;
-        const porNome = String(nomeLouvor).toLowerCase().includes(value.toLowerCase());
-        
+        const numeroLouvor = l.numero && !String(l.numero).startsWith("local_") ? String(l.numero) : "";
+
+        const porNumero = numeroLouvor ? numeroLouvor.toLowerCase().startsWith(buscaNum) : false;
+        const porNome = normalizarTexto(nomeLouvor).includes(termoNormalizado);
+
         return porNumero || porNome;
       })
-      .slice(0, 5);
+      .sort((a, b) => {
+        const numA = String(a.numero || "").trim().toLowerCase();
+        const numB = String(b.numero || "").trim().toLowerCase();
+
+        // 🏆 PRIORIDADE 1: Correspondência EXATA de número vai direto para o topo
+        // Ex: digitou "1" -> 1 da Coletânea e 1 da CIAS aparecem primeiro que 15, 10, etc.
+        const exatoA = numA === buscaNum;
+        const exatoB = numB === buscaNum;
+
+        if (exatoA && !exatoB) return -1;
+        if (!exatoA && exatoB) return 1;
+
+        // 🏆 PRIORIDADE 2: Ordenação por valor numérico crescente
+        const nA = Number(a.numero) || 0;
+        const nB = Number(b.numero) || 0;
+        if (nA !== nB) return nA - nB;
+
+        // 🏆 PRIORIDADE 3: Se o número for igual, desempata pelo nome da Categoria
+        return (a.categoria || "").localeCompare(b.categoria || "");
+      })
+      .slice(0, 10); // Aumentado para até 10 itens no dropdown
 
     setSuggestions(filtered);
   };
@@ -51,7 +87,6 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
       ...row,
       nome: nomeFinal,
       numero: numeroFinal,
-      // Preserva a categoria do banco de dados ou mantém a atual
       categoria: louvor.categoria || row.categoria || "--",
       id_louvor_db: louvor.id 
     });
@@ -101,8 +136,7 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
             </span>
             <div className="flex-1 space-y-2 relative">
               <div className="flex gap-2 items-center">
-                {/* Exibe o valor atual da categoria sem permitir cliques */}
-                <div className="h-9 px-3 text-xs w-28 shrink-0 bg-slate-100 text-slate-600 font-medium rounded-md border border-slate-200 flex items-center justify-center select-none">
+                <div className="h-9 px-3 text-xs w-28 shrink-0 bg-slate-100 text-slate-600 font-medium rounded-md border border-slate-200 flex items-center justify-center select-none truncate">
                   {row.categoria || "--"}
                 </div>
                 
@@ -128,7 +162,8 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
                             onMouseDown={() => handleSelectSuggestion(l)}
                             className="w-full text-left px-3 py-2 text-xs hover:bg-slate-100 border-b last:border-0 block truncate text-slate-700 font-medium"
                           >
-                            {numeroExibir ? `${numeroExibir} - ` : ""}{nomeExibir} <span className="text-slate-400 font-normal">({l.categoria || "--"})</span>
+                            {numeroExibir ? `${numeroExibir} - ` : ""}{nomeExibir}{" "}
+                            <span className="text-slate-400 font-normal">({l.categoria || "--"})</span>
                           </button>
                         );
                       })}
@@ -136,7 +171,12 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
                   )}
                 </div>
               </div>
-              <Input value={row.observacao || ""} onChange={(e) => onChange({ ...row, observacao: e.target.value })} placeholder="Observação (opcional)" className="h-9 text-xs text-slate-500" />
+              <Input 
+                value={row.observacao || ""} 
+                onChange={(e) => onChange({ ...row, observacao: e.target.value })} 
+                placeholder="Observação (opcional)" 
+                className="h-9 text-xs text-slate-500" 
+              />
             </div>
             <button type="button" onClick={onRemove} className="text-slate-300 hover:text-red-400 mt-2">
               <X className="w-4 h-4" />

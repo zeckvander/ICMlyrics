@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Plus, Trash2, Globe, Shield, 
-  Loader2, X, ChevronDown, ChevronUp, Pencil, Cloud 
+  Loader2, X, ChevronDown, ChevronUp, Pencil, Cloud, ExternalLink, Music 
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -13,9 +13,11 @@ export default function Avisos() {
   const [avisos, setAvisos] = useState([]);
   const [assuntoAviso, setAssuntoAviso] = useState("");
   const [novoAviso, setNovoAviso] = useState("");
+  const [repertorioId, setRepertorioId] = useState(null);
   const [linksForm, setLinksForm] = useState([{ texto: "", url: "" }]);
   const [avisoEditandoId, setAvisoEditandoId] = useState(null);
   const [carregandoAvisos, setCarregandoAvisos] = useState(true);
+  const [salvando, setSalvando] = useState(false);
   const [avisoExpandido, setAvisoExpandido] = useState(null);
   const [listaExpandida, setListaExpandida] = useState(false);
 
@@ -27,6 +29,12 @@ export default function Avisos() {
   // Identificadores locais
   const userNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
   const userName = localStorage.getItem("icmlyrics_user") || "Usuário";
+
+  // Função auxiliar para garantir URLs válidas
+  const formatarUrl = (url) => {
+    if (!url) return "#";
+    return url.startsWith("http://") || url.startsWith("https://") ? url : `https://${url}`;
+  };
 
   // 1. VALIDAÇÃO DE PERMISSÕES
   useEffect(() => {
@@ -87,7 +95,7 @@ export default function Avisos() {
     validarAcesso();
   }, [userNuvem]);
 
-  // CAPTURA CORRETA DOS DADOS VINDO DO REPERTÓRIO (icmlyrics_aviso_pendente)
+  // CAPTURA DADOS PENDENTES DO REPERTÓRIO
   useEffect(() => {
     const dadosTemporarios = localStorage.getItem('icmlyrics_aviso_pendente');
 
@@ -98,9 +106,11 @@ export default function Avisos() {
         const assuntoFinal = dados.titulo || dados.assunto || "";
         const mensagemFinal = dados.mensagem || dados.texto || dados.observacao || "";
         const linksFinais = dados.links || [];
+        const repId = dados.repertorio_id || null;
 
         if (assuntoFinal) setAssuntoAviso(assuntoFinal);
         if (mensagemFinal) setNovoAviso(mensagemFinal);
+        if (repId) setRepertorioId(repId);
         
         if (linksFinais.length > 0) {
           const linksMapeados = linksFinais.map(l => ({
@@ -162,11 +172,14 @@ export default function Avisos() {
       return alert("Assunto e texto são obrigatórios.");
     }
 
+    setSalvando(true);
     try {
       if (avisoEditandoId) {
         const avisoExistente = avisos.find((a) => a.id === avisoEditandoId);
         if (avisoExistente && !podeModificarAviso(avisoExistente)) {
-          return alert("Você não tem permissão para editar este aviso.");
+          alert("Você não tem permissão para editar este aviso.");
+          setSalvando(false);
+          return;
         }
 
         const { error: errorAviso } = await supabase
@@ -174,12 +187,14 @@ export default function Avisos() {
           .update({
             assunto: assuntoAviso.trim(),
             texto: novoAviso.trim(),
+            repertorio_id: repertorioId || null,
           })
           .eq("id", avisoEditandoId);
 
         if (errorAviso) throw errorAviso;
 
-        await supabase.from("avisos_links").delete().eq("aviso_id", avisoEditandoId);
+        const { error: errDel } = await supabase.from("avisos_links").delete().eq("aviso_id", avisoEditandoId);
+        if (errDel) throw errDel;
 
         const linksParaSalvar = linksForm
           .filter((l) => l.url.trim() !== "")
@@ -190,7 +205,8 @@ export default function Avisos() {
           }));
 
         if (linksParaSalvar.length > 0) {
-          await supabase.from("avisos_links").insert(linksParaSalvar);
+          const { error: errIns } = await supabase.from("avisos_links").insert(linksParaSalvar);
+          if (errIns) throw errIns;
         }
       } else {
         const { data: avisoCriado, error: errorCriar } = await supabase
@@ -203,6 +219,7 @@ export default function Avisos() {
               nuvem: isSuper ? "todos" : userNuvem,
               autor: userName,
               nome_igreja: nomeIgreja,
+              repertorio_id: repertorioId || null,
             },
           ])
           .select()
@@ -219,18 +236,22 @@ export default function Avisos() {
           }));
 
         if (linksParaSalvar.length > 0) {
-          await supabase.from("avisos_links").insert(linksParaSalvar);
+          const { error: errIns } = await supabase.from("avisos_links").insert(linksParaSalvar);
+          if (errIns) throw errIns;
         }
       }
 
       setAvisoEditandoId(null);
       setAssuntoAviso("");
       setNovoAviso("");
+      setRepertorioId(null);
       setLinksForm([{ texto: "", url: "" }]);
-      buscarAvisosDoBanco();
+      await buscarAvisosDoBanco();
     } catch (err) {
       console.error("Erro ao salvar aviso:", err);
       alert(`Erro ao salvar: ${err.message || "Tente novamente."}`);
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -241,10 +262,12 @@ export default function Avisos() {
 
     if (!window.confirm("Deseja realmente excluir este aviso?")) return;
     try {
-      await supabase.from("avisos").delete().eq("id", aviso.id);
+      const { error } = await supabase.from("avisos").delete().eq("id", aviso.id);
+      if (error) throw error;
       buscarAvisosDoBanco();
     } catch (err) {
       console.error("Erro ao deletar aviso:", err);
+      alert("Erro ao excluir aviso.");
     }
   };
 
@@ -256,6 +279,7 @@ export default function Avisos() {
     setAvisoEditandoId(aviso.id);
     setAssuntoAviso(aviso.assunto || "");
     setNovoAviso(aviso.texto || "");
+    setRepertorioId(aviso.repertorio_id || null);
     if (aviso.avisos_links && aviso.avisos_links.length > 0) {
       setLinksForm(aviso.avisos_links.map((l) => ({ texto: l.titulo_link || "", url: l.url || "" })));
     } else {
@@ -266,6 +290,7 @@ export default function Avisos() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
+      {/* Cabeçalho */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button 
@@ -313,7 +338,9 @@ export default function Avisos() {
         </div>
       </div>
 
+      {/* Conteúdo Principal */}
       <div className="p-4 space-y-6 max-w-md mx-auto mt-2">
+        {/* Formulário de Criação/Edição */}
         {podeCriar && (
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
             <div className="flex justify-between items-center">
@@ -322,12 +349,31 @@ export default function Avisos() {
                 {avisoEditandoId ? "Editando Aviso" : "Novo Aviso"}
               </h3>
               <button
+                type="button"
                 onClick={() => setLinksForm([...linksForm, { texto: "", url: "" }])}
                 className="text-[10px] font-bold text-indigo-600 flex items-center gap-1 bg-indigo-50 px-2.5 py-1 rounded-lg hover:bg-indigo-100 transition-colors"
               >
                 + Adicionar Link
               </button>
             </div>
+
+            {/* Selo do Repertório Vinculado */}
+            {repertorioId && (
+              <div className="flex items-center justify-between p-2.5 bg-indigo-50/80 border border-indigo-100 rounded-xl text-indigo-700 text-xs font-medium">
+                <div className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-indigo-600" />
+                  <span>Repertório vinculado ao aviso</span>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setRepertorioId(null)}
+                  className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
+                  title="Remover vínculo com repertório"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             <input
               value={assuntoAviso}
@@ -348,6 +394,7 @@ export default function Avisos() {
                 <div key={idx} className="bg-slate-50 p-2 rounded-xl border border-slate-200 relative">
                   {linksForm.length > 1 && (
                     <button
+                      type="button"
                       onClick={() => setLinksForm(linksForm.filter((_, i) => i !== idx))}
                       className="absolute right-2 top-2 p-1 hover:bg-slate-200 rounded-full"
                     >
@@ -381,27 +428,34 @@ export default function Avisos() {
             <div className="flex gap-2 pt-1">
               {avisoEditandoId && (
                 <button
+                  type="button"
                   onClick={() => {
                     setAvisoEditandoId(null);
                     setAssuntoAviso("");
                     setNovoAviso("");
+                    setRepertorioId(null);
                     setLinksForm([{ texto: "", url: "" }]);
                   }}
-                  className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl text-xs font-bold transition-colors"
+                  disabled={salvando}
+                  className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
                 >
                   Cancelar
                 </button>
               )}
               <button
+                type="button"
                 onClick={handleSalvarAviso}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm"
+                disabled={salvando}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
               >
+                {salvando && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {avisoEditandoId ? "Salvar Alterações" : "Publicar Aviso"}
               </button>
             </div>
           </div>
         )}
 
+        {/* Lista de Avisos */}
         <div className="space-y-4">
           {carregandoAvisos ? (
             <div className="flex justify-center py-8">
@@ -412,22 +466,36 @@ export default function Avisos() {
               Nenhum aviso no mural
             </div>
           ) : !podeCriar ? (
+            /* VISUALIZAÇÃO PARA MEMBROS */
             <>
               <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 shadow-sm">
-                <h3 className="text-sm font-bold text-indigo-950 uppercase mb-2">
-                  {avisos[0].assunto}
-                </h3>
+                <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                  <h3 className="text-sm font-bold text-indigo-950 uppercase">
+                    {avisos[0].assunto}
+                  </h3>
+                  {avisos[0].repertorio_id && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/repertorio/lista/${avisos[0].repertorio_id}`)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm"
+                    >
+                      <Music className="w-3.5 h-3.5" />
+                      Repertório
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap mb-3">
                   {avisos[0].texto}
                 </p>
                 {avisos[0].avisos_links?.map((link, i) => (
                   <a
                     key={i}
-                    href={link.url}
+                    href={formatarUrl(link.url)}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-block text-indigo-700 font-bold text-xs underline mt-1 mr-3"
+                    className="inline-flex items-center gap-1 text-indigo-700 font-bold text-xs underline mt-1 mr-3"
                   >
+                    <ExternalLink className="w-3 h-3" />
                     {link.titulo_link}
                   </a>
                 ))}
@@ -436,6 +504,7 @@ export default function Avisos() {
               {avisos.length > 1 && (
                 <div className="space-y-2">
                   <button
+                    type="button"
                     onClick={() => setListaExpandida(!listaExpandida)}
                     className="w-full flex justify-between items-center px-1 py-1 text-slate-500 hover:text-slate-800"
                   >
@@ -456,9 +525,24 @@ export default function Avisos() {
                           setAvisoExpandido(avisoExpandido === aviso.id ? null : aviso.id)
                         }
                       >
-                        <h3 className="text-sm font-bold text-slate-800 uppercase mb-1">
-                          {aviso.assunto}
-                        </h3>
+                        <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                          <h3 className="text-sm font-bold text-slate-800 uppercase">
+                            {aviso.assunto}
+                          </h3>
+                          {aviso.repertorio_id && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/repertorio/lista/${aviso.repertorio_id}`);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm"
+                            >
+                              <Music className="w-3.5 h-3.5" />
+                              Repertório
+                            </button>
+                          )}
+                        </div>
                         <div className="text-xs text-slate-600">
                           <p
                             className={`whitespace-pre-wrap ${
@@ -471,12 +555,13 @@ export default function Avisos() {
                             aviso.avisos_links?.map((link, i) => (
                               <a
                                 key={i}
-                                href={link.url}
+                                href={formatarUrl(link.url)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="block text-indigo-600 underline mt-2 font-semibold"
+                                className="inline-flex items-center gap-1 text-indigo-600 underline mt-2 font-semibold block"
                                 onClick={(e) => e.stopPropagation()}
                               >
+                                <ExternalLink className="w-3 h-3" />
                                 {link.titulo_link}
                               </a>
                             ))}
@@ -487,6 +572,7 @@ export default function Avisos() {
               )}
             </>
           ) : (
+            /* VISUALIZAÇÃO PARA ADMINISTRADORES */
             <div className="space-y-3">
               <span className="text-xs font-bold text-slate-400 uppercase px-1 block">
                 Gerenciar Avisos ({avisos.length})
@@ -506,6 +592,7 @@ export default function Avisos() {
                     {temPermissaoEdicao ? (
                       <div className="absolute top-4 right-4 flex gap-2 z-10">
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleIniciarEdicao(aviso);
@@ -516,6 +603,7 @@ export default function Avisos() {
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeletarAviso(aviso);
@@ -533,9 +621,24 @@ export default function Avisos() {
                       </div>
                     )}
 
-                    <h3 className="text-sm font-bold text-slate-800 uppercase pr-16 mb-1">
-                      {aviso.assunto}
-                    </h3>
+                    <div className="flex items-center gap-2 flex-wrap pr-16 mb-1">
+                      <h3 className="text-sm font-bold text-slate-800 uppercase">
+                        {aviso.assunto}
+                      </h3>
+                      {aviso.repertorio_id && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/repertorio/lista/${aviso.repertorio_id}`);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm"
+                        >
+                          <Music className="w-3.5 h-3.5" />
+                          Repertório
+                        </button>
+                      )}
+                    </div>
 
                     <div className="text-xs text-slate-600 pr-12">
                       <p
@@ -549,12 +652,13 @@ export default function Avisos() {
                         aviso.avisos_links?.map((link, i) => (
                           <a
                             key={i}
-                            href={link.url}
+                            href={formatarUrl(link.url)}
                             target="_blank"
                             rel="noreferrer"
-                            className="block text-indigo-600 underline mt-2 font-semibold"
+                            className="inline-flex items-center gap-1 text-indigo-600 underline mt-2 font-semibold block"
                             onClick={(e) => e.stopPropagation()}
                           >
+                            <ExternalLink className="w-3 h-3" />
                             {link.titulo_link}
                           </a>
                         ))}
