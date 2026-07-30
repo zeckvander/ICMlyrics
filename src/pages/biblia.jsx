@@ -837,7 +837,7 @@ export default function Biblia() {
                   title="Selecionar vários versículos"
                 >
                   <CheckSquare className="w-4 h-4" />
-                  <span>{modoSelecaoAtivo ? "Ativo" : "Selecionar"}</span>
+                  <span>{modoSelecaoAtivo ? " " : " "}</span> {/* aqui o botão de multi seleção*/}
                 </Button>
                 <button
                   onClick={alternarTamanhoFonte}
