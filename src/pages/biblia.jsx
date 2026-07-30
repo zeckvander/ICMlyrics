@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Menu, Loader2, BookOpen, Search, Star, Trash2, 
-  ExternalLink, Type, MessageSquare, Share2, Save, HelpCircle, Check 
+  ExternalLink, Type, MessageSquare, Share2, Save, HelpCircle, Check, CheckSquare, X 
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import DrawerMenu from "@/components/louvores/DrawerMenu";
@@ -16,7 +16,7 @@ const LIVROS_MAPA = {
     { abbrev: 'ex', nome: 'Êxodo', caps: 40, versiculosPorCap: { 1:22, 2:25, 3:22, 4:31, 5:23, 6:30, 7:25, 8:32, 9:35, 10:29, 11:10, 12:51, 13:22, 14:31, 15:27, 16:36, 17:16, 18:27, 19:25, 20:26, 21:36, 22:31, 23:33, 24:18, 25:40, 26:37, 27:21, 28:43, 29:46, 30:38, 31:18, 32:35, 33:23, 34:35, 35:35, 36:38, 37:29, 38:31, 39:43, 40:38 } },
     { abbrev: 'lv', nome: 'Levítico', caps: 27, versiculosPorCap: { 1:17, 2:16, 3:17, 4:35, 5:19, 6:30, 7:38, 8:36, 9:24, 10:20, 11:47, 12:8, 13:59, 14:57, 15:33, 16:34, 17:16, 18:30, 19:37, 20:27, 21:24, 22:33, 23:44, 24:23, 25:55, 26:46, 27:34 } },
     { abbrev: 'nm', nome: 'Números', caps: 36, versiculosPorCap: { 1:54, 2:34, 3:51, 4:49, 5:31, 6:27, 7:89, 8:26, 9:23, 10:36, 11:35, 12:16, 13:33, 14:45, 15:41, 16:50, 17:13, 18:32, 19:22, 20:29, 21:35, 22:41, 23:30, 24:25, 25:18, 26:65, 27:23, 28:31, 29:40, 30:16, 31:54, 32:42, 33:56, 34:29, 35:34, 36:13 } },
-    { abbrev: 'dt', nome: 'Deuteronômio', caps: 34, versiculosPorCap: { 1:46, 2:37, 3:29, 4:49, 5:33, 6:25, 7:26, 8:20, 9:29, 10:22, 11:32, 12:32, 13:18, 14:29, 15:23, 16:22, 17:20, 18:22, 19:21, 20:20, 21:23, 22:30, 23:25, 24:22, 25:19, 26:19, 27:26, 28:68, 29:29, 30:20, 31:30, 32:52, 33:29, 34:12 } },
+    { abbrev: 'dt', nome: 'Deut.', caps: 34, versiculosPorCap: { 1:46, 2:37, 3:29, 4:49, 5:33, 6:25, 7:26, 8:20, 9:29, 10:22, 11:32, 12:32, 13:18, 14:29, 15:23, 16:22, 17:20, 18:22, 19:21, 20:20, 21:23, 22:30, 23:25, 24:22, 25:19, 26:19, 27:26, 28:68, 29:29, 30:20, 31:30, 32:52, 33:29, 34:12 } },
     { abbrev: 'js', nome: 'Josué', caps: 24, versiculosPorCap: { 1:18, 2:24, 3:17, 4:24, 5:15, 6:27, 7:26, 8:35, 9:27, 10:43, 11:23, 12:24, 13:33, 14:15, 15:63, 16:10, 17:18, 18:28, 19:51, 20:9, 21:45, 22:34, 23:16, 24:33 } },
     { abbrev: 'jz', nome: 'Juízes', caps: 21, versiculosPorCap: { 1:36, 2:23, 3:31, 4:24, 5:31, 6:40, 7:25, 8:35, 9:57, 10:18, 11:40, 12:15, 13:25, 14:20, 15:20, 16:31, 17:13, 18:31, 19:30, 20:48, 21:25 } },
     { abbrev: 'rt', nome: 'Rute', caps: 4, versiculosPorCap: { 1:22, 2:23, 3:18, 4:22 } },
@@ -134,75 +134,67 @@ export default function Biblia() {
   const [isFavoritosModalOpen, setIsFavoritosModalOpen] = useState(false);
   const [isAjudaModalOpen, setIsAjudaModalOpen] = useState(false);
   const [isPrimeiroAcessoModalOpen, setIsPrimeiroAcessoModalOpen] = useState(false);
-  
+  const [modoSelecaoAtivo, setModoSelecaoAtivo] = useState(false);
+  const [versiculosSelecionados, setVersiculosSelecionados] = useState([]);
+  const [isVisualizarMultiplosModalOpen, setIsVisualizarMultiplosModalOpen] = useState(false);
+  const [comparacoesBloco, setComparacoesBloco] = useState([]);
+  const [loadingComparacaoBloco, setLoadingComparacaoBloco] = useState(false);
   const [notificacao, setNotificacao] = useState(null);
-
   const [fontSizeLevel, setFontSizeLevel] = useState(() => {
     return localStorage.getItem("icmlyrics_biblia_fontsize") || "pequena";
   });
-
   const [testamentoAtivo, setTestamentoAtivo] = useState('AT');
   const [livroAbbrev, setLivroAbbrev] = useState(null);
   const [nomeLivroExibicao, setNomeLivroExibicao] = useState("");
-  
   const [versaoSelecionada, setVersaoSelecionada] = useState(() => {
     const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
     const nova = localStorage.getItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`);
     if (nova) return nova;
-
     const antiga = localStorage.getItem("icmlyrics_biblia_versao_favorita");
     return antiga || "acf";
   });
-
   const [versaoFavoritaSalva, setVersaoFavoritaSalva] = useState(() => {
     const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
     const nova = localStorage.getItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`);
     if (nova) return nova;
-
     const antiga = localStorage.getItem("icmlyrics_biblia_versao_favorita");
     return antiga || null;
   });
-
   const [capitulosDisponiveis, setCapitulosDisponiveis] = useState([]);
   const [capituloSelecionado, setCapituloSelecionado] = useState(1);
   const [versiculos, setVersiculos] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // Estados da Busca Rápida
   const [buscaLivro, setBuscaLivro] = useState("");
   const [buscaCapitulo, setBuscaCapitulo] = useState("");
   const [buscaVersiculo, setBuscaVersiculo] = useState("");
-
-  // Listas de opções geradas dinamicamente
   const [capsDoLivroBuscado, setCapsDoLivroBuscado] = useState([]);
   const [versDoCapBuscado, setVersDoCapBuscado] = useState([]);
-
+  const [isComparacaoOpen, setIsComparacaoOpen] = useState(false);
   const [versiculoParaComparar, setVersiculoParaComparar] = useState(null);
   const [comparacoes, setComparacoes] = useState([]);
   const [loadingComparacao, setLoadingComparacao] = useState(false);
-
   const [comentariosEditando, setComentariosEditando] = useState({});
-
   const [favoritos, setFavoritos] = useState(() => {
     try {
       const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
       const dadosNovos = localStorage.getItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`);
-      if (dadosNovos) return JSON.parse(dadosNovos);
-
-      const dadosAntigos = localStorage.getItem("icmlyrics_biblia_favoritos");
-      return dadosAntigos ? JSON.parse(dadosAntigos) : [];
+      let parsed = null;
+      if (dadosNovos) {
+        parsed = JSON.parse(dadosNovos);
+      } else {
+        const dadosAntigos = localStorage.getItem("icmlyrics_biblia_favoritos");
+        parsed = dadosAntigos ? JSON.parse(dadosAntigos) : [];
+      }
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
     } catch (e) {
-      console.error(e);
       return [];
     }
   });
 
-  // CORREÇÃO AQUI: Verifica a chave dinâmica do utilizador para não reabrir o modal se ele já escolheu a versão
   useEffect(() => {
     const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
     const favoritaDinamica = localStorage.getItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`);
     const favoritaAntiga = localStorage.getItem("icmlyrics_biblia_versao_favorita");
-    
     if (!favoritaDinamica && !favoritaAntiga) {
       setIsPrimeiroAcessoModalOpen(true);
     }
@@ -212,12 +204,14 @@ export default function Biblia() {
     if (livroAbbrev) {
       setCapituloSelecionado(1);
       obterCapitulosDoLivro();
+      setVersiculosSelecionados([]);
     }
   }, [livroAbbrev, versaoSelecionada]);
 
   useEffect(() => {
     if (livroAbbrev && capituloSelecionado) {
       carregarVersiculos();
+      setVersiculosSelecionados([]);
     }
   }, [livroAbbrev, capituloSelecionado, versaoSelecionada]);
 
@@ -225,7 +219,6 @@ export default function Biblia() {
     setBuscaCapitulo("");
     setBuscaVersiculo("");
     setVersDoCapBuscado([]);
-    
     if (buscaLivro) {
       const livroRef = TODOS_LIVROS.find(l => l.abbrev === buscaLivro);
       if (livroRef) {
@@ -240,7 +233,6 @@ export default function Biblia() {
 
   useEffect(() => {
     setBuscaVersiculo("");
-    
     if (buscaLivro && buscaCapitulo) {
       const livroRef = TODOS_LIVROS.find(l => l.abbrev === buscaLivro);
       if (livroRef) {
@@ -258,7 +250,7 @@ export default function Biblia() {
     if (notificacao) {
       const timer = setTimeout(() => {
         setNotificacao(null);
-      }, 7000);
+      }, 4000);
       return () => clearTimeout(timer);
     }
   }, [notificacao]);
@@ -266,22 +258,26 @@ export default function Biblia() {
   const obterCapitulosDoLivro = async () => {
     setLoading(true);
     try {
-      const livroEncontrado =
-        LIVROS_MAPA.AT.find(l => l.abbrev.toLowerCase() === livroAbbrev.toLowerCase()) || 
-        LIVROS_MAPA.NT.find(l => l.abbrev.toLowerCase() === livroAbbrev.toLowerCase());
-
-      if (livroEncontrado) {
-        const capsUnicos = Array.from({ length: livroEncontrado.caps }, (_, i) => i + 1);
+      const { data, error } = await supabase
+        .from("versiculos")
+        .select("capitulo")
+        .eq("book_abbrev", livroAbbrev)
+        .eq("versao", versaoSelecionada);
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const capsUnicos = [...new Set(data.map(item => item.capitulo))].sort((a, b) => a - b);
         setCapitulosDisponiveis(capsUnicos);
-
-        if (!capsUnicos.includes(capituloSelecionado)) {
-          setCapituloSelecionado(capsUnicos[0]);
-        }
       } else {
-        setCapitulosDisponiveis([]);
+        const livroRef = TODOS_LIVROS.find(l => l.abbrev === livroAbbrev);
+        const total = livroRef ? livroRef.caps : 1;
+        const arrayFallback = Array.from({ length: total }, (_, i) => i + 1);
+        setCapitulosDisponiveis(arrayFallback);
       }
     } catch (error) {
-      console.error("Erro ao carregar capítulos do mapa local:", error);
+      const livroRef = TODOS_LIVROS.find(l => l.abbrev === livroAbbrev);
+      const total = livroRef ? livroRef.caps : 1;
+      const arrayFallback = Array.from({ length: total }, (_, i) => i + 1);
+      setCapitulosDisponiveis(arrayFallback);
     } finally {
       setLoading(false);
     }
@@ -297,7 +293,6 @@ export default function Biblia() {
         .eq("capitulo", capituloSelecionado)
         .eq("versao", versaoSelecionada)
         .order("versiculo", { ascending: true });
-
       if (error) throw error;
       setVersiculos(data || []);
     } catch (error) {
@@ -310,25 +305,22 @@ export default function Biblia() {
   const selecionarLivro = (abbrev, nome) => {
     setNomeLivroExibicao(nome);
     setLivroAbbrev(abbrev);
+    setModoSelecaoAtivo(false);
+    setVersiculosSelecionados([]);
   };
 
   const handleBuscaSeparada = async (e) => {
     e.preventDefault();
     if (!buscaLivro || !buscaCapitulo) return;
-
     const livroEncontrado = TODOS_LIVROS.find(l => l.abbrev === buscaLivro);
     if (!livroEncontrado) return;
-
     const capNum = parseInt(buscaCapitulo, 10);
     const verNum = buscaVersiculo ? parseInt(buscaVersiculo, 10) : null;
-
     selecionarLivro(livroEncontrado.abbrev, livroEncontrado.nome);
     setCapituloSelecionado(capNum);
-
     if (verNum) {
       abrirComparacaoVersoes(livroEncontrado.abbrev, capNum, verNum);
     }
-
     setBuscaLivro("");
     setBuscaCapitulo("");
     setBuscaVersiculo("");
@@ -336,6 +328,7 @@ export default function Biblia() {
 
   const abrirComparacaoVersoes = async (abbrev, cap, numVersiculo) => {
     setVersiculoParaComparar({ abbrev, cap, numVersiculo });
+    setIsComparacaoOpen(true);
     setLoadingComparacao(true);
     try {
       const { data, error } = await supabase
@@ -344,21 +337,16 @@ export default function Biblia() {
         .eq("book_abbrev", abbrev)
         .eq("capitulo", cap)
         .eq("versiculo", numVersiculo);
-
       if (error) throw error;
-
       let listaComparacoes = data || [];
-
       listaComparacoes.sort((a, b) => {
-        const aVersao = a.versao.toLowerCase();
-        const bVersao = b.versao.toLowerCase();
+        const aVersao = (a.versao || "").toLowerCase();
+        const bVersao = (b.versao || "").toLowerCase();
         const fav = versaoSelecionada.toLowerCase();
-
         if (aVersao === fav) return -1;
         if (bVersao === fav) return 1;
         return 0;
       });
-
       setComparacoes(listaComparacoes);
     } catch (err) {
       console.error(err);
@@ -367,90 +355,230 @@ export default function Biblia() {
     }
   };
 
+  const carregarComparacaoBloco = async () => {
+    if (versiculosSelecionados.length === 0) return;
+    setLoadingComparacaoBloco(true);
+    try {
+      const numsVersiculos = versiculosSelecionados.map(v => v.numVersiculo);
+      const { data, error } = await supabase
+        .from("versiculos")
+        .select("versao, versiculo, texto")
+        .eq("book_abbrev", livroAbbrev)
+        .eq("capitulo", capituloSelecionado)
+        .in("versiculo", numsVersiculos)
+        .order("versiculo", { ascending: true });
+      if (error) throw error;
+      const porVersao = {};
+      (data || []).forEach(item => {
+        const vLower = (item.versao || "").toLowerCase();
+        if (!porVersao[vLower]) porVersao[vLower] = [];
+        porVersao[vLower].push(item);
+      });
+      const lista = VERSOES_DISPONIVEIS.map(v => {
+        const versosDaVersao = porVersao[v.id] || [];
+        versosDaVersao.sort((a, b) => a.versiculo - b.versiculo);
+        return {
+          versao: v.id,
+          nomeExtenso: v.extenso,
+          versiculos: versosDaVersao
+        };
+      });
+      lista.sort((a, b) => {
+        if (a.versao === versaoSelecionada) return -1;
+        if (b.versao === versaoSelecionada) return 1;
+        return 0;
+      });
+      setComparacoesBloco(lista);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingComparacaoBloco(false);
+    }
+  };
+
+  const abrirVisualizarECompararBloco = () => {
+    setIsVisualizarMultiplosModalOpen(true);
+    carregarComparacaoBloco();
+  };
+
+  const handleCliqueVersiculo = (v) => {
+    const key = `${livroAbbrev}-${capituloSelecionado}-${v.versiculo}`;
+    if (modoSelecaoAtivo) {
+      const jaSelecionado = versiculosSelecionados.some(item => item.key === key);
+      if (jaSelecionado) {
+        setVersiculosSelecionados(prev => prev.filter(item => item.key !== key));
+      } else {
+        setVersiculosSelecionados(prev => [
+          ...prev,
+          {
+            key,
+            abbrev: livroAbbrev,
+            livro: nomeLivroExibicao,
+            cap: capituloSelecionado,
+            numVersiculo: v.versiculo,
+            texto: v.texto,
+            versao: versaoSelecionada
+          }
+        ]);
+      }
+    } else {
+      abrirComparacaoVersoes(livroAbbrev, capituloSelecionado, v.versiculo);
+    }
+  };
+
   const handleToggleFavorito = (abbrev, cap, numVersiculo, texto, nomePersonalizado) => {
     const key = `${abbrev}-${cap}-${numVersiculo}`;
     let novosFavoritos;
-    
-    if (favoritos.some(f => f.key === key)) {
-      novosFavoritos = favoritos.filter(f => f.key !== key);
+    const listaLimpa = (favoritos || []).filter(Boolean);
+    if (listaLimpa.some(f => f?.key === key)) {
+      novosFavoritos = listaLimpa.filter(f => f?.key !== key);
     } else {
       const nomeLivroResolvido = nomePersonalizado || nomeLivroExibicao || "Livro";
-      novosFavoritos = [...favoritos, { 
-        key, 
-        abbrev, 
-        livro: nomeLivroResolvido, 
-        cap, 
-        numVersiculo, 
-        texto,
-        comentario: ""
-      }];
+      novosFavoritos = [...listaLimpa, { key, abbrev, livro: nomeLivroResolvido, cap, numVersiculo, texto, comentario: "" }];
     }
-
     setFavoritos(novosFavoritos);
-
     const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
     localStorage.setItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`, JSON.stringify(novosFavoritos));
+  };
+
+  const handleToggleFavoritoBloco = () => {
+    if (versiculosSelecionados.length === 0) return;
+    const sorted = [...versiculosSelecionados].sort((a, b) => a.numVersiculo - b.numVersiculo);
+    const nums = sorted.map(v => v.numVersiculo);
+    const blocoKey = `bloco-${livroAbbrev}-${capituloSelecionado}-${nums.join('-')}`;
+    const listaLimpa = (favoritos || []).filter(Boolean);
+    const jaExiste = listaLimpa.some(f => f?.key === blocoKey);
+    let novosFavoritos;
+    if (jaExiste) {
+      novosFavoritos = listaLimpa.filter(f => f?.key !== blocoKey);
+    } else {
+      const novoBloco = {
+        key: blocoKey,
+        tipo: 'bloco',
+        abbrev: livroAbbrev,
+        livro: nomeLivroExibicao,
+        cap: capituloSelecionado,
+        versiculos: sorted.map(v => ({ numVersiculo: v.numVersiculo, texto: v.texto })),
+        comentario: ""
+      };
+      novosFavoritos = [...listaLimpa, novoBloco];
+    }
+    setFavoritos(novosFavoritos);
+    const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
+    localStorage.setItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`, JSON.stringify(novosFavoritos));
+  };
+
+  const isBlocoFavoritado = () => {
+    if (versiculosSelecionados.length === 0) return false;
+    const sorted = [...versiculosSelecionados].sort((a, b) => a.numVersiculo - b.numVersiculo);
+    const nums = sorted.map(v => v.numVersiculo);
+    const blocoKey = `bloco-${livroAbbrev}-${capituloSelecionado}-${nums.join('-')}`;
+    return (favoritos || []).filter(Boolean).some(f => f?.key === blocoKey);
   };
 
   const removerFavoritoDireto = (key) => {
-    const novosFavoritos = favoritos.filter(f => f.key !== key);
+    const novosFavoritos = (favoritos || []).filter(Boolean).filter(f => f?.key !== key);
     setFavoritos(novosFavoritos);
-
     const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
     localStorage.setItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`, JSON.stringify(novosFavoritos));
   };
 
-  const salvarComentario = (key, textoComentario) => {
-    const novosFavoritos = favoritos.map(f => {
-      if (f.key === key) {
-        return { ...f, comentario: textoComentario };
+  const atualizarComentarioFavorito = (key, novoComentario) => {
+    setComentariosEditando(prev => ({ ...prev, [key]: novoComentario }));
+  };
+
+  const salvarComentarioFavorito = (key) => {
+    const textoEditado = comentariosEditando[key];
+    if (textoEditado === undefined) return;
+    const novosFavoritos = (favoritos || []).filter(Boolean).map(f => {
+      if (f?.key === key) {
+        return { ...f, comentario: textoEditado };
       }
       return f;
     });
     setFavoritos(novosFavoritos);
-
     const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
     localStorage.setItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`, JSON.stringify(novosFavoritos));
-    
     setComentariosEditando(prev => {
-      const copia = { ...prev };
-      delete copia[key];
-      return copia;
+        const copy = { ...prev };
+        delete copy[key];
+        return copy;
     });
   };
 
   const compartilharFavorito = async (fav) => {
-    const textCompartilhado = `📖 *${fav.livro} ${fav.cap}:${fav.numVersiculo}*\n"${fav.texto}"\n\n${
+    if (!fav) return;
+    const textCompartilhado = `📖 *${fav.livro || "Livro"} ${fav.cap}:${fav.numVersiculo}*\n"${fav.texto}"\n\n${
       fav.comentario ? `✍️ *Minha anotação:*\n${fav.comentario}` : ""
     }`;
-
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Estudo Bíblico - ${fav.livro}`,
+          title: `Estudo Bíblico - ${fav.livro || "Livro"}`,
           text: textCompartilhado,
         });
-      } catch (err) {
-        console.log("Compartilhamento cancelado", err);
-      }
+      } catch (err) {}
     } else {
       try {
         await navigator.clipboard.writeText(textCompartilhado);
-        alert("Texto e comentário copiados para a área de transferência!");
-      } catch (err) {
-        console.error("Falha ao copiar", err);
-      }
+        setNotificacao("Copiado para a área de transferência!");
+      } catch (err) {}
+    }
+  };
+
+  const compartilharFavoritoBloco = async (fav) => {
+    if (!fav) return;
+    const versosTexto = fav.versiculos.map(v => `${v.numVersiculo}. ${v.texto}`).join("\n");
+    const rangeStr = fav.versiculos.length > 0 ? `${fav.versiculos[0].numVersiculo}-${fav.versiculos[fav.versiculos.length - 1].numVersiculo}` : '';
+    const textCompartilhado = `📖 *${fav.livro || "Livro"} ${fav.cap}:${rangeStr}*\n\n${versosTexto}\n\n${
+      fav.comentario ? `✍️ *Minha anotação:*\n${fav.comentario}` : ""
+    }`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Estudo Bíblico - ${fav.livro || "Livro"}`,
+          text: textCompartilhado,
+        });
+      } catch (err) {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(textCompartilhado);
+        setNotificacao("Copiado para a área de transferência!");
+      } catch (err) {}
+    }
+  };
+
+  const compartilharMultiplos = async () => {
+    if (versiculosSelecionados.length === 0) return;
+    const ordenados = [...versiculosSelecionados].sort((a, b) => a.numVersiculo - b.numVersiculo);
+    const textoConsolidado = ordenados.map(v => `${v.numVersiculo}. ${v.texto}`).join("\n");
+    const referencia = `${nomeLivroExibicao} ${capituloSelecionado}:${ordenados.map(v => v.numVersiculo).join(", ")} (${versaoSelecionada.toUpperCase()})`;
+    const textCompartilhado = `📖 *${referencia}*\n\n${textoConsolidado}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Versículos - ${nomeLivroExibicao}`,
+          text: textCompartilhado,
+        });
+      } catch (err) {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(textCompartilhado);
+        setNotificacao("Versículos copiados para a área de transferência!");
+      } catch (err) {}
     }
   };
 
   const irParaFavorito = (fav) => {
+    if (!fav) return;
     selecionarLivro(fav.abbrev, fav.livro);
     setCapituloSelecionado(fav.cap);
     setIsFavoritosModalOpen(false);
   };
 
   const isFavorito = (abbrev, cap, numVersiculo) => {
-    return favoritos.some(f => f.key === `${abbrev}-${cap}-${numVersiculo}`);
+    if (!abbrev || !cap || !numVersiculo) return false;
+    return (favoritos || []).filter(Boolean).some(f => f?.key === `${abbrev}-${cap}-${numVersiculo}`);
   };
 
   const alternarTamanhoFonte = () => {
@@ -458,7 +586,6 @@ export default function Biblia() {
     if (fontSizeLevel === "pequena") proximoNivel = "media";
     else if (fontSizeLevel === "media") proximoNivel = "grande";
     else if (fontSizeLevel === "grande") proximoNivel = "pequena";
-
     setFontSizeLevel(proximoNivel);
     localStorage.setItem("icmlyrics_biblia_fontsize", proximoNivel);
   };
@@ -466,30 +593,26 @@ export default function Biblia() {
   const selecionarVersaoFavoritaPeloModal = (versaoId) => {
     const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
     localStorage.setItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`, versaoId);
-
     setVersaoFavoritaSalva(versaoId);
     setVersaoSelecionada(versaoId);
     setIsAjudaModalOpen(false);
-
     const versaoObj = VERSOES_DISPONIVEIS.find(v => v.id === versaoId);
     const nomeCompleto = versaoObj ? versaoObj.extenso : versaoId.toUpperCase();
     setNotificacao(`A versão ${nomeCompleto} foi definida como sua favorita padrão!`);
   };
 
   const configFonte = FONT_SIZES[fontSizeLevel] || FONT_SIZES.pequena;
-  const favoritosDoLivroAtual = favoritos.filter(f => f.abbrev === livroAbbrev);
+  const favoritosDoLivroAtual = (favoritos || []).filter(Boolean).filter(f => f?.abbrev === livroAbbrev);
+  const favAtivos = (favoritos || []).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-8 relative">
-      
-      {/* POPUP DE NOTIFICAÇÃO */}
+    <div className="min-h-screen bg-slate-50 pb-24 relative">
       {notificacao && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm bg-emerald-600 text-white font-bold text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-emerald-500/30 transition-all animate-in fade-in slide-in-from-top-4 duration-300">
           <Check className="w-4 h-4 shrink-0 text-emerald-100 bg-emerald-700/50 p-0.5 rounded-full" />
           <span>{notificacao}</span>
         </div>
       )}
-
       {!livroAbbrev && (
         <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
@@ -499,14 +622,12 @@ export default function Biblia() {
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
-
             <button
               onClick={() => setDrawerOpen(true)}
               className="text-slate-300 hover:text-white transition-colors p-1 mr-1"
             >
               <Menu className="w-6 h-6" />
             </button>
-
             <div>
               <h1 className="text-xl font-bold tracking-tight flex items-center gap-1.5">
                 <BookOpen className="w-5 h-5 text-emerald-400 shrink-0" /> Bíblia
@@ -514,7 +635,6 @@ export default function Biblia() {
               <p className="text-slate-400 text-xs">Leitura e Favoritos</p>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
             <button
               onClick={alternarTamanhoFonte}
@@ -524,29 +644,24 @@ export default function Biblia() {
               <Type className="w-4 h-4 text-emerald-400" />
               <span className="uppercase text-[10px] tracking-wider">{configFonte.buttonLabel}</span>
             </button>
-
             <button 
               onClick={() => setIsFavoritosModalOpen(true)}
               className="relative p-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition-all border border-slate-700"
             >
-              <Star className={`w-5 h-5 ${favoritos.length > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
-              {favoritos.length > 0 && (
+              <Star className={`w-5 h-5 ${favAtivos.length > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
+              {favAtivos.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-slate-900">
-                  {favoritos.length}
+                  {favAtivos.length}
                 </span>
               )}
             </button>
           </div>
         </div>
       )}
-
       <DrawerMenu open={drawerOpen} onOpenChange={setDrawerOpen} />
-
       <div className={`px-4 space-y-4 ${livroAbbrev ? "pt-12" : "-mt-3"}`}>
         {!livroAbbrev && (
           <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 space-y-3 mt-6">
-            
-            {/* SELETOR DE VERSÕES */}
             <div className="flex items-center justify-center gap-1.5 flex-wrap">
               <button
                 type="button"
@@ -556,7 +671,6 @@ export default function Biblia() {
               >
                 <HelpCircle className="w-5 h-5" />
               </button>
-
               {VERSOES_DISPONIVEIS.map((v) => {
                 const isFavorita = versaoFavoritaSalva === v.id;
                 return (
@@ -577,10 +691,7 @@ export default function Biblia() {
                 );
               })}
             </div>
-
-            {/* FORMULÁRIO DE BUSCA RÁPIDA TOTALMENTE VIA SELETORES DINÂMICOS */}
             <form onSubmit={handleBuscaSeparada} className="flex gap-1.5 items-center">
-              {/* Seletor de Livros */}
               <div className="flex-[2] min-w-[110px]">
                 <Select value={buscaLivro} onValueChange={setBuscaLivro}>
                   <SelectTrigger className="bg-slate-50 border-slate-100 shadow-inner rounded-xl h-9 text-xs font-semibold text-slate-700">
@@ -595,8 +706,6 @@ export default function Biblia() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Seletor de Capítulos Limitado Dinamicamente */}
               <div className="flex-[1] min-w-[65px]">
                 <Select 
                   value={buscaCapitulo} 
@@ -615,8 +724,6 @@ export default function Biblia() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Seletor de Versículos Limitado Dinamicamente */}
               <div className="flex-[1] min-w-[65px]">
                 <Select 
                   value={buscaVersiculo} 
@@ -635,7 +742,6 @@ export default function Biblia() {
                   </SelectContent>
                 </Select>
               </div>
-
               <Button 
                 type="submit" 
                 size="sm" 
@@ -647,7 +753,6 @@ export default function Biblia() {
             </form>
           </div>
         )}
-
         {!livroAbbrev ? (
           <div className="space-y-3">
             <div className="flex bg-slate-200 p-1 rounded-xl">
@@ -664,7 +769,6 @@ export default function Biblia() {
                 Novo Testamento (27)
               </button>
             </div>
-
             <div className={`grid ${configFonte.gridColsClass} gap-1.5`}>
               {LIVROS_MAPA[testamentoAtivo].map((l) => (
                 <button
@@ -683,11 +787,8 @@ export default function Biblia() {
             </div>
           </div>
         ) : (
-          /* MODO LEITURA */
           <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 space-y-4">
-            
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 gap-2">
-              
               <div className="flex items-center gap-2 max-w-[55%] overflow-hidden">
                 <button
                   onClick={() => {
@@ -698,12 +799,10 @@ export default function Biblia() {
                 >
                   <BookOpen className="w-5 h-5" />
                 </button>
-                
                 <h2 className="font-extrabold text-base text-slate-900 truncate">
                   {nomeLivroExibicao}
                 </h2>
               </div>
-
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cap:</span>
                 <Select
@@ -722,8 +821,24 @@ export default function Biblia() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="flex items-center gap-1">
+                <Button 
+                  onClick={() => {
+                    setModoSelecaoAtivo(!modoSelecaoAtivo);
+                    if (modoSelecaoAtivo) setVersiculosSelecionados([]);
+                  }} 
+                  variant={modoSelecaoAtivo ? "default" : "outline"}
+                  size="sm"
+                  className={`h-8 px-2.5 text-xs font-bold rounded-xl flex items-center gap-1 transition ${
+                    modoSelecaoAtivo 
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-400/50" 
+                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                  }`}
+                  title="Selecionar vários versículos"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  <span>{modoSelecaoAtivo ? "Ativo" : "Selecionar"}</span>
+                </Button>
                 <button
                   onClick={alternarTamanhoFonte}
                   className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl transition text-slate-600"
@@ -731,9 +846,8 @@ export default function Biblia() {
                 >
                   <Type className="w-4 h-4" />
                 </button>
-
                 {favoritosDoLivroAtual.length > 0 && (
-                  <button 
+                  <button
                     onClick={() => setIsFavoritosModalOpen(true)}
                     className="p-2 bg-amber-50 hover:bg-amber-100 rounded-xl transition border border-amber-200 text-amber-500"
                     title={`Ver favoritos de ${nomeLivroExibicao}`}
@@ -743,57 +857,168 @@ export default function Biblia() {
                 )}
               </div>
             </div>
-
             {loading ? (
               <div className="py-12 flex items-center justify-center">
                 <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
               </div>
             ) : (
-              <div className={`space-y-4 leading-relaxed text-slate-700 select-text bg-slate-50/50 p-4 rounded-xl border border-slate-50 ${configFonte.textClass}`}>
-                <p className="text-[10px] text-slate-400 mb-2 italic">Toque em um versículo para comparar versões ou favoritar.</p>
-                {versiculos.length > 0 ? (
-                  versiculos.map((v) => {
-                    const favoritadoNoLivro = isFavorito(livroAbbrev, capituloSelecionado, v.versiculo);
-                    return (
-                      <div 
-                        key={v.versiculo} 
-                        onClick={() => abrirComparacaoVersoes(livroAbbrev, capituloSelecionado, v.versiculo)}
-                        className={`cursor-pointer hover:bg-emerald-50/50 hover:text-slate-900 rounded-lg p-2 transition-colors flex items-start gap-3 ${
-                          favoritadoNoLivro ? "bg-amber-50/30 border-l-2 border-amber-400 pl-1.5" : ""
-                        }`}
-                      >
-                        <div className="flex items-center gap-1 shrink-0 select-none">
-                          <sup className="text-xs text-emerald-600 font-bold mt-1.5">
-                            {v.versiculo}
-                          </sup>
-                          {favoritadoNoLivro && (
-                            <Star className="w-3 h-3 text-amber-400 fill-amber-400 mt-1" />
-                          )}
-                        </div>
-                        <span className="flex-1">{v.texto}</span>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-slate-400 italic text-center py-6">
-                    Nenhum versículo encontrado para os parâmetros selecionados.
-                  </p>
-                )}
+              <div className={`space-y-4 leading-relaxed text-slate-700 select-text bg-slate-50/50 p-4 rounded-xl ${configFonte.textClass}`}>
+                {versiculos.map((v) => {
+                  const key = `${livroAbbrev}-${capituloSelecionado}-${v.versiculo}`;
+                  const favoritoAtivo = isFavorito(livroAbbrev, capituloSelecionado, v.versiculo);
+                  const selecionadoNestaSessao = versiculosSelecionados.some(item => item.key === key);
+                  return (
+                    <div 
+                      key={v.versiculo} 
+                      onClick={() => handleCliqueVersiculo(v)}
+                      className={`group relative flex gap-3 items-start cursor-pointer p-2.5 rounded-xl transition-all duration-200 ${
+                        modoSelecaoAtivo
+                          ? selecionadoNestaSessao
+                            ? "bg-emerald-100/90 border border-emerald-400 shadow-sm"
+                            : "bg-white border border-slate-200 hover:border-emerald-300"
+                          : selecionadoNestaSessao 
+                            ? "bg-emerald-100/80 border border-emerald-300 shadow-sm" 
+                            : "border border-transparent hover:bg-slate-100"
+                      }`}
+                    >
+                      <span className={`text-xs font-bold font-mono select-none mt-1 shrink-0 ${
+                        selecionadoNestaSessao 
+                          ? "text-emerald-800 font-black" 
+                          : "text-emerald-600"
+                      }`}>
+                        {v.versiculo}
+                      </span>
+                      <p className={`flex-1 ${
+                        selecionadoNestaSessao 
+                          ? "text-emerald-950 font-semibold" 
+                          : "text-slate-800"
+                      }`}>
+                        {v.texto}
+                      </p>
+                      {favoritoAtivo && !modoSelecaoAtivo && (
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-500 shrink-0 mt-1" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         )}
       </div>
-
-      {/* MODAL DE AJUDA COM SIGNIFICADO */}
+      {modoSelecaoAtivo && versiculosSelecionados.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-between border border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-2">
+            <span className="bg-emerald-500 text-white text-xs font-extrabold w-6 h-6 rounded-full flex items-center justify-center shrink-0">
+              {versiculosSelecionados.length}
+            </span>
+            <span className="text-xs font-bold truncate">Versículo(s) selecionado(s)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={abrirVisualizarECompararBloco}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-sm"
+            >
+              Visualizar
+            </button>
+            <button
+              onClick={() => setVersiculosSelecionados([])}
+              className="text-slate-400 hover:text-white p-1"
+              title="Limpar seleção"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+      <Dialog open={isVisualizarMultiplosModalOpen} onOpenChange={setIsVisualizarMultiplosModalOpen}>
+        <DialogContent className="max-w-md bg-white rounded-2xl p-6 max-h-[85vh] flex flex-col">
+          <DialogHeader className="border-b pb-3 shrink-0 flex flex-row items-center justify-between">
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <CheckSquare className="w-5 h-5 text-emerald-600" />
+              {nomeLivroExibicao} {capituloSelecionado}:{versiculosSelecionados.map(v => v.numVersiculo).sort((a,b)=>a-b).join(", ")}
+            </DialogTitle>
+            <DialogDescription className="sr-only">Versículos Selecionados</DialogDescription>
+            <button
+              type="button"
+              onClick={handleToggleFavoritoBloco}
+              className="p-2 hover:bg-slate-100 rounded-full transition text-amber-500 mr-4"
+            >
+              <Star className={`w-5 h-5 ${isBlocoFavoritado() ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
+            </button>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto mt-4 space-y-3 pr-1">
+            <div className="p-3.5 rounded-xl border bg-emerald-50/40 border-emerald-200 shadow-sm space-y-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[9px] font-black px-2 py-0.5 rounded uppercase text-emerald-800 bg-emerald-200">
+                  {versaoSelecionada}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  - {NOME_EXTENSO_VERSOES[versaoSelecionada.toLowerCase()]}
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {versiculosSelecionados
+                  .sort((a, b) => a.numVersiculo - b.numVersiculo)
+                  .map(v => (
+                    <p key={v.numVersiculo} className="text-sm text-slate-700 leading-relaxed">
+                      <span className="font-bold text-emerald-800 mr-1.5">{v.numVersiculo}.</span>
+                      {v.texto}
+                    </p>
+                  ))}
+              </div>
+            </div>
+            {loadingComparacaoBloco ? (
+              <div className="py-8 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
+              </div>
+            ) : (
+              comparacoesBloco
+                .filter(item => item.versao.toLowerCase() !== versaoSelecionada.toLowerCase())
+                .map((item) => {
+                  const nomePorExtenso = NOME_EXTENSO_VERSOES[item.versao.toLowerCase()];
+                  return (
+                    <div 
+                      key={item.versao} 
+                      className="p-3.5 rounded-xl border bg-slate-50 border-slate-100 transition space-y-2"
+                    >
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded uppercase text-slate-600 bg-slate-200/60">
+                          {item.versao}
+                        </span>
+                        {nomePorExtenso && (
+                          <span className="text-[10px] font-bold text-slate-400">
+                            - {nomePorExtenso}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1.5">
+                        {item.versiculos && item.versiculos.length > 0 ? (
+                          item.versiculos.map(v => (
+                            <p key={v.versiculo} className="text-sm text-slate-700 leading-relaxed">
+                              <span className="font-bold text-slate-600 mr-1.5">{v.versiculo}.</span>
+                              {v.texto}
+                            </p>
+                          ))
+                        ) : (
+                          <p className="text-sm text-slate-400 italic">Versículos não encontrados nesta tradução.</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={isAjudaModalOpen} onOpenChange={setIsAjudaModalOpen}>
         <DialogContent className="max-w-md bg-white rounded-2xl p-6">
           <DialogHeader className="border-b pb-3">
             <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-emerald-500" /> Escolha sua Versão Favorita
             </DialogTitle>
+            <DialogDescription className="sr-only">Explicação das Traduções Disponíveis</DialogDescription>
           </DialogHeader>
-          
           <div className="mt-4 space-y-3 max-h-[50vh] overflow-y-auto pr-1">
             <p className="text-xs text-slate-500 mb-3 font-medium text-center">
               Clique em qualquer uma das traduções abaixo para defini-la imediatamente como sua favorita padrão e atualizar as preferências.
@@ -805,21 +1030,16 @@ export default function Biblia() {
                   key={v.id}
                   onClick={() => selecionarVersaoFavoritaPeloModal(v.id)}
                   className={`w-full p-3.5 rounded-xl border text-left transition flex items-start gap-3 ${
-                    isActive 
-                      ? "bg-emerald-50/60 border-emerald-300" 
-                      : "bg-slate-50 hover:bg-slate-100 border-slate-100"
+                    isActive ? "bg-emerald-50/60 border-emerald-300" : "bg-slate-50 hover:bg-slate-100 border-slate-100"
                   }`}
                 >
                   <div className="w-14 shrink-0 flex justify-start">
                     <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg border uppercase text-center w-full ${
-                      isActive 
-                        ? "text-emerald-700 bg-emerald-100 border-emerald-200" 
-                        : "text-slate-600 bg-white border-slate-200"
+                      isActive ? "text-emerald-700 bg-emerald-100 border-emerald-200" : "text-slate-600 bg-white border-slate-200"
                     }`}>
                       {v.nome}
                     </span>
                   </div>
-                  
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-1.5">
                       <p className="font-bold text-slate-800 text-sm">{v.extenso}</p>
@@ -839,8 +1059,6 @@ export default function Biblia() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* POPUP DE BOAS-VINDAS */}
       <Dialog open={isPrimeiroAcessoModalOpen} onOpenChange={setIsPrimeiroAcessoModalOpen}>
         <DialogContent className="max-w-md bg-white rounded-2xl p-6 shadow-xl">
           <DialogHeader className="text-center flex flex-col items-center justify-center">
@@ -851,11 +1069,10 @@ export default function Biblia() {
               Escolha sua Versão Padrão
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 max-w-xs mt-2 text-center whitespace-pre-line leading-relaxed mx-auto">
-              {"Selecione qual tradução você deseja usar como padrão.\n\nPoderá redefinir esta escolha a qualquer momento no botão de ajuda \"❔\"."}
+              Para começar a sua leitura, escolha abaixo qual tradução da Bíblia deseja usar como padrão principal.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="mt-5 space-y-2">
+          <div className="mt-4 space-y-2">
             {VERSOES_DISPONIVEIS.map((v) => (
               <button
                 key={v.id}
@@ -863,14 +1080,12 @@ export default function Biblia() {
                   selecionarVersaoFavoritaPeloModal(v.id);
                   setIsPrimeiroAcessoModalOpen(false);
                 }}
-                className="w-full flex items-center p-3.5 bg-slate-50 hover:bg-emerald-50 rounded-xl border border-slate-100 hover:border-emerald-200 transition text-left group gap-3"
+                className="w-full p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 transition flex items-center gap-3 text-left group"
               >
-                <div className="w-14 shrink-0 flex justify-start">
-                  <span className="font-black text-[10px] text-emerald-700 bg-emerald-100/50 px-2.5 py-1 rounded-md uppercase text-center w-full">
-                    {v.nome}
-                  </span>
-                </div>
-                <span className="font-semibold text-sm text-slate-800 group-hover:text-emerald-900 transition flex-1">
+                <span className="text-[10px] font-black px-2 py-1 rounded bg-white text-slate-700 border border-slate-200 group-hover:bg-emerald-600 group-hover:text-white transition">
+                  {v.nome}
+                </span>
+                <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-900 transition flex-1">
                   {v.extenso}
                 </span>
                 <Check className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 stroke-[3px] transition shrink-0" />
@@ -879,100 +1094,212 @@ export default function Biblia() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Modal de Versículos Favoritos */}
       <Dialog open={isFavoritosModalOpen} onOpenChange={setIsFavoritosModalOpen}>
         <DialogContent className="max-w-md bg-white rounded-2xl p-6 max-h-[80vh] flex flex-col">
           <DialogHeader className="border-b pb-3 shrink-0">
             <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Star className="w-5 h-5 text-amber-500 fill-amber-500" /> 
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
               {livroAbbrev ? `Favoritos de ${nomeLivroExibicao}` : "Versículos Favoritos"}
             </DialogTitle>
+            <DialogDescription className="sr-only">Lista de Versículos Marcados como Favoritos</DialogDescription>
           </DialogHeader>
-
           <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1">
-            {(livroAbbrev ? favoritosDoLivroAtual : favoritos).length === 0 ? (
+            {((livroAbbrev ? favoritosDoLivroAtual : favoritos) || []).filter(Boolean).length === 0 ? (
               <p className="text-center text-slate-400 text-sm py-10 italic">Nenhum favorito encontrado.</p>
             ) : (
-              (livroAbbrev ? favoritosDoLivroAtual : favoritos).map((fav) => {
+              ((livroAbbrev ? favoritosDoLivroAtual : favoritos) || []).filter(Boolean).map((fav) => {
+                if (!fav || !fav.key) return null;
                 const emEdicao = comentariosEditando[fav.key] !== undefined;
                 const valorComentario = emEdicao ? comentariosEditando[fav.key] : (fav.comentario || "");
+                const isBloco = fav.tipo === 'bloco';
+
+                if (isBloco) {
+                  const rangeStr = fav.versiculos.length > 0 
+                    ? `${fav.versiculos[0].numVersiculo}-${fav.versiculos[fav.versiculos.length - 1].numVersiculo}` 
+                    : '';
+                  return (
+                    <div key={fav.key} className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 uppercase bg-white px-2 py-1 rounded-lg border border-slate-200">
+                          {fav.livro || "Livro"} {fav.cap}:{rangeStr}
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-sky-600 hover:bg-sky-50"
+                            onClick={() => compartilharFavoritoBloco(fav)}
+                            title="Compartilhar bloco"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => irParaFavorito(fav)}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => removerFavoritoDireto(fav.key)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 bg-white p-3 rounded-lg border border-slate-200/60">
+                        {fav.versiculos.map(v => (
+                          <p key={v.numVersiculo} className="text-xs text-slate-700 leading-relaxed">
+                            <span className="font-bold text-emerald-800 mr-1.5">{v.numVersiculo}.</span>
+                            {v.texto}
+                          </p>
+                        ))}
+                      </div>
+                      <div className="space-y-1 pt-1 border-t border-slate-200/60">
+                        {emEdicao ? (
+                          <div className="space-y-1.5">
+                            <textarea
+                              value={valorComentario}
+                              onChange={(e) => atualizarComentarioFavorito(fav.key, e.target.value)}
+                              placeholder="Escreva sua anotação ou reflexão aqui..."
+                              className="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700 resize-none h-16"
+                            />
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 text-[10px] text-slate-500"
+                                onClick={() => {
+                                  setComentariosEditando(prev => {
+                                    const copy = { ...prev };
+                                    delete copy[fav.key];
+                                    return copy;
+                                  });
+                                }}
+                              >
+                                Cancelar
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-6 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white"
+                                onClick={() => salvarComentarioFavorito(fav.key)}
+                              >
+                                Salvar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div 
+                            onClick={() => atualizarComentarioFavorito(fav.key, fav.comentario || "")}
+                            className="cursor-pointer group/comentario py-1"
+                          >
+                            {fav.comentario ? (
+                              <div className="text-xs text-slate-600 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 flex items-start justify-between gap-2">
+                                <p className="flex-1 whitespace-pre-wrap">✍️ {fav.comentario}</p>
+                                <span className="text-[10px] text-emerald-600 font-bold opacity-0 group-hover/comentario:opacity-100 transition">Editar</span>
+                              </div>
+                            ) : (
+                              <p className="text-[11px] text-slate-400 italic group-hover/comentario:text-emerald-600 transition">
+                                + Adicionar anotação/comentário...
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div key={fav.key} className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-800 uppercase bg-white px-2 py-1 rounded-lg border border-slate-200">
-                        {fav.livro} {fav.cap}:{fav.numVersiculo}
+                        {fav.livro || "Livro"} {fav.cap}:{fav.numVersiculo}
                       </span>
                       <div className="flex gap-1">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-7 w-7 text-sky-600 hover:bg-sky-50" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-sky-600 hover:bg-sky-50"
                           onClick={() => compartilharFavorito(fav)}
                           title="Compartilhar versículo e anotação"
                         >
                           <Share2 className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-7 w-7 text-emerald-600 hover:bg-emerald-50" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-emerald-600 hover:bg-emerald-50"
                           onClick={() => irParaFavorito(fav)}
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
                           onClick={() => removerFavoritoDireto(fav.key)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
-
-                    <p className="text-sm text-slate-600 italic leading-relaxed">"{fav.texto}"</p>
-
-                    <div className="pt-2 border-t border-slate-200/60 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                          <MessageSquare className="w-3.5 h-3.5 text-emerald-500" /> ANOTAÇÃO PESSOAL
-                        </span>
-                        
-                        {!emEdicao ? (
-                          <button
-                            onClick={() => setComentariosEditando(prev => ({ ...prev, [fav.key]: fav.comentario || "" }))}
-                            className="text-[10px] font-semibold text-emerald-600 hover:underline"
-                          >
-                            {fav.comentario ? "Editar" : "Escrever"}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => salvarComentario(fav.key, valorComentario)}
-                            className="text-[10px] font-bold text-white bg-emerald-500 hover:bg-emerald-600 px-2 py-0.5 rounded flex items-center gap-1"
-                          >
-                            <Save className="w-3 h-3" /> Salvar
-                          </button>
-                        )}
-                      </div>
-
+                    <p className="text-xs text-slate-700 leading-relaxed italic">
+                      "{fav.texto}"
+                    </p>
+                    <div className="space-y-1 pt-1 border-t border-slate-200/60">
                       {emEdicao ? (
-                        <textarea
-                          value={valorComentario}
-                          onChange={(e) => setComentariosEditando(prev => ({ ...prev, [fav.key]: e.target.value }))}
-                          placeholder="Anote suas reflexões..."
-                          className="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none min-h-[60px]"
-                        />
+                        <div className="space-y-1.5">
+                          <textarea
+                            value={valorComentario}
+                            onChange={(e) => atualizarComentarioFavorito(fav.key, e.target.value)}
+                            placeholder="Escreva sua anotação ou reflexão aqui..."
+                            className="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700 resize-none h-16"
+                          />
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 text-[10px] text-slate-500"
+                              onClick={() => {
+                                setComentariosEditando(prev => {
+                                  const copy = { ...prev };
+                                  delete copy[fav.key];
+                                  return copy;
+                                });
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-6 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white"
+                              onClick={() => salvarComentarioFavorito(fav.key)}
+                            >
+                              Salvar
+                            </Button>
+                          </div>
+                        </div>
                       ) : (
-                        fav.comentario ? (
-                          <p className="text-xs text-slate-700 bg-white/80 p-2 rounded-lg border border-slate-100 whitespace-pre-line leading-relaxed">
-                            {fav.comentario}
-                          </p>
-                        ) : (
-                          <p className="text-[11px] text-slate-400 italic">Nenhuma anotação criada para este versículo.</p>
-                        )
+                        <div 
+                          onClick={() => atualizarComentarioFavorito(fav.key, fav.comentario || "")}
+                          className="cursor-pointer group/comentario py-1"
+                        >
+                          {fav.comentario ? (
+                            <div className="text-xs text-slate-600 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 flex items-start justify-between gap-2">
+                              <p className="flex-1 whitespace-pre-wrap">✍️ {fav.comentario}</p>
+                              <span className="text-[10px] text-emerald-600 font-bold opacity-0 group-hover/comentario:opacity-100 transition">Editar</span>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-slate-400 italic group-hover/comentario:text-emerald-600 transition">
+                              + Adicionar anotação/comentário...
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -982,21 +1309,19 @@ export default function Biblia() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* MODAL DE COMPARAÇÃO */}
-      <Dialog open={!!versiculoParaComparar} onOpenChange={() => setVersiculoParaComparar(null)}>
+      <Dialog open={isComparacaoOpen} onOpenChange={setIsComparacaoOpen}>
         <DialogContent className="max-w-md bg-white rounded-2xl p-6">
           <DialogHeader className="flex flex-row items-center justify-between border-b pb-3">
             <DialogTitle className="text-base font-bold text-slate-900">
               {nomeLivroExibicao} {versiculoParaComparar?.cap}:{versiculoParaComparar?.numVersiculo}
             </DialogTitle>
-            
+            <DialogDescription className="sr-only">Comparação de Traduções do Versículo</DialogDescription>
             {versiculoParaComparar && (
               <button
+                type="button"
                 onClick={() => {
-                  const textoOriginal = comparacoes.find(c => c.versao.toLowerCase() === versaoSelecionada.toLowerCase())?.texto 
-                    || comparacoes[0]?.texto 
-                    || "";
+                  if (!versiculoParaComparar) return;
+                  const textoOriginal = comparacoes.find(c => c.versao?.toLowerCase() === versaoSelecionada.toLowerCase())?.texto || comparacoes[0]?.texto || "";
                   handleToggleFavorito(
                     versiculoParaComparar.abbrev,
                     versiculoParaComparar.cap,
@@ -1007,39 +1332,37 @@ export default function Biblia() {
                 }}
                 className="p-2 hover:bg-slate-100 rounded-full transition text-amber-500 mr-4"
               >
-                <Star 
-                  className={`w-5 h-5 ${
-                    isFavorito(versiculoParaComparar.abbrev, versiculoParaComparar.cap, versiculoParaComparar.numVersiculo) 
-                      ? 'fill-amber-500' 
-                      : ''
-                  }`} 
-                />
+                <Star className={`w-5 h-5 ${
+                  versiculoParaComparar && isFavorito(versiculoParaComparar.abbrev, versiculoParaComparar.cap, versiculoParaComparar.numVersiculo) ? 'fill-amber-500' : ''
+                }`} />
               </button>
             )}
           </DialogHeader>
-
           {loadingComparacao ? (
-            <div className="py-8 flex justify-center">
+            <div className="py-12 flex items-center justify-center">
               <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
             </div>
           ) : (
-            <div className="space-y-3 mt-2 max-h-[50vh] overflow-y-auto pr-1">
-              {comparacoes.map((item) => {
-                const nomePorExtenso = NOME_EXTENSO_VERSOES[item.versao.toLowerCase()] || "";
-                const isFavoritado = isFavorito(versiculoParaComparar?.abbrev, versiculoParaComparar?.cap, versiculoParaComparar?.numVersiculo);
-                const isSuaFavoritaPadrao = item.versao.toLowerCase() === versaoSelecionada.toLowerCase();
-
+            <div className="mt-4 space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+              {comparacoes.map((item, idx) => {
+                const isSuaFavoritaPadrao = item.versao?.toLowerCase() === versaoSelecionada.toLowerCase();
+                const nomePorExtenso = NOME_EXTENSO_VERSOES[item.versao?.toLowerCase()];
+                const isFavoritado = versiculoParaComparar ? isFavorito(
+                  versiculoParaComparar.abbrev,
+                  versiculoParaComparar.cap,
+                  versiculoParaComparar.numVersiculo
+                ) : false;
                 return (
                   <div 
-                    key={item.versao} 
-                    className={`p-3.5 rounded-xl border transition-all ${
+                    key={idx} 
+                    className={`p-3.5 rounded-xl border transition space-y-1.5 ${
                       isSuaFavoritaPadrao 
-                        ? "bg-emerald-50/40 border-emerald-200 ring-1 ring-emerald-500/20" 
+                        ? "bg-emerald-50/40 border-emerald-200 shadow-sm" 
                         : "bg-slate-50 border-slate-100"
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase ${
                           isSuaFavoritaPadrao 
                             ? "text-emerald-800 bg-emerald-200" 
@@ -1053,7 +1376,6 @@ export default function Biblia() {
                           </span>
                         )}
                       </div>
-
                       {isFavoritado && isSuaFavoritaPadrao && (
                         <div className="flex items-center gap-1 text-[10px] font-bold text-amber-500 select-none">
                           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 animate-pulse" />

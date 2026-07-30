@@ -422,7 +422,7 @@ export default function HistoricoListas() {
             <Menu className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Histórico Listas</h1>
+            <h1 className="text-xl font-bold tracking-tight">Histórico</h1>
             <p className="text-slate-400 text-xs">Listas anteriores</p>
           </div>
         </div>
