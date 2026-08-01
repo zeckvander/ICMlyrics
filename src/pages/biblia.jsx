@@ -30,7 +30,7 @@ const LIVROS_MAPA = {
     { abbrev: 'ne', nome: 'Neemias', caps: 13, versiculosPorCap: { 1:11, 2:20, 3:32, 4:23, 5:19, 6:19, 7:73, 8:18, 9:38, 10:39, 11:36, 12:47, 13:31 } },
     { abbrev: 'et', nome: 'Ester', caps: 10, versiculosPorCap: { 1:22, 2:23, 3:15, 4:17, 5:14, 6:14, 7:10, 8:17, 9:32, 10:3 } },
     { abbrev: 'job', nome: 'Jó', caps: 42, versiculosPorCap: { 1:22, 2:13, 3:26, 4:21, 5:27, 6:30, 7:21, 8:22, 9:35, 10:22, 11:20, 12:25, 13:28, 14:22, 15:35, 16:22, 17:16, 18:21, 19:29, 20:29, 21:34, 22:30, 23:17, 24:25, 25:6, 26:14, 27:23, 28:28, 29:25, 30:31, 31:40, 32:22, 33:33, 34:37, 35:16, 36:33, 37:24, 38:41, 39:30, 40:24, 41:34, 42:17 } },
-    { abbrev: 'sl', nome: 'Salmos', caps: 150, versiculosPorCap: Object.fromEntries(Array.from({ length: 150 }, (_, i) => [i + 1, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150].includes(i + 1) ? 20 : 10])) },
+    { abbrev: 'sl', nome: 'Salmos', caps: 150, versiculosPorCap: Object.fromEntries(Array.from({ length: 150 }, (_, i) => [i + 1, 20])) },
     { abbrev: 'pv', nome: 'Prover.', caps: 31, versiculosPorCap: { 1:33, 2:22, 3:35, 4:27, 5:23, 6:35, 7:27, 8:36, 9:18, 10:32, 11:31, 12:28, 13:25, 14:35, 15:33, 16:33, 17:28, 18:24, 19:29, 20:30, 21:31, 22:29, 23:35, 24:34, 25:28, 26:28, 27:27, 28:28, 29:27, 30:33, 31:31 } },
     { abbrev: 'ec', nome: 'Ecl.', caps: 12, versiculosPorCap: { 1:18, 2:26, 3:22, 4:16, 5:20, 6:12, 7:29, 8:17, 9:18, 10:20, 11:10, 12:14 } },
     { abbrev: 'ct', nome: 'Cantares', caps: 8, versiculosPorCap: { 1:17, 2:17, 3:11, 4:16, 5:16, 6:13, 7:13, 8:14 } },
@@ -86,6 +86,7 @@ const LIVROS_MAPA = {
 const TODOS_LIVROS = [...LIVROS_MAPA.AT, ...LIVROS_MAPA.NT];
 
 const VERSOES_DISPONIVEIS = [
+  { id: 'arc', nome: 'ARC', extenso: 'Almeida Revista e Corrigida' },
   { id: 'acf', nome: 'ACF', extenso: 'Almeida Corrigida Fiel' },
   { id: 'ara', nome: 'ARA', extenso: 'Almeida Revista e Atualizada' },
   { id: 'aa', nome: 'AA', extenso: 'Almeida Antiga' },
@@ -94,6 +95,7 @@ const VERSOES_DISPONIVEIS = [
 ];
 
 const NOME_EXTENSO_VERSOES = {
+  arc: 'Almeida Revista e Corrigida',
   acf: 'Almeida Corrigida Fiel',
   ara: 'Almeida Revista e Atualizada',
   aa: 'Almeida Antiga',
@@ -151,7 +153,7 @@ export default function Biblia() {
     const nova = localStorage.getItem(`icmlyrics_biblia_versao_favorita_${usuarioAtual}`);
     if (nova) return nova;
     const antiga = localStorage.getItem("icmlyrics_biblia_versao_favorita");
-    return antiga || "acf";
+    return antiga || "arc";
   });
   const [versaoFavoritaSalva, setVersaoFavoritaSalva] = useState(() => {
     const usuarioAtual = localStorage.getItem("icmlyrics_user") || "comum";
@@ -501,7 +503,7 @@ export default function Biblia() {
     localStorage.setItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`, JSON.stringify(novosFavoritos));
     setComentariosEditando(prev => {
         const copy = { ...prev };
-        delete copy[key];
+        delete copy[fav.key];
         return copy;
     });
   };
@@ -837,7 +839,7 @@ export default function Biblia() {
                   title="Selecionar vários versículos"
                 >
                   <CheckSquare className="w-4 h-4" />
-                  <span>{modoSelecaoAtivo ? " " : " "}</span> {/* aqui o botão de multi seleção*/}
+                  <span>{modoSelecaoAtivo ? " " : " "}</span>
                 </Button>
                 <button
                   onClick={alternarTamanhoFonte}
@@ -1046,9 +1048,10 @@ export default function Biblia() {
                       {isActive && <Check className="w-4 h-4 text-emerald-600 stroke-[3px] shrink-0" />}
                     </div>
                     <p className="text-xs text-slate-400 mt-1 leading-normal">
+                      {v.id === 'arc' && 'Almeida Revista e Corrigida histórica, respeitada pelo estilo formal e poético.'}
                       {v.id === 'acf' && 'Tradução literal, tradicional e com português clássico baseada no Texto Recebido.'}
                       {v.id === 'ara' && 'Texto clássico alinhado com a erudição bíblica moderna, equilíbrio entre fidelidade e clareza.'}
-                      {v.id === 'aa' && 'Almeida versão Revista e Corrigida histórica, respeitada pelo estilo formal e poético.'}
+                      {v.id === 'aa' && 'Versão traduzida por João Ferreira de Almeida considerada o marco da Bíblia em português.'}
                       {v.id === 'ntlh' && 'Foco na compreensão total rápida, ideal para evangelismo, jovens ou leitura dinâmica.'}
                       {v.id === 'nvi' && 'Uma das traduções mais populares. Une precisão acadêmica com fluidez contemporânea.'}
                     </p>
