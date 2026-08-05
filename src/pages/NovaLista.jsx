@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
-import { ArrowLeft, Menu, Plus, Image, FileText, Cloud } from "lucide-react";
+import { ArrowLeft, Plus, Image, FileText, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ListaRow from "@/components/lista/ListaRow";
 import PreviewModal from "@/components/lista/PreviewModal";
-import DrawerMenu from "@/components/louvores/DrawerMenu";
 
 import { supabase } from "@/lib/supabaseClient"; 
 
@@ -52,7 +51,6 @@ export default function NovaLista() {
     emptyRow("--")
   ]);
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "image" });
   const [louvoresDB, setLouvoresDB] = useState([]);
   const [listaSalvaId, setListaSalvaId] = useState(null);
@@ -167,7 +165,6 @@ export default function NovaLista() {
 
     if (temNuvem) {
       try {
-        // 1. Consulta se o usuário já possui 12 ou mais listas no Supabase
         const { count, error: erroCount } = await supabase
           .from("listas")
           .select("*", { count: "exact", head: true })
@@ -227,12 +224,10 @@ export default function NovaLista() {
       }
     }
 
-    // Salvar Localmente
     try {
       const localListas = localStorage.getItem("icmlyrics_historico_listas");
       const historicoAtual = localListas ? JSON.parse(localListas) : [];
 
-      // 2. Consulta no LocalStorage se possui 12 ou mais listas
       if (historicoAtual.length >= 12) {
         alert("Limite de 12 listas atingido localmente! Exclua uma lista anterior para criar uma nova.");
         setSalvando(false);
@@ -275,9 +270,6 @@ export default function NovaLista() {
           <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <button onClick={() => setDrawerOpen(true)} className="text-slate-300 hover:text-white transition-colors p-1 mr-1">
-            <Menu className="w-6 h-6" />
-          </button>
           <div>
             <h1 className="text-xl font-bold tracking-tight">Nova Lista</h1>
             <p className="text-slate-400 text-xs">Crie uma nova lista</p>
@@ -306,8 +298,6 @@ export default function NovaLista() {
           </div>
         </div>
       </div>
-
-      <DrawerMenu open={drawerOpen} onOpenChange={setDrawerOpen} />
 
       <div className="px-4 mt-4 space-y-4">
         <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 space-y-3">

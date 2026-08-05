@@ -295,10 +295,13 @@ export default function Louvor() {
           <ArrowUp className="w-6 h-6" />
         </button>
       )}
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
+<div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={handleVoltar}><ArrowLeft className="w-6 h-6" /></button>
-          <div><h1 className="text-xl font-bold">Louvores</h1></div>
+          <div className="flex flex-col">
+            <h1 className="text-xl font-bold">Louvores</h1>
+            <p className="text-slate-400 text-xs">Lista de Louvores</p>
+          </div>
         </div>
       </div>
       <div className="px-4 -mt-3 space-y-3">

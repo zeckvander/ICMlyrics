@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Menu, Trash2, Calendar, Music, Printer, Cloud, Edit3, Plus, X, Check, Play, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowLeft, Trash2, Calendar, Music, Printer, Cloud, Edit3, Plus, X, Check, Play, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import DrawerMenu from "@/components/louvores/DrawerMenu";
 import PreviewModal from "@/components/lista/PreviewModal";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -72,7 +71,6 @@ const buscarELimitarLouvores = (listaLouvores, queryText, limite = 5) => {
 
 export default function HistoricoListas() {
   const navigate = useNavigate();
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [listas, setListas] = useState([]);
   const [nomeIgreja, setNomeIgreja] = useState("");
@@ -418,9 +416,6 @@ export default function HistoricoListas() {
           <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <button onClick={() => setDrawerOpen(true)} className="text-slate-300 hover:text-white transition-colors p-1 mr-1">
-            <Menu className="w-6 h-6" />
-          </button>
           <div>
             <h1 className="text-xl font-bold tracking-tight">Histórico</h1>
             <p className="text-slate-400 text-xs">Listas anteriores</p>
@@ -458,8 +453,6 @@ export default function HistoricoListas() {
           </div>
         </div>
       </div>
-
-      <DrawerMenu open={drawerOpen} onOpenChange={setDrawerOpen} />
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         <div className="space-y-3">

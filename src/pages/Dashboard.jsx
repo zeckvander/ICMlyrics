@@ -586,7 +586,7 @@ export default function Dashboard() {
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase">Usuário</label>
                   <Input 
-                    placeholder="Ex: icmhlp" 
+                    placeholder="Ex: ICMPE" 
                     value={usuario || ""} 
                     onChange={(e) => setUsuario(e.target.value)} 
                     className="h-9 mt-1 text-sm"

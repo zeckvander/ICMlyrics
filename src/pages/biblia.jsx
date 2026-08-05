@@ -5,7 +5,7 @@ import {
   ExternalLink, Type, MessageSquare, Share2, Save, HelpCircle, Check, CheckSquare, X 
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import DrawerMenu from "@/components/louvores/DrawerMenu";
+
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -624,12 +624,6 @@ export default function Biblia() {
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="text-slate-300 hover:text-white transition-colors p-1 mr-1"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
             <div>
               <h1 className="text-xl font-bold tracking-tight flex items-center gap-1.5">
                 <BookOpen className="w-5 h-5 text-emerald-400 shrink-0" /> Bíblia
@@ -659,8 +653,8 @@ export default function Biblia() {
             </button>
           </div>
         </div>
-      )}
-      <DrawerMenu open={drawerOpen} onOpenChange={setDrawerOpen} />
+      )} 
+
       <div className={`px-4 space-y-4 ${livroAbbrev ? "pt-12" : "-mt-3"}`}>
         {!livroAbbrev && (
           <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 space-y-3 mt-6">
