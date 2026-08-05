@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, AlertTriangle, Database, Megaphone, ListMusic, Sparkles } from "lucide-react";
+import { 
+  Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, 
+  BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, 
+  AlertTriangle, Database, Megaphone, ListMusic, Sparkles, Settings, Users 
+} from "lucide-react";
 import { useTools } from "@/components/tools/ToolsProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -158,7 +162,6 @@ export default function Dashboard() {
         const totalNovidades = novosAvisosCount + novosRepertorioCount;
         const jaViuModalNessaSessao = sessionStorage.getItem("icmlyrics_modal_novidades_visto");
 
-        // Abre o modal se houver novidades e ainda não tiver exibido nesta sessão
         if (totalNovidades > 0 && !jaViuModalNessaSessao) {
           setModalNovidadesOpen(true);
           sessionStorage.setItem("icmlyrics_modal_novidades_visto", "true");
@@ -245,7 +248,6 @@ export default function Dashboard() {
         roleFinal = "church_admin";
       }
 
-      // 🔄 Reseta a trava do modal para que ao conectar a novidade apareça imediatamente
       sessionStorage.removeItem("icmlyrics_modal_novidades_visto");
 
       localStorage.setItem("icmlyrics_user_nuvem", usuario.trim());
@@ -329,30 +331,18 @@ export default function Dashboard() {
     { label: "Louvores", icon: Music2, path: "/louvor", color: "bg-teal-500" },
     { label: "Nova Lista", icon: ListPlus, path: "/nova-lista", color: "bg-amber-500" },
     { label: "Histórico de Listas", icon: History, path: "/historico-listas", color: "bg-indigo-500" },
-    { label: "Drive", icon: FolderOpen, path: "/drive", color: "bg-blue-500" },
+    { label: "Avisos", icon: Megaphone, path: "/avisos", color: "bg-orange-500", count: novidades.avisos, key: "avisos" },
     { label: "Bíblia", icon: BookOpen, path: "/biblia", color: "bg-emerald-600" },
-    { 
-      label: "Avisos", 
-      icon: Megaphone, 
-      path: "/avisos", 
-      color: "bg-orange-500", 
-      count: novidades.avisos,
-      key: "avisos"
-    },
-    { 
-      label: "Repertório", 
-      icon: ListMusic, 
-      path: "/repertorio", 
-      color: "bg-pink-500", 
-      count: novidades.repertorio,
-      key: "repertorio"
-    }
+    { label: "Repertório", icon: ListMusic, path: "/repertorio", color: "bg-pink-500", count: novidades.repertorio, key: "repertorio" },
+    { label: "Painel da Equipe", icon: Users, path: "/painel-equipe", color: "bg-violet-600" },
+    { label: "Culto", icon: Sparkles, color: "bg-amber-600", onClick: () => navigate("/culto-profetico") }
   ];
 
   const ferramentas = [
     { label: "Metrônomo", icon: Gauge, color: "bg-purple-500", onClick: openMetronomo },
     { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfinador },
-    { label: "Backup", icon: Database, color: "bg-slate-700", onClick: () => navigate("/backup") }
+    { label: "Drive", icon: FolderOpen, path: "/drive", color: "bg-blue-500" },
+    { label: "Perfil", icon: Settings, color: "bg-slate-700", onClick: () => navigate("/perfil") } 
   ];
 
   return (
@@ -398,7 +388,13 @@ export default function Dashboard() {
                 return (
                   <button 
                     key={a.label} 
-                    onClick={() => handleNavegarComLeitura(a.path, a.key)} 
+                    onClick={() => {
+                      if (a.onClick) {
+                        a.onClick();
+                      } else if (a.path) {
+                        handleNavegarComLeitura(a.path, a.key);
+                      }
+                    }} 
                     className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow relative overflow-hidden"
                   >
                     {temNovidade && (
@@ -433,7 +429,13 @@ export default function Dashboard() {
               {ferramentas.map((f) => (
                 <button 
                   key={f.label} 
-                  onClick={f.onClick} 
+                  onClick={() => {
+                    if (f.onClick) {
+                      f.onClick();
+                    } else if (f.path) {
+                      navigate(f.path);
+                    }
+                  }} 
                   className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow"
                 >
                   <div className={`w-11 h-11 rounded-xl ${f.color} flex items-center justify-center`}>

@@ -25,6 +25,8 @@ import Backup from '@/pages/Backup';
 import Avisos from '@/pages/Avisos';
 import Repertorio from '@/pages/Repertorio'; 
 import ListaRepertorio from '@/pages/ListaRepertorio'; 
+import Perfil from '@/pages/Perfil';
+import PainelEquipe from '@/pages/PainelEquipe'
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 
 const PrivateLayout = ({ children }) => {
@@ -102,8 +104,8 @@ function App() {
             <Route path="/biblia" element={<PrivateLayout><Biblia /></PrivateLayout>} />
             <Route path="/backup" element={<PrivateLayout><Backup /></PrivateLayout>} />
             <Route path="/avisos" element={<PrivateLayout><Avisos /></PrivateLayout>} />
-            
-            {/* ROTAS DE REPERTÓRIO */}
+            <Route path="/perfil" element={<PrivateLayout><Perfil /></PrivateLayout>} />
+            <Route path="/painel-equipe" element={<PrivateLayout><PainelEquipe /></PrivateLayout>} />
             <Route path="/repertorio" element={<PrivateLayout><Repertorio /></PrivateLayout>} />
             <Route path="/repertorio/lista/:id" element={<PrivateLayout><ListaRepertorio /></PrivateLayout>} />
 
