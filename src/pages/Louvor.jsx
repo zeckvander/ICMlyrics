@@ -133,19 +133,41 @@ export default function Louvor() {
     return [...temasSet];
   }, [filterCategoria, louvores]);
 
-  // 6. FUNÇÃO PARA BUSCAR OS LOUVORES DO BANCO
+  // 6. FUNÇÃO PARA BUSCAR OS LOUVORES DO BANCO (CORRIGIDA COM PAGINAÇÃO)
   const carregarLouvores = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('louvores')
-      .select('id, numero, nome, categoria, ritmo, letra_musica, tema')
-      .order('numero', { ascending: true });
+    let todosOsLouvores = [];
+    let buscarMais = true;
+    let inicio = 0;
+    const limitePorPagina = 1000;
 
-    if (error) {
-      console.error("Erro no Supabase:", error.message);
-    } else {
-      setLouvores(data || []);
+    while (buscarMais) {
+      const { data, error } = await supabase
+        .from('louvores')
+        .select('id, numero, nome, categoria, ritmo, letra_musica, tema')
+        .order('id', { ascending: true }) // Ordena por ID para garantir a integridade dos blocos
+        .range(inicio, inicio + limitePorPagina - 1);
+
+      if (error) {
+        console.error("Erro no Supabase:", error.message);
+        break; // Interrompe se der erro
+      }
+
+      if (data && data.length > 0) {
+        // Junta os dados novos com os que já foram baixados
+        todosOsLouvores = [...todosOsLouvores, ...data];
+        inicio += limitePorPagina;
+
+        // Se veio menos que 1000, significa que chegamos ao fim do banco
+        if (data.length < limitePorPagina) {
+          buscarMais = false;
+        }
+      } else {
+        buscarMais = false; // Se vier vazio, encerra o loop
+      }
     }
+
+    setLouvores(todosOsLouvores);
     setLoading(false);
   };
 

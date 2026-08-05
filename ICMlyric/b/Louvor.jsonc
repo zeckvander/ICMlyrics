@@ -4,7 +4,7 @@
   "properties": {
     "numero": {
       "type": "string",
-      "title": "N\u00famero"
+      "title": "Número"
     },
     "nome": {
       "type": "string",
@@ -16,7 +16,7 @@
       "enum": [
         "Avulsos",
         "Cias",
-        "Colet\u00e2nea"
+        "Coletânea"
       ],
       "default": "Avulsos"
     },
@@ -31,16 +31,16 @@
         "VALSA",
         "VAISEADO",
         "COUNTRY",
-        "B\u00c1SICO",
-        "GUAR\u00c2NIA",
-        "B\u00c1SICO II",
+        "BÁSICO",
+        "GUARÂNIA",
+        "BÁSICO II",
         "MARCHA",
         "MARCHA MARCIAL",
         "FOX",
         "BALADA",
         "NOVO",
         "BLUE",
-        "CAN\u00c7\u00c3O",
+        "CANÇÃO",
         "TOADA",
         "REPIQUE"
       ]
@@ -80,7 +80,7 @@
     },
     "sugestoes_ensaio": {
       "type": "string",
-      "title": "Sugest\u00f5es de Ensaio"
+      "title": "Sugestões de Ensaio"
     },
     "cifra_tom_original": {
       "type": "string",
@@ -102,7 +102,7 @@
     },
     "letra_musica": {
       "type": "string",
-      "title": "Letra da M\u00fasica"
+      "title": "Letra da Música"
     }
   },
   "required": [

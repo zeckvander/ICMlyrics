@@ -31,12 +31,8 @@ export default function LouvorForm({ initial, onSubmit, saving }) {
 
   const [form, setForm] = React.useState(() => limparDados(initial));
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
-
-  // 🔥 CORREÇÃO: Força o foco e o scroll para o topo assim que o formulário carrega ou muda
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-    
-    // Caso o formulário esteja dentro de um Sheet/Modal, tenta rolar o container interno também
     const sheetContent = document.querySelector('[role="dialog"]');
     if (sheetContent) {
       sheetContent.scrollTop = 0;
