@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, Loader2, Star, Menu, ArrowLeft, Upload, ChevronDown, ArrowUp } from "lucide-react";
+import { Plus, Search, Filter, Loader2, Star, Menu, ArrowLeft, Upload, ChevronDown, ArrowUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -38,7 +38,8 @@ export default function Louvor() {
   // ESTADO DE PAGINAÇÃO DOS CARDS NA TELA (Inicia exibindo 50)
   const [visibleCount, setVisibleCount] = useState(50);
 
-  const [search, setSearch] = useState(() => sessionStorage.getItem("louvor_search") || "");
+  // Busca simples sem salvar no sessionStorage
+  const [search, setSearch] = useState("");
   const [filterCategoria, setFilterCategoria] = useState(() => sessionStorage.getItem("louvor_categoria") || "all");
   const [filterTema, setFilterTema] = useState(() => sessionStorage.getItem("louvor_tema") || "all");
   const [showFavsOnly, setShowFavsOnly] = useState(() => sessionStorage.getItem("louvor_favs_only") === "true");
@@ -72,7 +73,6 @@ export default function Louvor() {
 
   // 3. FUNÇÃO PARA VOLTAR AO DASHBOARD E LIMPAR OS FILTROS DA NAVEGAÇÃO
   const handleVoltar = () => {
-    sessionStorage.removeItem("louvor_search");
     sessionStorage.removeItem("louvor_categoria");
     sessionStorage.removeItem("louvor_tema");
     sessionStorage.removeItem("louvor_favs_only");
@@ -86,7 +86,6 @@ export default function Louvor() {
       setShowScrollTop(window.scrollY > 400);
       sessionStorage.setItem("louvor_scroll_position", window.scrollY.toString());
 
-      // Se chegar perto do final da página, expande mais 50 cards
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 600) {
         setVisibleCount((prev) => prev + 50);
       }
@@ -95,18 +94,16 @@ export default function Louvor() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 5. GUARDA OS FILTROS NO SESSIONSTORAGE E RESETA A PAGINAÇÃO
+  // 5. GUARDA OS FILTROS DE CATEGORIA/TEMA NO SESSIONSTORAGE E RESETA A PAGINAÇÃO
   useEffect(() => {
-    sessionStorage.setItem("louvor_search", search);
     sessionStorage.setItem("louvor_categoria", filterCategoria);
     sessionStorage.setItem("louvor_tema", filterTema);
     sessionStorage.setItem("louvor_favs_only", String(showFavsOnly));
 
-    // Reseta para 50 cards sempre que alterar um filtro ou busca
     setVisibleCount(50);
   }, [search, filterCategoria, filterTema, showFavsOnly]);
 
-  // Se a categoria mudar, valida se o tema atual pertence a ela; se não, reseta para "all"
+  // Se a categoria mudar, valida se o tema atual pertence a ela
   useEffect(() => {
     if (filterTema !== "all") {
       const existeNoPadrao = TEMAS_PADRAO.some(t => 
@@ -143,15 +140,9 @@ export default function Louvor() {
     return [...temasSet];
   }, [filterCategoria, louvores]);
 
-  // 6. FUNÇÃO PARA BUSCAR OS LOUVORES DO BANCO (CARREGAMENTO INTELIGENTE)
+  // 6. CARREGAMENTO INICIAL COMPLETO DO BANCO
   const carregarLouvores = async () => {
     setLoading(true);
-    const termo = search.trim();
-
-    // Se houver busca, traz a letra_musica para filtrar. Se não, busca só os campos leves.
-    const colunas = termo 
-      ? 'id, numero, nome, categoria, ritmo, tema, letra_musica' 
-      : 'id, numero, nome, categoria, ritmo, tema';
 
     let todosOsLouvores = [];
     let buscarMais = true;
@@ -159,13 +150,9 @@ export default function Louvor() {
     const limitePorPagina = 1000;
 
     while (buscarMais) {
-      let query = supabase.from('louvores').select(colunas);
-
-      if (termo) {
-        query = query.or(`nome.ilike.%${termo}%,letra_musica.ilike.%${termo}%,numero.ilike.%${termo}%`);
-      }
-
-      const { data, error } = await query
+      const { data, error } = await supabase
+        .from('louvores')
+        .select('id, numero, nome, categoria, ritmo, tema, letra_musica')
         .order('id', { ascending: true })
         .range(inicio, inicio + limitePorPagina - 1);
 
@@ -190,16 +177,11 @@ export default function Louvor() {
     setLoading(false);
   };
 
-  // Executa o carregamento com um pequeno delay (debounce de 300ms) quando digita
   useEffect(() => {
-    const timer = setTimeout(() => {
-      carregarLouvores();
-    }, 300);
+    carregarLouvores();
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  // 7. RESTAURA A POSIÇÃO DE ROLAGEM DEPOIS QUE OS CARDS FORAM RENDERIZADOS
+  // 7. RESTAURA A POSIÇÃO DE ROLAGEM
   useEffect(() => {
     if (!loading && louvores.length > 0) {
       const pos = sessionStorage.getItem("louvor_scroll_position");
@@ -288,7 +270,7 @@ export default function Louvor() {
     reader.readAsText(file);
   };
 
-  // --- LÓGICA DE FILTRAGEM E ORDENAÇÃO ---
+  // --- LÓGICA DE FILTRAGEM E ORDENAÇÃO LOCAL ---
   const termoBruto = (search || "").trim();
   const termoNormalizado = normalizarTexto(search);
   const buscaNum = termoBruto.toLowerCase();
@@ -306,7 +288,6 @@ export default function Louvor() {
       temaDoLouvor = l.tema || "Sem Tema";
     }
 
-    // BUSCA NORMALIZADA NO FRONT
     const numStr = temNumero ? String(l.numero).trim().toLowerCase() : "";
     const matchNumero = numStr ? numStr.startsWith(buscaNum) : false;
     const matchNome = normalizarTexto(l.nome).includes(termoNormalizado);
@@ -371,7 +352,7 @@ export default function Louvor() {
       <DrawerMenu open={drawerOpen} onOpenChange={setDrawerOpen} onAdminLogout={() => setAdmin(false)} />
       
       <div className="px-4 -mt-3 space-y-3">
-        {/* Barra de Busca */}
+        {/* Barra de Busca com botão 'X' de limpar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input 
@@ -381,13 +362,21 @@ export default function Louvor() {
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             placeholder="Buscar por nome, número ou letra..." 
-            className="pl-9 bg-white border-0 shadow-sm rounded-xl h-11" 
+            className="pl-9 pr-9 bg-white border-0 shadow-sm rounded-xl h-11" 
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
         
         {/* Filtros */}
         <div className="flex gap-2">
-          {/* Categoria Select */}
           <Select value={filterCategoria} onValueChange={setFilterCategoria}>
             <SelectTrigger id="categoria-select" className="w-full bg-white border-0 shadow-sm rounded-xl h-10">
               <Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
@@ -401,7 +390,6 @@ export default function Louvor() {
             </SelectContent>
           </Select>
 
-          {/* Tema Select */}
           <Select value={filterTema} onValueChange={setFilterTema}>
             <SelectTrigger id="tema-select" className="w-full bg-white border-0 shadow-sm rounded-xl h-10">
               <Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
@@ -413,7 +401,6 @@ export default function Louvor() {
             </SelectContent>
           </Select>
 
-          {/* Favoritos Toggle */}
           {(getFavorites(musico).length > 0 || showFavsOnly) && (
             <Button size="icon" variant={showFavsOnly ? "default" : "outline"} className="rounded-xl h-10 w-10 shrink-0 bg-white border-0 shadow-sm relative" onClick={() => setShowFavsOnly(!showFavsOnly)}>
               <Star className={`w-5 h-5 ${showFavsOnly ? "fill-amber-400 text-amber-400" : "text-slate-400"}`} />
@@ -426,7 +413,7 @@ export default function Louvor() {
           )}
         </div>
 
-        {/* Quantidade direta de louvores */}
+        {/* Quantidade de louvores */}
         {!loading && louvores.length > 0 && (
           <div className="flex items-center justify-between px-1 text-xs text-slate-500 font-medium">
             <span>{filtered.length} {filtered.length === 1 ? "louvor" : "louvores"}</span>
@@ -479,7 +466,6 @@ export default function Louvor() {
           </div>
         ) : (
           <div className="space-y-2 pb-8">
-            {/* Renderiza apenas até visibleCount (50, 100, 150...) */}
             {filtered.slice(0, visibleCount).map((l) => (
               <SongCard 
                 key={l.id} 
@@ -490,7 +476,6 @@ export default function Louvor() {
               />
             ))}
 
-            {/* Indicador e botão manual de carregar mais */}
             {visibleCount < filtered.length && (
               <div className="text-center py-4">
                 <Button 
