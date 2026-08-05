@@ -35,6 +35,9 @@ export default function Louvor() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [favTrigger, setFavTrigger] = useState(0);
 
+  // ESTADO DE PAGINAÇÃO DOS CARDS NA TELA (Inicia exibindo 50)
+  const [visibleCount, setVisibleCount] = useState(50);
+
   const [search, setSearch] = useState(() => sessionStorage.getItem("louvor_search") || "");
   const [filterCategoria, setFilterCategoria] = useState(() => sessionStorage.getItem("louvor_categoria") || "all");
   const [filterTema, setFilterTema] = useState(() => sessionStorage.getItem("louvor_tema") || "all");
@@ -77,22 +80,30 @@ export default function Louvor() {
     navigate("/dashboard", { replace: true });
   };
 
-  // 4. GUARDA A POSIÇÃO DA PÁGINA CONFORME O USUÁRIO ROLA
+  // 4. SCROLL LISTENER: GUARDA POSIÇÃO E CARREGA MAIS 50 CARDS AO ROLAR ATÉ O FIM
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 400);
       sessionStorage.setItem("louvor_scroll_position", window.scrollY.toString());
+
+      // Se chegar perto do final da página, expande mais 50 cards
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 600) {
+        setVisibleCount((prev) => prev + 50);
+      }
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 5. GUARDA OS FILTROS NO SESSIONSTORAGE
+  // 5. GUARDA OS FILTROS NO SESSIONSTORAGE E RESETA A PAGINAÇÃO
   useEffect(() => {
     sessionStorage.setItem("louvor_search", search);
     sessionStorage.setItem("louvor_categoria", filterCategoria);
     sessionStorage.setItem("louvor_tema", filterTema);
     sessionStorage.setItem("louvor_favs_only", String(showFavsOnly));
+
+    // Reseta para 50 cards sempre que alterar um filtro ou busca
+    setVisibleCount(50);
   }, [search, filterCategoria, filterTema, showFavsOnly]);
 
   // Se a categoria mudar, valida se o tema atual pertence a ela; se não, reseta para "all"
@@ -120,7 +131,6 @@ export default function Louvor() {
     }
     const temasSet = new Set(filtrados.map(t => t.tema));
 
-    // Adiciona temas vindos do banco para músicas sem número
     louvores.forEach(l => {
       const temNumero = l.numero !== null && l.numero !== undefined && String(l.numero).trim() !== "";
       if (!temNumero && l.tema) {
@@ -133,37 +143,46 @@ export default function Louvor() {
     return [...temasSet];
   }, [filterCategoria, louvores]);
 
-  // 6. FUNÇÃO PARA BUSCAR OS LOUVORES DO BANCO (CORRIGIDA COM PAGINAÇÃO)
+  // 6. FUNÇÃO PARA BUSCAR OS LOUVORES DO BANCO (CARREGAMENTO INTELIGENTE)
   const carregarLouvores = async () => {
     setLoading(true);
+    const termo = search.trim();
+
+    // Se houver busca, traz a letra_musica para filtrar. Se não, busca só os campos leves.
+    const colunas = termo 
+      ? 'id, numero, nome, categoria, ritmo, tema, letra_musica' 
+      : 'id, numero, nome, categoria, ritmo, tema';
+
     let todosOsLouvores = [];
     let buscarMais = true;
     let inicio = 0;
     const limitePorPagina = 1000;
 
     while (buscarMais) {
-      const { data, error } = await supabase
-        .from('louvores')
-        .select('id, numero, nome, categoria, ritmo, letra_musica, tema')
-        .order('id', { ascending: true }) // Ordena por ID para garantir a integridade dos blocos
+      let query = supabase.from('louvores').select(colunas);
+
+      if (termo) {
+        query = query.or(`nome.ilike.%${termo}%,letra_musica.ilike.%${termo}%,numero.ilike.%${termo}%`);
+      }
+
+      const { data, error } = await query
+        .order('id', { ascending: true })
         .range(inicio, inicio + limitePorPagina - 1);
 
       if (error) {
         console.error("Erro no Supabase:", error.message);
-        break; // Interrompe se der erro
+        break;
       }
 
       if (data && data.length > 0) {
-        // Junta os dados novos com os que já foram baixados
         todosOsLouvores = [...todosOsLouvores, ...data];
         inicio += limitePorPagina;
 
-        // Se veio menos que 1000, significa que chegamos ao fim do banco
         if (data.length < limitePorPagina) {
           buscarMais = false;
         }
       } else {
-        buscarMais = false; // Se vier vazio, encerra o loop
+        buscarMais = false;
       }
     }
 
@@ -171,9 +190,14 @@ export default function Louvor() {
     setLoading(false);
   };
 
+  // Executa o carregamento com um pequeno delay (debounce de 300ms) quando digita
   useEffect(() => {
-    carregarLouvores();
-  }, []);
+    const timer = setTimeout(() => {
+      carregarLouvores();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // 7. RESTAURA A POSIÇÃO DE ROLAGEM DEPOIS QUE OS CARDS FORAM RENDERIZADOS
   useEffect(() => {
@@ -264,7 +288,7 @@ export default function Louvor() {
     reader.readAsText(file);
   };
 
-  // --- LÓGICA DE FILTRAGEM E ORDENAÇÃO ATUALIZADA ---
+  // --- LÓGICA DE FILTRAGEM E ORDENAÇÃO ---
   const termoBruto = (search || "").trim();
   const termoNormalizado = normalizarTexto(search);
   const buscaNum = termoBruto.toLowerCase();
@@ -282,22 +306,20 @@ export default function Louvor() {
       temaDoLouvor = l.tema || "Sem Tema";
     }
 
-    // BUSCA NORMALIZADA: NÚMERO, NOME OU LETRA
+    // BUSCA NORMALIZADA NO FRONT
     const numStr = temNumero ? String(l.numero).trim().toLowerCase() : "";
     const matchNumero = numStr ? numStr.startsWith(buscaNum) : false;
     const matchNome = normalizarTexto(l.nome).includes(termoNormalizado);
-    const matchLetra = normalizarTexto(l.letra_musica).includes(termoNormalizado);
+    const matchLetra = l.letra_musica ? normalizarTexto(l.letra_musica).includes(termoNormalizado) : false;
 
     const matchSearch = !termoBruto || matchNumero || matchNome || matchLetra;
 
-    // SE ESTIVER EM MODO FAVORITOS, IGNORA OS FILTROS DE CATEGORIA E TEMA
     const matchCategoria = showFavsOnly || filterCategoria === "all" || l.categoria === filterCategoria;
     const matchTema = showFavsOnly || filterTema === "all" || temaDoLouvor === filterTema;
     const matchFav = !showFavsOnly || getFavorites(musico).includes(String(l.id));
 
     return matchSearch && matchCategoria && matchTema && matchFav;
   }).sort((a, b) => {
-    // 🏆 PRIORIDADE 1: Se houver busca de número, correspondência EXATA vai direto pro topo!
     if (buscaNum) {
       const numA = (a.numero !== null && a.numero !== undefined) ? String(a.numero).trim().toLowerCase() : "";
       const numB = (b.numero !== null && b.numero !== undefined) ? String(b.numero).trim().toLowerCase() : "";
@@ -309,7 +331,6 @@ export default function Louvor() {
       if (!exatoA && exatoB) return 1;
     }
 
-    // 🏆 PRIORIDADE 2: Ordenação Padrão por Categoria e Número / Nome
     const obterPeso = (item) => {
       const temNumero = item.numero !== null && item.numero !== undefined && String(item.numero).trim() !== "";
       
@@ -359,7 +380,7 @@ export default function Louvor() {
             autoComplete="off"
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Buscar..." 
+            placeholder="Buscar por nome, número ou letra..." 
             className="pl-9 bg-white border-0 shadow-sm rounded-xl h-11" 
           />
         </div>
@@ -404,6 +425,13 @@ export default function Louvor() {
             </Button>
           )}
         </div>
+
+        {/* Quantidade direta de louvores */}
+        {!loading && louvores.length > 0 && (
+          <div className="flex items-center justify-between px-1 text-xs text-slate-500 font-medium">
+            <span>{filtered.length} {filtered.length === 1 ? "louvor" : "louvores"}</span>
+          </div>
+        )}
         
         {/* Painel de Admin */}
         {admin && (
@@ -441,17 +469,18 @@ export default function Louvor() {
           </div>
         )}
 
-        {/* Listagem */}
+        {/* Listagem com limitação de 50 cards por página */}
         {loading ? (
           <Loader2 className="animate-spin mx-auto mt-10" />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
             <p className="text-slate-500 font-medium">Nenhum louvor encontrado</p>
-            <Button variant="outline" onClick={() => setShowFavsOnly(false)} className="rounded-xl">Voltar</Button>
+            <Button variant="outline" onClick={() => { setSearch(""); setShowFavsOnly(false); }} className="rounded-xl">Voltar</Button>
           </div>
         ) : (
           <div className="space-y-2 pb-8">
-            {filtered.map((l) => (
+            {/* Renderiza apenas até visibleCount (50, 100, 150...) */}
+            {filtered.slice(0, visibleCount).map((l) => (
               <SongCard 
                 key={l.id} 
                 louvor={l} 
@@ -460,6 +489,19 @@ export default function Louvor() {
                 onToggleFav={() => setFavTrigger(prev => prev + 1)} 
               />
             ))}
+
+            {/* Indicador e botão manual de carregar mais */}
+            {visibleCount < filtered.length && (
+              <div className="text-center py-4">
+                <Button 
+                  variant="ghost" 
+                  className="text-slate-500 font-normal text-xs rounded-xl"
+                  onClick={() => setVisibleCount((prev) => prev + 50)}
+                >
+                  Exibindo {visibleCount} de {filtered.length} (Toque para carregar mais)
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
