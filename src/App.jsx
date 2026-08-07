@@ -28,6 +28,8 @@ import ListaRepertorio from '@/pages/ListaRepertorio';
 import Perfil from '@/pages/Perfil';
 import PainelEquipe from '@/pages/PainelEquipe'
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
+import AquecimentoVocal from "./pages/AquecimentoVocal";
+import Sugestoes from "./pages/Sugestoes";
 
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -108,6 +110,8 @@ function App() {
             <Route path="/painel-equipe" element={<PrivateLayout><PainelEquipe /></PrivateLayout>} />
             <Route path="/repertorio" element={<PrivateLayout><Repertorio /></PrivateLayout>} />
             <Route path="/repertorio/lista/:id" element={<PrivateLayout><ListaRepertorio /></PrivateLayout>} />
+            <Route path="/aquecimento-vocal" element={<AquecimentoVocal />} />
+            <Route path="/sugestoes" element={<Sugestoes />} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>

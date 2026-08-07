@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Users, Mic, Music, Calendar, Sliders, Cloud,
-  Globe, Shield, Loader2, Trash2, Pencil, Download, ChevronDown
+  ArrowLeft, Users, Mic, Music, Calendar, Send, Play, Pause, 
+  Volume2, Headphones, Sliders, Radio, Cloud,
+  Globe, Shield, Loader2, Plus, Trash2, Pencil, Download, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +12,8 @@ import { supabase } from "@/lib/supabaseClient";
 export default function PainelEquipe() {
   const navigate = useNavigate();
   const [abaAtiva, setAbaAtiva] = useState("escala");
-  const [menuDropdownAberto, setMenuDropdownAberto] = useState(false);
 
+  // Estados de Usuário / Igreja / Permissões
   const [nomeIgreja, setNomeIgreja] = useState("Carregando...");
   const [carregandoValidacao, setCarregandoValidacao] = useState(true);
   const [userRole, setUserRole] = useState("user");
@@ -21,11 +22,14 @@ export default function PainelEquipe() {
   const userNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
   const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
   const temNuvem = userNuvem.trim() !== "";
+  const userName = localStorage.getItem("icmlyrics_user") || "Usuário";
 
+  // Validação de permissões idêntica ao Avisos.jsx
   useEffect(() => {
     const validarAcesso = async () => {
       try {
         setCarregandoValidacao(true);
+
         const roleSalva = localStorage.getItem("icmlyrics_role") || "user";
 
         if (roleSalva === "super_admin" || userNuvem === "admin_geral") {
@@ -111,6 +115,18 @@ export default function PainelEquipe() {
     }
   };
 
+  // Estados para o Aquecimento Vocal (Player simulado)
+  const [reproduzindo, setReproduzindo] = useState(false);
+  const [exercicioSelecionado, setExercicioSelecionado] = useState("Respiracao e Apoio (4 min)");
+  const [rotinasAquecimento, setRotinasAquecimento] = useState([
+    "Respiracao e Apoio (4 min)",
+    "Vocalizes em Escala Maior (3 min)",
+    "Articulação e Dicção Rápida (3.5 min)",
+    "Aquecimento Suave para Coro (5 min)"
+  ]);
+  const [novaRotina, setNovaRotina] = useState("");
+
+  // Estados para Mapa de Palco
   const [canaisMapa, setCanaisMapa] = useState([
     { canal: "01", funcao: "Voz Principal (Dirigente)", microfone: "Sem Fio 01", retorno: "Fone P1" },
     { canal: "02", funcao: "Voz Apoio (Coro)", microfone: "Com Fio SM58", retorno: "Caixa Chão L" },
@@ -120,10 +136,12 @@ export default function PainelEquipe() {
   const [novoCanal, setNovoCanal] = useState({ canal: "", funcao: "", microfone: "", retorno: "" });
   const [editandoCanalIndex, setEditandoCanalIndex] = useState(null);
 
+  // Estados para Escala (Inicia vazia conforme solicitado)
   const [escalaCulto, setEscalaCulto] = useState([]);
   const [formEscala, setFormEscala] = useState({ cargo: "", nome: "" });
   const [editandoEscalaIndex, setEditandoEscalaIndex] = useState(null);
 
+  // Estados para Integração com Histórico de Listas
   const [historicoListas, setHistoricoListas] = useState([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
   const [mostrarModalHistorico, setMostrarModalHistorico] = useState(false);
@@ -134,6 +152,7 @@ export default function PainelEquipe() {
     tipo: "Culto Normal"
   });
 
+  // Buscar dados do Histórico de Listas do Supabase
   const buscarHistoricoListas = async () => {
     setCarregandoHistorico(true);
     try {
@@ -145,6 +164,8 @@ export default function PainelEquipe() {
 
       if (!error && data) {
         setHistoricoListas(data);
+      } else {
+        console.warn("Tabela historico_listas não encontrada ou vazia, usando dados simulados/locais.");
       }
     } catch (err) {
       console.error("Erro ao buscar histórico de listas:", err);
@@ -161,12 +182,15 @@ export default function PainelEquipe() {
       tipo: item.tipo_culto || item.evento || "Culto"
     });
 
+    // Se o histórico trouxer uma escala pré-definida ou membros vinculados
     if (item.escala && Array.isArray(item.escala)) {
       setEscalaCulto(item.escala);
     }
+
     setMostrarModalHistorico(false);
   };
 
+  // Funções de Gerenciamento da Escala
   const handleAdicionarItemEscala = (e) => {
     e.preventDefault();
     if (!podeCriar) return alert("Apenas administradores podem alterar a escala.");
@@ -190,6 +214,26 @@ export default function PainelEquipe() {
     setEscalaCulto(escalaCulto.filter((_, i) => i !== idx));
   };
 
+  // Estados para Sugestão de Repertório (Aberto para qualquer usuário)
+  const [sugestaoMusica, setSugestaoMusica] = useState("");
+  const [sugestaoCantor, setSugestaoCantor] = useState("");
+  const [listaSugestoes, setListaSugestoes] = useState([
+    { musica: "Grandes Coisas", autor: "Fernandinho", sugeridoPor: "João (Teclado)" },
+    { musica: "Bondade de Deus", autor: "Isadora Pompeo", sugeridoPor: "Sarah (Vocal)" }
+  ]);
+
+  const handleEnviarSugestao = (e) => {
+    e.preventDefault();
+    if (!sugestaoMusica.trim()) return;
+    setListaSugestoes([
+      { musica: sugestaoMusica, autor: sugestaoCantor || "Não informado", sugeridoPor: userName },
+      ...listaSugestoes
+    ]);
+    setSugestaoMusica("");
+    setSugestaoCantor("");
+  };
+
+  // Funções de Gerenciamento restritas a Administradores para Mapa de Palco
   const handleSalvarCanal = () => {
     if (!podeCriar) return alert("Apenas administradores podem gerenciar o mapa de palco.");
     if (!novoCanal.canal || !novoCanal.funcao) return alert("Preencha os campos obrigatórios.");
@@ -210,10 +254,24 @@ export default function PainelEquipe() {
     setCanaisMapa(canaisMapa.filter((_, i) => i !== idx));
   };
 
+  const handleAdicionarRotina = (e) => {
+    e.preventDefault();
+    if (!podeCriar) return alert("Apenas administradores podem adicionar rotinas de aquecimento.");
+    if (!novaRotina.trim()) return;
+    setRotinasAquecimento([...rotinasAquecimento, novaRotina.trim()]);
+    setNovaRotina("");
+  };
+
+  const handleDeletarRotina = (idx) => {
+    if (!podeCriar) return alert("Apenas administradores podem excluir rotinas de aquecimento.");
+    setRotinasAquecimento(rotinasAquecimento.filter((_, i) => i !== idx));
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-28 flex flex-col">
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-5 sticky top-0 z-30 shadow-md">
-        <div className="flex items-center justify-between mb-4">
+      {/* Cabeçalho */}
+      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 sticky top-0 z-30 shadow-md">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => navigate("/dashboard")} 
@@ -230,6 +288,7 @@ export default function PainelEquipe() {
             </div>
           </div>
 
+          {/* Indicador do Usuário/Igreja e Permissões */}
           <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
             {carregandoValidacao ? (
               <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
@@ -256,7 +315,7 @@ export default function PainelEquipe() {
                     {isSuper ? (
                       <Globe className="w-2.5 h-2.5 text-amber-400" />
                     ) : (
-                      <Shield className="w-2.5 h-2.5 text-violet-400" />
+                      <Shield className="w-2.5 h-2.5 text-indigo-400" />
                     )}
                     {isSuper ? "Super Adm" : userRole === "church_admin" ? "Adm Local" : "Membro"}
                   </span>
@@ -266,70 +325,62 @@ export default function PainelEquipe() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80">
-          <div className="flex-1 flex gap-2">
-            <button
-              onClick={() => setAbaAtiva("escala")}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                abaAtiva === "escala" 
-                  ? "bg-violet-600 text-white shadow-sm" 
-                  : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5" /> Escala
-            </button>
+        {/* Abas de Navegação interna */}
+        <div className="flex gap-1.5 overflow-x-auto pt-2 no-scrollbar">
+          <button
+            onClick={() => setAbaAtiva("escala")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              abaAtiva === "escala" 
+                ? "bg-violet-600 text-white shadow-sm" 
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" /> Escala
+          </button>
 
-            <button
-              onClick={() => setAbaAtiva("mapa")}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                abaAtiva === "mapa" 
-                  ? "bg-violet-600 text-white shadow-sm" 
-                  : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5" /> Mapa de Palco
-            </button>
-          </div>
+          <button
+            onClick={() => setAbaAtiva("mapa")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              abaAtiva === "mapa" 
+                ? "bg-violet-600 text-white shadow-sm" 
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" /> Mapa de Palco
+          </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setMenuDropdownAberto(!menuDropdownAberto)}
-              className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white shadow-sm transition-all flex items-center justify-center border border-slate-700/50"
-              title="Recursos Adicionais"
-            >
+          <button
+            onClick={() => setAbaAtiva("aquecimento")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              abaAtiva === "aquecimento" 
+                ? "bg-violet-600 text-white shadow-sm" 
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+          >
+            <Mic className="w-3.5 h-3.5" /> Aquecimento Vocal
+          </button>
 
-              <ChevronDown className="w-3 h-3 ml-0.5 text-slate-400" />
-            </button>
-
-            {menuDropdownAberto && (
-              <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-2xl shadow-xl border border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <button
-                  onClick={() => {
-                    setMenuDropdownAberto(false);
-                    navigate("/Aquecimento-Vocal");
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
-                >
-                  <Mic className="w-3.5 h-3.5 text-violet-400" /> Aquecimento Vocal
-                </button>
-                <button
-                  onClick={() => {
-                    setMenuDropdownAberto(false);
-                    navigate("/sugestoes");
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
-                >
-                  <Music className="w-3.5 h-3.5 text-violet-400" /> Sugestões de Hinos
-                </button>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => setAbaAtiva("sugestoes")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              abaAtiva === "sugestoes" 
+                ? "bg-violet-600 text-white shadow-sm" 
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+          >
+            <Music className="w-3.5 h-3.5" /> Sugestões (Aberto)
+          </button>
         </div>
       </div>
 
+      {/* Conteúdo das Abas */}
       <div className="px-4 mt-4 space-y-4 flex-1">
+        
+        {/* 1. ESCALA DE LOUVOR (Inicia vazia + Integração com Histórico de Listas) */}
         {abaAtiva === "escala" && (
           <div className="space-y-3 animate-in fade-in duration-200">
+            
+            {/* Bloco de Informações do Culto / Evento Integrado com Histórico */}
             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
               <div className="flex justify-between items-center">
                 <div>
@@ -356,6 +407,7 @@ export default function PainelEquipe() {
               </div>
             </div>
 
+            {/* Modal / Seletor de Histórico de Listas */}
             {mostrarModalHistorico && (
               <div className="bg-violet-50 border border-violet-200 p-4 rounded-2xl space-y-3 shadow-sm">
                 <div className="flex justify-between items-center">
@@ -387,6 +439,7 @@ export default function PainelEquipe() {
               </div>
             )}
 
+            {/* Formulário para Adicionar Nomes na Escala (Admin) */}
             {podeCriar && (
               <form onSubmit={handleAdicionarItemEscala} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -427,6 +480,7 @@ export default function PainelEquipe() {
               </form>
             )}
 
+            {/* Lista da Escala (Inicia Vazia) */}
             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Membros Escalados</span>
               
@@ -469,9 +523,20 @@ export default function PainelEquipe() {
                 </div>
               )}
             </div>
+
+            <div className="bg-violet-50 border border-violet-100 p-3.5 rounded-2xl flex items-center gap-3">
+              <div className="p-2 bg-violet-600 text-white rounded-xl">
+                <Radio className="w-4 h-4" />
+              </div>
+              <div className="text-xs">
+                <p className="font-bold text-violet-950">Lembrete de Horário</p>
+                <p className="text-violet-700 mt-0.5">Passagem de som iniciará pontualmente 45 minutos antes do culto.</p>
+              </div>
+            </div>
           </div>
         )}
 
+        {/* 2. MAPA DE PALCO / GRID DE CONEXÕES (Admin pode alterar e excluir) */}
         {abaAtiva === "mapa" && (
           <div className="space-y-3 animate-in fade-in duration-200">
             {podeCriar && (
@@ -552,6 +617,147 @@ export default function PainelEquipe() {
             </div>
           </div>
         )}
+
+        {/* 3. AQUECIMENTO VOCAL INTEGRADO (Admin pode gerenciar rotinas) */}
+        {abaAtiva === "aquecimento" && (
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm text-center">
+              <div className="w-16 h-16 bg-violet-100 text-violet-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <Headphones className="w-8 h-8" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">{exercicioSelecionado}</h3>
+              <p className="text-xs text-slate-400 mt-1">Siga as orientações de respiração e vocalize junto ao player.</p>
+
+              {/* Player Simulado */}
+              <div className="bg-slate-900 text-white p-4 rounded-2xl mt-4 flex items-center justify-between shadow-md">
+                <button 
+                  onClick={() => setReproduzindo(!reproduzindo)}
+                  className="w-12 h-12 bg-violet-600 hover:bg-violet-500 text-white rounded-full flex items-center justify-center transition-transform active:scale-95 shadow-lg"
+                >
+                  {reproduzindo ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                </button>
+
+                <div className="flex-1 mx-4">
+                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className={`h-full bg-violet-500 transition-all duration-300 ${reproduzindo ? "w-2/3 animate-pulse" : "w-0"}`} />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>{reproduzindo ? "02:15" : "00:00"}</span>
+                    <span>04:00</span>
+                  </div>
+                </div>
+
+                <Volume2 className="w-5 h-5 text-slate-400" />
+              </div>
+            </div>
+
+            {podeCriar && (
+              <form onSubmit={handleAdicionarRotina} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Adicionar Nova Rotina</p>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Nome da rotina (ex: Aquecimento Alto - 3 min)"
+                    value={novaRotina}
+                    onChange={(e) => setNovaRotina(e.target.value)}
+                    className="h-9 text-xs flex-1"
+                  />
+                  <Button type="submit" className="h-9 bg-violet-600 hover:bg-violet-700 text-xs font-semibold">
+                    Adicionar
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Lista de Rotinas */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Rotinas Disponíveis (3 a 5 min)</p>
+              {rotinasAquecimento.map((rotina, i) => (
+                <div
+                  key={i}
+                  className={`w-full p-3 rounded-xl border text-xs font-medium flex items-center justify-between transition-colors ${
+                    exercicioSelecionado === rotina 
+                      ? "bg-violet-50 border-violet-200 text-violet-900 font-bold" 
+                      : "bg-slate-50 border-slate-100 text-slate-700"
+                  }`}
+                >
+                  <button
+                    onClick={() => {
+                      setExercicioSelecionado(rotina);
+                      setReproduzindo(true);
+                    }}
+                    className="flex-1 text-left flex items-center justify-between"
+                  >
+                    <span>{rotina}</span>
+                    <Play className="w-3.5 h-3.5 text-violet-600" />
+                  </button>
+
+                  {podeCriar && (
+                    <button
+                      onClick={() => handleDeletarRotina(i)}
+                      className="ml-3 p-1 text-rose-500 hover:text-rose-700 transition-colors"
+                      title="Excluir rotina"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 4. SUGESTÃO DE REPERTÓRIO (Aberto para qualquer usuário) */}
+        {abaAtiva === "sugestoes" && (
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Sugerir Hino ou Louvor (Aberto a Todos)</h3>
+              
+              <form onSubmit={handleEnviarSugestao} className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Nome da Música</label>
+                  <Input 
+                    placeholder="Ex: Mais Perto Pertinho..." 
+                    value={sugestaoMusica}
+                    onChange={(e) => setSugestaoMusica(e.target.value)}
+                    className="h-9 mt-1 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Cantor / Grupo Original</label>
+                  <Input 
+                    placeholder="Ex: Coro / Artista" 
+                    value={sugestaoCantor}
+                    onChange={(e) => setSugestaoCantor(e.target.value)}
+                    className="h-9 mt-1 text-xs"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-9 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold gap-1.5 rounded-xl"
+                >
+                  <Send className="w-3.5 h-3.5" /> Enviar Sugestão à Liderança
+                </Button>
+              </form>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2.5">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sugestões Enviadas pela Equipe</p>
+              
+              {listaSugestoes.map((item, idx) => (
+                <div key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-bold text-slate-800">{item.musica}</p>
+                    <p className="text-[10px] text-slate-400">Original: {item.autor} • Sugerido por: {item.sugeridoPor}</p>
+                  </div>
+                  <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-1 rounded-lg border border-amber-100">
+                    Em Análise
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
