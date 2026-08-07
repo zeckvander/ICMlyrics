@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  ArrowLeft, Users, Mic, Music, Calendar, Sliders, Cloud,
+  ArrowLeft, Users, Mic, Music, HardDrive, Calendar, Sliders, Cloud,
   Globe, Shield, Loader2, Trash2, Pencil, Download, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,29 @@ export default function PainelEquipe() {
   const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
   const temNuvem = userNuvem.trim() !== "";
 
+  // Estados de Dados do Banco
+  const [canaisMapa, setCanaisMapa] = useState([]);
+  const [novoCanal, setNovoCanal] = useState({ canal: "", funcao: "", microfone: "", retorno: "" });
+  const [editandoCanalId, setEditandoCanalId] = useState(null);
+
+  const [escalaCulto, setEscalaCulto] = useState([]);
+  const [formEscala, setFormEscala] = useState({ cargo: "", nome: "" });
+  const [editandoEscalaId, setEditandoEscalaId] = useState(null);
+
+  const [historicoListas, setHistoricoListas] = useState([]);
+  const [carregandoHistorico, setCarregandoHistorico] = useState(false);
+  const [carregandoMapa, setCarregandoMapa] = useState(false);
+  const [carregandoEscala, setCarregandoEscala] = useState(false);
+  const [mostrarModalHistorico, setMostrarModalHistorico] = useState(false);
+
+  const [cultoSelecionadoInfo, setCultoSelecionadoInfo] = useState({
+    id: null,
+    titulo: "Culto / Evento Geral",
+    data: "",
+    responsavel: "",
+    tipo: "Culto Normal"
+  });
+
   useEffect(() => {
     const validarAcesso = async () => {
       try {
@@ -30,14 +53,18 @@ export default function PainelEquipe() {
 
         if (roleSalva === "super_admin" || userNuvem === "admin_geral") {
           setUserRole("super_admin");
-          setNomeIgreja(userNuvem || "Administração Geral");
+          const nomeIgrejaDefinido = userNuvem || "Administração Geral";
+          setNomeIgreja(nomeIgrejaDefinido);
+          carregarMapaPalco(nomeIgrejaDefinido);
           setCarregandoValidacao(false);
           return;
         }
 
         if (!userNuvem.trim()) {
           setUserRole("user");
-          setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local");
+          const nomeIgrejaDefinido = localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local";
+          setNomeIgreja(nomeIgrejaDefinido);
+          carregarMapaPalco(nomeIgrejaDefinido);
           setCarregandoValidacao(false);
           return;
         }
@@ -47,6 +74,8 @@ export default function PainelEquipe() {
           .select("role, nome_igreja")
           .eq("usuario", userNuvem.trim())
           .maybeSingle();
+
+        let nomeFinal = userNuvem;
 
         if (!error && data) {
           const roleDoBanco = data.role?.toLowerCase() || "";
@@ -63,11 +92,15 @@ export default function PainelEquipe() {
             setUserRole("user");
           }
 
-          setNomeIgreja(data.nome_igreja || userNuvem);
+          nomeFinal = data.nome_igreja || userNuvem;
+          setNomeIgreja(nomeFinal);
         } else {
           setUserRole(roleSalva);
-          setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || userNuvem);
+          nomeFinal = localStorage.getItem("icmlyrics_nome_igreja") || userNuvem;
+          setNomeIgreja(nomeFinal);
         }
+
+        carregarMapaPalco(nomeFinal);
       } catch (err) {
         console.error("Erro ao validar permissões:", err);
         setUserRole(localStorage.getItem("icmlyrics_role") || "user");
@@ -78,6 +111,51 @@ export default function PainelEquipe() {
 
     validarAcesso();
   }, [userNuvem, usuarioLocal]);
+
+  // Carregar Mapa de Palco filtrado pela Igreja
+  const carregarMapaPalco = async (igrejaNome) => {
+    const igrejaParaBuscar = igrejaNome || nomeIgreja;
+    if (!igrejaParaBuscar || igrejaParaBuscar === "Carregando...") return;
+
+    setCarregandoMapa(true);
+    try {
+      const { data, error } = await supabase
+        .from("mapa_palco")
+        .select("*")
+        .eq("nome_igreja", igrejaParaBuscar)
+        .order("canal", { ascending: true });
+
+      if (!error && data) {
+        setCanaisMapa(data);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar mapa de palco:", err);
+    } finally {
+      setCarregandoMapa(false);
+    }
+  };
+
+  // Carregar Escala do Culto filtrada pela Igreja
+  const carregarEscalaEquipe = async (listaId) => {
+    if (!listaId) return setEscalaCulto([]);
+    setCarregandoEscala(true);
+    try {
+      const { data, error } = await supabase
+        .from("escala_equipe")
+        .select("*")
+        .eq("lista_id", listaId)
+        .eq("nome_igreja", nomeIgreja)
+        .order("created_at", { ascending: true });
+
+      if (!error && data) {
+        setEscalaCulto(data);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar escala da equipe:", err);
+    } finally {
+      setCarregandoEscala(false);
+    }
+  };
 
   const podeCriar = userRole === "super_admin" || userRole === "church_admin";
   const isSuper = userRole === "super_admin";
@@ -96,43 +174,19 @@ export default function PainelEquipe() {
 
         if (!error && data && data.nome_igreja) {
           setNomeIgreja(data.nome_igreja);
+          carregarMapaPalco(data.nome_igreja);
         } else {
-          setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
+          const nomeSalvo = localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual;
+          setNomeIgreja(nomeSalvo);
+          carregarMapaPalco(nomeSalvo);
         }
       } catch (e) {
         console.error("Erro ao buscar igreja autorizada:", e);
-        setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
       } finally {
         setCarregandoIgreja(false);
       }
-    } else {
-      setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local");
-      setCarregandoIgreja(false);
     }
   };
-
-  const [canaisMapa, setCanaisMapa] = useState([
-    { canal: "01", funcao: "Voz Principal (Dirigente)", microfone: "Sem Fio 01", retorno: "Fone P1" },
-    { canal: "02", funcao: "Voz Apoio (Coro)", microfone: "Com Fio SM58", retorno: "Caixa Chão L" },
-    { canal: "03", funcao: "Teclado", microfone: "Linha P10 Estéreo", retorno: "Fone P2" },
-    { canal: "04", funcao: "Violão / Instrumento", microfone: "DI Box Ativo", retorno: "Caixa Chão R" },
-  ]);
-  const [novoCanal, setNovoCanal] = useState({ canal: "", funcao: "", microfone: "", retorno: "" });
-  const [editandoCanalIndex, setEditandoCanalIndex] = useState(null);
-
-  const [escalaCulto, setEscalaCulto] = useState([]);
-  const [formEscala, setFormEscala] = useState({ cargo: "", nome: "" });
-  const [editandoEscalaIndex, setEditandoEscalaIndex] = useState(null);
-
-  const [historicoListas, setHistoricoListas] = useState([]);
-  const [carregandoHistorico, setCarregandoHistorico] = useState(false);
-  const [mostrarModalHistorico, setMostrarModalHistorico] = useState(false);
-  const [cultoSelecionadoInfo, setCultoSelecionadoInfo] = useState({
-    titulo: "Culto / Evento Geral",
-    data: "",
-    responsavel: "",
-    tipo: "Culto Normal"
-  });
 
   const buscarHistoricoListas = async () => {
     setCarregandoHistorico(true);
@@ -154,60 +208,121 @@ export default function PainelEquipe() {
   };
 
   const handleImportarDoHistorico = (item) => {
+    const listaId = item.id;
     setCultoSelecionadoInfo({
+      id: listaId,
       titulo: item.titulo || item.assunto || "Culto Especial",
       data: item.data || item.created_at?.split("T")[0] || "",
       responsavel: item.responsavel || item.autor || "Não informado",
       tipo: item.tipo_culto || item.evento || "Culto"
     });
 
-    if (item.escala && Array.isArray(item.escala)) {
-      setEscalaCulto(item.escala);
-    }
+    carregarEscalaEquipe(listaId);
     setMostrarModalHistorico(false);
   };
 
-  const handleAdicionarItemEscala = (e) => {
+  // Operações de Banco: Escala
+  const handleAdicionarItemEscala = async (e) => {
     e.preventDefault();
     if (!podeCriar) return alert("Apenas administradores podem alterar a escala.");
     if (!formEscala.cargo.trim() || !formEscala.nome.trim()) {
       return alert("Preencha o cargo e o nome do responsável.");
     }
-
-    if (editandoEscalaIndex !== null) {
-      const atualizada = [...escalaCulto];
-      atualizada[editandoEscalaIndex] = formEscala;
-      setEscalaCulto(atualizada);
-      setEditandoEscalaIndex(null);
-    } else {
-      setEscalaCulto([...escalaCulto, formEscala]);
+    if (!cultoSelecionadoInfo.id) {
+      return alert("Selecione um culto do histórico para vincular a escala.");
     }
-    setFormEscala({ cargo: "", nome: "" });
+
+    try {
+      if (editandoEscalaId) {
+        const { error } = await supabase
+          .from("escala_equipe")
+          .update({ cargo: formEscala.cargo, nome: formEscala.nome })
+          .eq("id", editandoEscalaId)
+          .eq("nome_igreja", nomeIgreja);
+
+        if (error) throw error;
+        setEditandoEscalaId(null);
+      } else {
+        const { error } = await supabase.from("escala_equipe").insert([
+          {
+            lista_id: cultoSelecionadoInfo.id,
+            cargo: formEscala.cargo,
+            nome: formEscala.nome,
+            nome_igreja: nomeIgreja,
+          },
+        ]);
+
+        if (error) throw error;
+      }
+
+      setFormEscala({ cargo: "", nome: "" });
+      carregarEscalaEquipe(cultoSelecionadoInfo.id);
+    } catch (err) {
+      console.error("Erro ao salvar membro da escala:", err);
+      alert("Erro ao salvar na escala.");
+    }
   };
 
-  const handleDeletarItemEscala = (idx) => {
+  const handleDeletarItemEscala = async (id) => {
     if (!podeCriar) return alert("Apenas administradores podem alterar a escala.");
-    setEscalaCulto(escalaCulto.filter((_, i) => i !== idx));
+    try {
+      const { error } = await supabase
+        .from("escala_equipe")
+        .delete()
+        .eq("id", id)
+        .eq("nome_igreja", nomeIgreja);
+
+      if (error) throw error;
+      carregarEscalaEquipe(cultoSelecionadoInfo.id);
+    } catch (err) {
+      console.error("Erro ao deletar item da escala:", err);
+    }
   };
 
-  const handleSalvarCanal = () => {
+  // Operações de Banco: Mapa de Palco
+  const handleSalvarCanal = async () => {
     if (!podeCriar) return alert("Apenas administradores podem gerenciar o mapa de palco.");
     if (!novoCanal.canal || !novoCanal.funcao) return alert("Preencha os campos obrigatórios.");
-    
-    if (editandoCanalIndex !== null) {
-      const atualizados = [...canaisMapa];
-      atualizados[editandoCanalIndex] = novoCanal;
-      setCanaisMapa(atualizados);
-      setEditandoCanalIndex(null);
-    } else {
-      setCanaisMapa([...canaisMapa, novoCanal]);
+
+    try {
+      if (editandoCanalId) {
+        const { error } = await supabase
+          .from("mapa_palco")
+          .update({ ...novoCanal, nome_igreja: nomeIgreja })
+          .eq("id", editandoCanalId)
+          .eq("nome_igreja", nomeIgreja);
+
+        if (error) throw error;
+        setEditandoCanalId(null);
+      } else {
+        const { error } = await supabase.from("mapa_palco").insert([
+          { ...novoCanal, nome_igreja: nomeIgreja }
+        ]);
+        if (error) throw error;
+      }
+
+      setNovoCanal({ canal: "", funcao: "", microfone: "", retorno: "" });
+      carregarMapaPalco(nomeIgreja);
+    } catch (err) {
+      console.error("Erro ao salvar canal:", err);
+      alert("Erro ao salvar canal no mapa de palco.");
     }
-    setNovoCanal({ canal: "", funcao: "", microfone: "", retorno: "" });
   };
 
-  const handleDeletarCanal = (idx) => {
+  const handleDeletarCanal = async (id) => {
     if (!podeCriar) return alert("Apenas administradores podem excluir canais.");
-    setCanaisMapa(canaisMapa.filter((_, i) => i !== idx));
+    try {
+      const { error } = await supabase
+        .from("mapa_palco")
+        .delete()
+        .eq("id", id)
+        .eq("nome_igreja", nomeIgreja);
+
+      if (error) throw error;
+      carregarMapaPalco(nomeIgreja);
+    } catch (err) {
+      console.error("Erro ao deletar canal:", err);
+    }
   };
 
   return (
@@ -297,12 +412,11 @@ export default function PainelEquipe() {
               className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white shadow-sm transition-all flex items-center justify-center border border-slate-700/50"
               title="Recursos Adicionais"
             >
-
-              <ChevronDown className="w-3 h-3 ml-0.5 text-slate-400" />
+              <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
 
             {menuDropdownAberto && (
-              <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-2xl shadow-xl border border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 mt-2 w-52 bg-slate-800 rounded-2xl shadow-xl border border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <button
                   onClick={() => {
                     setMenuDropdownAberto(false);
@@ -312,6 +426,7 @@ export default function PainelEquipe() {
                 >
                   <Mic className="w-3.5 h-3.5 text-violet-400" /> Aquecimento Vocal
                 </button>
+
                 <button
                   onClick={() => {
                     setMenuDropdownAberto(false);
@@ -320,6 +435,16 @@ export default function PainelEquipe() {
                   className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
                 >
                   <Music className="w-3.5 h-3.5 text-violet-400" /> Sugestões de Hinos
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMenuDropdownAberto(false);
+                    navigate("/drive");
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
+                >
+                  <HardDrive className="w-3.5 h-3.5 text-violet-400" /> Drive de Arquivos
                 </button>
               </div>
             )}
@@ -369,9 +494,9 @@ export default function PainelEquipe() {
                   <p className="text-xs text-slate-500 text-center py-2">Nenhum registro encontrado no histórico.</p>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {historicoListas.map((item, idx) => (
+                    {historicoListas.map((item) => (
                       <div 
-                        key={item.id || idx}
+                        key={item.id}
                         onClick={() => handleImportarDoHistorico(item)}
                         className="bg-white p-2.5 rounded-xl border border-violet-100 flex items-center justify-between text-xs cursor-pointer hover:bg-violet-100/50 transition-colors"
                       >
@@ -379,7 +504,7 @@ export default function PainelEquipe() {
                           <p className="font-bold text-slate-800">{item.titulo || item.assunto || "Culto / Evento"}</p>
                           <p className="text-[10px] text-slate-400">Resp: {item.responsavel || "Geral"} • {item.data || item.created_at?.split("T")[0]}</p>
                         </div>
-                        <span className="text-[10px] bg-violet-600 text-white font-bold px-2 py-1 rounded-lg">Importar</span>
+                        <span className="text-[10px] bg-violet-600 text-white font-bold px-2 py-1 rounded-lg">Selecionar</span>
                       </div>
                     ))}
                   </div>
@@ -390,7 +515,7 @@ export default function PainelEquipe() {
             {podeCriar && (
               <form onSubmit={handleAdicionarItemEscala} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {editandoEscalaIndex !== null ? "Editar Cargo / Nome" : "Adicionar Participante à Escala"}
+                  {editandoEscalaId ? "Editar Cargo / Nome" : "Adicionar Participante à Escala"}
                 </span>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <Input 
@@ -408,14 +533,14 @@ export default function PainelEquipe() {
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" className="w-full h-8 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-xl">
-                    {editandoEscalaIndex !== null ? "Salvar Alteração" : "Adicionar à Escala"}
+                    {editandoEscalaId ? "Salvar Alteração" : "Adicionar à Escala"}
                   </Button>
-                  {editandoEscalaIndex !== null && (
+                  {editandoEscalaId && (
                     <Button 
                       type="button" 
                       variant="outline" 
                       onClick={() => {
-                        setEditandoEscalaIndex(null);
+                        setEditandoEscalaId(null);
                         setFormEscala({ cargo: "", nome: "" });
                       }}
                       className="h-8 text-xs"
@@ -430,14 +555,18 @@ export default function PainelEquipe() {
             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Membros Escalados</span>
               
-              {escalaCulto.length === 0 ? (
+              {carregandoEscala ? (
+                <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-violet-600" /></div>
+              ) : escalaCulto.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 text-xs font-medium">
-                  Nenhum participante adicionado na escala ainda. Use o painel acima para incluir.
+                  {cultoSelecionadoInfo.id 
+                    ? "Nenhum participante adicionado nesta escala ainda."
+                    : "Puxe um culto do histórico para visualizar ou adicionar membros à escala."}
                 </div>
               ) : (
                 <div className="space-y-2.5 text-xs">
-                  {escalaCulto.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2.5 px-3 bg-slate-50 rounded-xl border border-slate-100">
+                  {escalaCulto.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center py-2.5 px-3 bg-slate-50 rounded-xl border border-slate-100">
                       <div>
                         <span className="text-slate-400 text-[10px] uppercase font-bold block">{item.cargo}</span>
                         <span className="font-semibold text-slate-800 text-sm">{item.nome}</span>
@@ -447,8 +576,8 @@ export default function PainelEquipe() {
                         <div className="flex items-center gap-1.5">
                           <button 
                             onClick={() => {
-                              setEditandoEscalaIndex(idx);
-                              setFormEscala(item);
+                              setEditandoEscalaId(item.id);
+                              setFormEscala({ cargo: item.cargo, nome: item.nome });
                             }}
                             className="p-1.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors"
                             title="Editar item"
@@ -456,7 +585,7 @@ export default function PainelEquipe() {
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button 
-                            onClick={() => handleDeletarItemEscala(idx)}
+                            onClick={() => handleDeletarItemEscala(item.id)}
                             className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
                             title="Excluir item"
                           >
@@ -476,7 +605,9 @@ export default function PainelEquipe() {
           <div className="space-y-3 animate-in fade-in duration-200">
             {podeCriar && (
               <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Adicionar / Editar Canal</h3>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  {editandoCanalId ? "Editar Canal" : "Adicionar Canal"}
+                </h3>
                 <div className="grid grid-cols-2 gap-2">
                   <Input 
                     placeholder="Canal (ex: 06)" 
@@ -503,52 +634,77 @@ export default function PainelEquipe() {
                     className="h-8 text-xs"
                   />
                 </div>
-                <Button onClick={handleSalvarCanal} className="w-full h-8 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-xl">
-                  {editandoCanalIndex !== null ? "Salvar Alterações do Canal" : "Adicionar Canal ao Mapa"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={handleSalvarCanal} className="w-full h-8 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-xl">
+                    {editandoCanalId ? "Salvar Alterações do Canal" : "Adicionar Canal ao Mapa"}
+                  </Button>
+                  {editandoCanalId && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setEditandoCanalId(null);
+                        setNovoCanal({ canal: "", funcao: "", microfone: "", retorno: "" });
+                      }}
+                      className="h-8 text-xs"
+                    >
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 
             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Configuração de Canais e Palco</h3>
               
-              <div className="space-y-2.5">
-                {canaisMapa.map((item, idx) => (
-                  <div key={idx} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-7 h-7 bg-violet-600 text-white font-bold rounded-lg flex items-center justify-center text-[11px]">
-                        {item.canal}
-                      </span>
-                      <div>
-                        <p className="font-semibold text-slate-800">{item.funcao}</p>
-                        <p className="text-[10px] text-slate-400">Mic: {item.microfone} • Retorno: {item.retorno}</p>
+              {carregandoMapa ? (
+                <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-violet-600" /></div>
+              ) : canaisMapa.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-6">Nenhum canal cadastrado no mapa de palco desta igreja.</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {canaisMapa.map((item) => (
+                    <div key={item.id} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-7 h-7 bg-violet-600 text-white font-bold rounded-lg flex items-center justify-center text-[11px]">
+                          {item.canal}
+                        </span>
+                        <div>
+                          <p className="font-semibold text-slate-800">{item.funcao}</p>
+                          <p className="text-[10px] text-slate-400">Mic: {item.microfone || "-"} • Retorno: {item.retorno || "-"}</p>
+                        </div>
                       </div>
+                      
+                      {podeCriar && (
+                        <div className="flex gap-1.5">
+                          <button 
+                            onClick={() => {
+                              setNovoCanal({
+                                canal: item.canal,
+                                funcao: item.funcao,
+                                microfone: item.microfone || "",
+                                retorno: item.retorno || ""
+                              });
+                              setEditandoCanalId(item.id);
+                            }}
+                            className="p-1.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors"
+                            title="Editar canal"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeletarCanal(item.id)}
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
+                            title="Excluir canal"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    
-                    {podeCriar && (
-                      <div className="flex gap-1.5">
-                        <button 
-                          onClick={() => {
-                            setNovoCanal(item);
-                            setEditandoCanalIndex(idx);
-                          }}
-                          className="p-1.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors"
-                          title="Editar canal"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeletarCanal(idx)}
-                          className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
-                          title="Excluir canal"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
