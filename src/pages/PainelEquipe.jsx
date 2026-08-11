@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabaseClient";
 import PreviewModalEscala from "@/components/lista/PreviewModalEscala";
+
 const formatarDataComDiaSemana = (dataRaw) => {
   if (!dataRaw) return "Data não definida";
   const strData = dataRaw.split("T")[0];
@@ -26,6 +27,7 @@ const formatarDataComDiaSemana = (dataRaw) => {
   const nomeDia = diasSemana[dataObj.getDay()] || "";
   return `${diaFormatado}/${mesFormatado}/${ano}${nomeDia ? ` - ${nomeDia}` : ""}`;
 };
+
 const ordenarMembrosOuEscala = (a, b) => {
   const funcA = (a.funcao || "").trim().toLowerCase();
   const funcB = (b.funcao || "").trim().toLowerCase();
@@ -70,6 +72,7 @@ const ordenarMembrosOuEscala = (a, b) => {
   }
   return (a.nome || "").localeCompare(b.nome || "");
 };
+
 export default function PainelEquipe() {
   const navigate = useNavigate();
   const cardEscalaRef = useRef(null);
@@ -135,6 +138,7 @@ export default function PainelEquipe() {
   const outrosCultos = historicoListas.filter(
     (item) => item.id !== cultoSelecionadoInfo.id
   );
+
   useEffect(() => {
     const validarAcesso = async () => {
       try {
@@ -181,6 +185,7 @@ export default function PainelEquipe() {
     };
     validarAcesso();
   }, [userNuvem, usuarioLocal, temNuvem]);
+
   const buscarHistoricoListas = async (roleParam) => {
     if (!temNuvem) return;
     setCarregandoHistorico(true);
@@ -208,6 +213,7 @@ export default function PainelEquipe() {
       setCarregandoHistorico(false);
     }
   };
+
   const carregarMembrosCadastrados = async (igrejaNome) => {
     if (!temNuvem) return;
     const igrejaParaBuscar = igrejaNome || nomeIgreja;
@@ -225,6 +231,7 @@ export default function PainelEquipe() {
       console.error("Erro ao carregar membros cadastrados:", err);
     }
   };
+
   const carregarEscalaEquipe = async (listaId, igrejaNome) => {
     if (!temNuvem || !listaId) return setEscalaCulto([]);
     const nomeParaBuscar = igrejaNome || nomeIgreja;
@@ -254,6 +261,7 @@ export default function PainelEquipe() {
       setCarregandoEscala(false);
     }
   };
+
   const carregarNomeIgreja = async () => {
     if (!temNuvem) return;
     setCarregandoIgreja(true);
@@ -280,6 +288,7 @@ export default function PainelEquipe() {
       }
     }
   };
+
   const selecionarCulto = (item) => {
     if (!temNuvem) return;
     const listaId = item.id;
@@ -299,6 +308,7 @@ export default function PainelEquipe() {
     setModoEdicao(false);
     setMostrarFormAdicionar(false);
   };
+
   const handleCarregarEquipePadrao = async () => {
     if (!temNuvem || !podeCriar) return;
     if (!cultoSelecionadoInfo.id) {
@@ -340,6 +350,7 @@ export default function PainelEquipe() {
       console.error("Erro ao puxar equipe padrão:", err);
     }
   };
+
   const handleAdicionarItemEscalaLocal = (e) => {
     e.preventDefault();
     if (!temNuvem || !podeCriar) return alert("Apenas administradores podem alterar a escala.");
@@ -367,11 +378,13 @@ export default function PainelEquipe() {
     setSalvarNovoNoBanco(false);
     setTemAlteracoesPendentes(true);
   };
+
   const handleDeletarItemEscalaLocal = (id) => {
     if (!podeCriar) return;
     setEscalaCulto((prev) => prev.filter((item) => item.id !== id));
     setTemAlteracoesPendentes(true);
   };
+
   const handleLimparMembrosEscalados = () => {
     if (!podeCriar) return;
     if (escalaCulto.length === 0) return;
@@ -380,6 +393,7 @@ export default function PainelEquipe() {
       setTemAlteracoesPendentes(true);
     }
   };
+
   const handleCancelarEscala = () => {
     setEscalaCulto([]);
     setCultoSelecionadoInfo({
@@ -395,12 +409,14 @@ export default function PainelEquipe() {
     setTemAlteracoesPendentes(false);
     setModoEdicao(false);
   };
+
   const handleCancelarEdicao = () => {
     setModoEdicao(false);
     setMostrarFormAdicionar(false);
     setTemAlteracoesPendentes(false);
     carregarEscalaEquipe(cultoSelecionadoInfo.id, nomeIgreja);
   };
+
   const handleExcluirCultoDaLista = async () => {
     if (!podeCriar) return;
     if (!cultoSelecionadoInfo.id) return alert("Nenhum culto selecionado.");
@@ -428,6 +444,7 @@ export default function PainelEquipe() {
       setSalvandoEscala(false);
     }
   };
+
   const handleSalvarEscalaBanco = async () => {
     if (!cultoSelecionadoInfo.id) return alert("Nenhum culto selecionado.");
     setSalvandoEscala(true);
@@ -469,6 +486,7 @@ export default function PainelEquipe() {
       setSalvandoEscala(false);
     }
   };
+
   const handleGerarPreview = async (mode) => {
     if (escalaCulto.length === 0) {
       return alert("Não há integrantes na escala para gerar a visualização.");
@@ -478,6 +496,7 @@ export default function PainelEquipe() {
     }
     setModalPreview({ open: true, mode });
   };
+
   const handleSalvarMembroModal = async (e) => {
     e.preventDefault();
     if (!podeCriar) return alert("Permissão negada.");
@@ -511,6 +530,7 @@ export default function PainelEquipe() {
       console.error("Erro ao salvar membro no banco:", err);
     }
   };
+
   const handleDeletarMembroBanco = async (membroId) => {
     if (!podeCriar) return;
     if (!window.confirm("Deseja remover este integrante do banco de dados?")) return;
@@ -524,6 +544,7 @@ export default function PainelEquipe() {
       console.error("Erro ao deletar membro do banco:", err);
     }
   };
+
   const handleAlternarEquipePadrao = async (membroId, statusAtual) => {
     if (!podeCriar) return;
     try {
@@ -536,6 +557,7 @@ export default function PainelEquipe() {
       console.error("Erro ao alterar status da equipe padrão:", err);
     }
   };
+
   const rowsParaPreview = escalaCulto.map((item) => ({
     id: item.id,
     type: "louvor",
@@ -546,6 +568,7 @@ export default function PainelEquipe() {
     nome: item.nome,
     observacao: ""
   }));
+
   return (
     <div className="min-h-screen bg-slate-50 pb-28 flex flex-col">
       <div className="bg-slate-900 text-white px-4 pt-12 pb-5 sticky top-0 z-30 shadow-md">
@@ -661,7 +684,7 @@ export default function PainelEquipe() {
                   <FileText className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                   <span className="truncate">Cultos</span>
                 </Button>
-                {mostrarBotaoPadrao && cultoSelecionadoInfo.id && (
+                {podeCriar && modoEdicao && cultoSelecionadoInfo.id && (
                   <Button 
                     onClick={handleCarregarEquipePadrao}
                     size="sm"
@@ -720,29 +743,48 @@ export default function PainelEquipe() {
                     </span>
                     <h3 className="text-lg font-bold text-slate-900">{cultoSelecionadoInfo.titulo}</h3>
                     {modoEdicao && podeCriar ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-100">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Louvor</label>
-                          <Input 
-                            value={cultoSelecionadoInfo.louvor}
-                            onChange={(e) => setCultoSelecionadoInfo({ ...cultoSelecionadoInfo, louvor: e.target.value })}
-                            className="h-8 text-xs bg-white"
-                            placeholder="Responsável pelo louvor"
-                          />
+                      <div className="mt-2 pt-2 border-t border-slate-100 space-y-2">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                          <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Data:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.data}</strong></div>
+                          <Button 
+                            onClick={() => navigate("/historico-listas", { state: { listaId: cultoSelecionadoInfo.id } })}
+                            className="h-7 bg-slate-900 hover:bg-slate-800 text-white text-[9px] font-bold uppercase tracking-wider px-2 rounded-lg shadow-sm flex items-center gap-1.5"
+                          >
+                            Lista de Louvores <ArrowRight className="w-3 h-3" />
+                          </Button>
                         </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Palavra</label>
-                          <Input 
-                            value={cultoSelecionadoInfo.palavra}
-                            onChange={(e) => setCultoSelecionadoInfo({ ...cultoSelecionadoInfo, palavra: e.target.value })}
-                            className="h-8 text-xs bg-white"
-                            placeholder="Responsável pela palavra"
-                          />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Louvor</label>
+                            <Input 
+                              value={cultoSelecionadoInfo.louvor}
+                              onChange={(e) => setCultoSelecionadoInfo({ ...cultoSelecionadoInfo, louvor: e.target.value })}
+                              className="h-8 text-xs bg-white"
+                              placeholder="Responsável pelo louvor"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Palavra</label>
+                            <Input 
+                              value={cultoSelecionadoInfo.palavra}
+                              onChange={(e) => setCultoSelecionadoInfo({ ...cultoSelecionadoInfo, palavra: e.target.value })}
+                              className="h-8 text-xs bg-white"
+                              placeholder="Responsável pela palavra"
+                            />
+                          </div>
                         </div>
                       </div>
                     ) : (
                       <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 mt-1">
                         <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Data:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.data}</strong></div>
+                        {podeCriar && (
+                          <Button 
+                            onClick={() => navigate("/historico-listas", { state: { listaId: cultoSelecionadoInfo.id } })}
+                            className="h-7 bg-slate-900 hover:bg-slate-800 text-white text-[9px] font-bold uppercase tracking-wider px-2 rounded-lg shadow-sm flex items-center gap-1.5"
+                          >
+                            Lista de Louvores <ArrowRight className="w-3 h-3" />
+                          </Button>
+                        )}
                         <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Louvor:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.louvor || "Não informado"}</strong></div>
                         {cultoSelecionadoInfo.palavra && (
                           <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Palavra:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.palavra}</strong></div>
@@ -751,12 +793,14 @@ export default function PainelEquipe() {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                    <Button 
-                      onClick={() => navigate("/historico-listas", { state: { listaId: cultoSelecionadoInfo.id } })}
-                      className="h-8 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-lg shadow-sm flex items-center gap-1.5"
-                    >
-                      Lista de Louvores <ArrowRight className="w-3 h-3" />
-                    </Button>
+                    {!podeCriar && (
+                      <Button 
+                        onClick={() => navigate("/historico-listas", { state: { listaId: cultoSelecionadoInfo.id } })}
+                        className="h-7 bg-slate-900 hover:bg-slate-800 text-white text-[9px] font-bold uppercase tracking-wider px-2 rounded-lg shadow-sm flex items-center gap-1.5"
+                      >
+                        Lista de Louvores <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    )}
                     {podeCriar && modoEdicao ? (
                       <button
                         type="button"
@@ -999,17 +1043,9 @@ export default function PainelEquipe() {
                     {podeCriar && (
                       <div className="pt-2 border-t border-slate-100 flex gap-2">
                         <Button
-                          onClick={handleExcluirCultoDaLista}
-                          disabled={salvandoEscala}
-                          variant="outline"
-                          className="h-8 border-rose-200 text-rose-600 hover:bg-rose-50 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer px-3"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Excluir Culto (Listas)
-                        </Button>
-                        <Button
                           onClick={handleCancelarEscala}
                           variant="ghost"
-                          className="flex-1 h-8 text-slate-500 hover:bg-slate-100 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer"
+                          className="w-full h-8 text-slate-500 hover:bg-slate-100 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer flex items-center justify-center"
                         >
                           <X className="w-3.5 h-3.5" /> Fechar Visualização
                         </Button>
