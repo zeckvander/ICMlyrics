@@ -331,10 +331,10 @@ export default function NovaLista() {
               )}
               {showResponsavel && (
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Responsável</label>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Louvor</label>
                   <Input 
                     type="text" 
-                    placeholder="Nome do responsável" 
+                    placeholder="Responsável louvor" 
                     value={responsavel} 
                     onChange={(e) => setResponsavel(e.target.value)} 
                     className="h-9 mt-1 text-sm" 
@@ -379,7 +379,7 @@ export default function NovaLista() {
             onClick={() => setShowResponsavel(!showResponsavel)} 
             className="h-8 text-xs"
           >
-            Responsável
+            Louvor
           </Button>
         </div>
 

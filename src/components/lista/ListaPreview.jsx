@@ -5,22 +5,18 @@ function formatDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
-
 const ListaPreview = forwardRef(({ rows, dataCulto }, ref) => {
   return (
     <div
       ref={ref}
       className="w-[340px] bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100 text-slate-800 font-sans"
     >
-      {/* Cabeçalho */}
       <div className="bg-[#0f172a] text-white p-5 text-center">
         <h2 className="text-lg font-bold tracking-wide">Louvores</h2>
         <p className="text-amber-400 text-xs font-medium mt-0.5">
           {formatDate(dataCulto)}
         </p>
       </div>
-
-      {/* Lista de Louvores */}
       <div className="p-4 space-y-3">
         {rows.map((row, idx) => {
           if (row.type === "divider") {
@@ -35,7 +31,6 @@ const ListaPreview = forwardRef(({ rows, dataCulto }, ref) => {
           }
 
           const numStr = String(row.numero || "").trim();
-          // Se não tem número preenchido ou a categoria for Avulsos, considera AV automaticamente
           const isAvulso = !row.numero || numStr === "" || row.categoria === "Avulsos" || numStr.startsWith("local_");
           const isCias = row.categoria === "Cias" || row.categoria === "CIAS";
           const nomeLouvor = (row.nome || row.buscaLouvor || "").toUpperCase();
@@ -46,8 +41,6 @@ const ListaPreview = forwardRef(({ rows, dataCulto }, ref) => {
               <span className="w-8 text-slate-400 font-bold text-right shrink-0">
                 {isAvulso ? "AV" : row.numero}
               </span>
-
-              {/* Nome do Louvor e indicação CIAS */}
               <span className="flex-1 truncate">
                 {nomeLouvor} {isCias ? "(CIAS)" : ""}
               </span>
@@ -60,5 +53,4 @@ const ListaPreview = forwardRef(({ rows, dataCulto }, ref) => {
 });
 
 ListaPreview.displayName = "ListaPreview";
-
 export default ListaPreview;

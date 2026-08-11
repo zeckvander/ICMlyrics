@@ -42,18 +42,42 @@ export default function PreviewModalEscala({
   const previewRef = useRef(null);
 
   const dadosHistorico = item || rest.culto || rest.dados || rest.registro || {};
-  const dataFinal = dataCulto || dadosHistorico.data_culto || dadosHistorico.dataCulto || dadosHistorico.data;
-  const cultoFinal = tipoCulto || dadosHistorico.tipo_culto || dadosHistorico.tipoCulto || dadosHistorico.tipo || "Regular";
-  const louvorFinal = louvor || responsavel || dadosHistorico.louvor || dadosHistorico.responsavel || dadosHistorico.lider;
-  const palavraFinal = palavra || dirigente || dadosHistorico.palavra || dadosHistorico.dirigente || dadosHistorico.ministro;
+  const dataBruta = dataCulto || dadosHistorico.data_culto || dadosHistorico.dataCulto || dadosHistorico.data;
   
-  const rowsFinal = rows.length > 0 
+  let cultoRaw = tipoCulto || dadosHistorico.tipo_culto || dadosHistorico.tipoCulto || dadosHistorico.tipo || "";
+  if (cultoRaw.toUpperCase().includes("EVENTO GERAL") || cultoRaw.toUpperCase() === "CULTO") {
+    cultoRaw = ""; 
+  }
+  const cultoFinal = cultoRaw;
+
+  const louvorFinal = louvor || responsavel || dadosHistorico.louvor || dadosHistorico.responsavel || dadosHistorico.lider || "";
+  const palavraFinal = palavra || dirigente || dadosHistorico.palavra || dadosHistorico.dirigente || dadosHistorico.ministro || "";
+  
+  const rowsRaw = rows.length > 0 
     ? rows 
     : (dadosHistorico.rows || dadosHistorico.escalados || ESCALA_PADRAO);
 
+  const rowsFinal = rowsRaw.map((row) => {
+    const nome = row.nome || row.musico || row.nome_musico || row.integrante || "";
+    const detalhe = row.detalhe || row.instrumento || row.voz || row.papel || "";
+    const funcao = row.funcao || row.categoria || row.classificacao || "";
+    return { nome, detalhe, funcao };
+  });
+
+  const extrairDataValida = (str) => {
+    if (!str) return "";
+    const matchISO = String(str).match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (matchISO) return `${matchISO[1]}-${matchISO[2]}-${matchISO[3]}`;
+    const matchBR = String(str).match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    if (matchBR) return `${matchBR[3]}-${matchBR[2]}-${matchBR[1]}`;
+    return str.split("T")[0];
+  };
+
+  const dataLimpa = extrairDataValida(dataBruta);
+
   const formatarData = (dataStr) => {
     if (!dataStr) return "";
-    const partes = dataStr.split("T")[0].split("-");
+    const partes = dataStr.split("-");
     if (partes.length === 3) {
       const [ano, mes, dia] = partes;
       return `${dia}/${mes}/${ano}`;
@@ -61,25 +85,36 @@ export default function PreviewModalEscala({
     return dataStr;
   };
 
-  const diaSemana = dataFinal ? DIAS[new Date(dataFinal.split("T")[0] + "T00:00:00").getDay()] : "";
+  const obterDiaSemana = (dataStr) => {
+    if (!dataStr) return "";
+    const partes = dataStr.split("-");
+    if (partes.length === 3) {
+      const dataObj = new Date(`${partes[0]}-${partes[1]}-${partes[2]}T00:00:00`);
+      return DIAS[dataObj.getDay()] || "";
+    }
+    return "";
+  };
+
+  const diaSemanaFinal = obterDiaSemana(dataLimpa);
+  const dataFormatadaExibicao = formatarData(dataLimpa);
 
   const gerarTextoCompartilhamento = () => {
     let texto = `*GRUPO DE LOUVOR*`;
-    if (dataFinal) texto += `\n📅 *Data:* ${formatarData(dataFinal)}${diaSemana ? ` — ${diaSemana}` : ""}`;
+    if (dataLimpa) texto += `\n📅 *Data:* ${dataFormatadaExibicao}${diaSemanaFinal ? ` — ${diaSemanaFinal}` : ""}`;
     if (cultoFinal) texto += `\n🏷️ *Tipo de Culto:* ${cultoFinal}`;
     if (louvorFinal) texto += `\n👤 *Louvor:* ${louvorFinal}`;
     if (palavraFinal) texto += `\n🎤 *Palavra:* ${palavraFinal}`;
     
     texto += `\n\n-----------------------------------\n*INTEGRANTES ESCALADOS:*\n\n`;
 
-    rowsFinal.forEach((row) => {
-      const nome = row.nome || row.musico || "";
-      const instrumentoOuVoz = row.detalhe || row.instrumento || row.categoria || row.funcao || "";
-      const funcaoMacro = row.funcao && row.funcao !== instrumentoOuVoz ? row.funcao : (row.categoria || row.classificacao || "");
+    const validRows = rowsFinal.filter(r => r.nome.trim() !== "");
+    const maxLength = validRows.reduce((max, r) => Math.max(max, r.nome.length), 0);
 
-      if (nome) {
-        texto += `• *${nome}* | ${instrumentoOuVoz}${funcaoMacro ? ` (${funcaoMacro})` : ""}\n`;
-      }
+    validRows.forEach(({ nome, detalhe, funcao }) => {
+      // Uso de espaço sem quebra (\u00A0) para o WhatsApp não apagar os espaços ao colar
+      const diff = maxLength - nome.length;
+      const espacos = "\u00A0".repeat(Math.max(0, diff));
+      texto += `• *${nome}*${espacos} | ${detalhe}${funcao && funcao !== detalhe ? ` (${funcao})` : ""}\n`;
     });
     return texto.trim();
   };
@@ -101,7 +136,7 @@ export default function PreviewModalEscala({
         setLoadingImg(false);
         return;
       }
-      const file = new File([blob], `escala-louvor-${dataFinal || "geral"}.png`, { type: "image/png" });
+      const file = new File([blob], `escala-louvor-${dataLimpa || "geral"}.png`, { type: "image/png" });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
@@ -139,7 +174,7 @@ export default function PreviewModalEscala({
       const dataUrl = await toPng(previewRef.current, { cacheBust: true, pixelRatio: 2 });
       const link = document.createElement("a");
       link.href = dataUrl;
-      link.download = `escala-louvor-${dataFinal || "geral"}.png`;
+      link.download = `escala-louvor-${dataLimpa || "geral"}.png`;
       link.click();
     } catch (error) {
       console.error("Erro ao gerar imagem:", error);
@@ -164,10 +199,10 @@ export default function PreviewModalEscala({
                 <h2 className="font-bold text-xl tracking-tight">Grupo de Louvor</h2>
                 
                 <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-300 font-medium pt-1">
-                  {dataFinal && (
+                  {dataLimpa && (
                     <span className="inline-flex items-center gap-1.5 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
                       <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" /> 
-                      <span>{formatarData(dataFinal)} {diaSemana && `- ${diaSemana}`}</span>
+                      <span>{dataFormatadaExibicao} {diaSemanaFinal && `- ${diaSemanaFinal}`}</span>
                     </span>
                   )}
                   {cultoFinal && (
@@ -177,6 +212,7 @@ export default function PreviewModalEscala({
                     </span>
                   )}
                 </div>
+
                 <div className="pt-1 text-xs text-slate-300 space-y-1">
                   {louvorFinal && (
                     <div className="flex items-center justify-center gap-1.5">
@@ -202,19 +238,13 @@ export default function PreviewModalEscala({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {rowsFinal.map((row, idx) => {
-                      const nome = row.nome || row.musico || "";
-                      const instrumentoOuVoz = row.detalhe || row.instrumento || row.categoria || row.funcao || "";
-                      const funcaoMacro = row.funcao && row.funcao !== instrumentoOuVoz ? row.funcao : (row.categoria || row.classificacao || "");
-
+                    {rowsFinal.map(({ nome, detalhe, funcao }, idx) => {
                       if (!nome) return null;
                       return (
                         <tr key={idx} className="hover:bg-slate-50/50">
                           <td className="py-2 px-2 font-semibold text-slate-800">{nome}</td>
-                          <td className="py-2 px-2 text-slate-700 font-medium">
-                            {funcaoMacro}
-                          </td>
-                          <td className="py-2 px-2 text-right text-slate-700 font-medium">{instrumentoOuVoz}</td>
+                          <td className="py-2 px-2 text-slate-700 font-medium">{funcao}</td>
+                          <td className="py-2 px-2 text-right text-slate-700 font-medium">{detalhe}</td>
                         </tr>
                       );
                     })}

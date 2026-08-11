@@ -9,154 +9,169 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabaseClient";
 import PreviewModalEscala from "@/components/lista/PreviewModalEscala";
-
 const formatarDataComDiaSemana = (dataRaw) => {
   if (!dataRaw) return "Data não definida";
   const strData = dataRaw.split("T")[0];
   const partes = strData.split("-");
   if (partes.length !== 3) return dataRaw;
-
   const ano = parseInt(partes[0], 10);
   const mes = parseInt(partes[1], 10) - 1;
   const dia = parseInt(partes[2], 10);
-
   const dataObj = new Date(ano, mes, dia);
   const diasSemana = [
     "domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"
   ];
-
   const diaFormatado = String(dia).padStart(2, "0");
   const mesFormatado = String(mes + 1).padStart(2, "0");
   const nomeDia = diasSemana[dataObj.getDay()] || "";
-
   return `${diaFormatado}/${mesFormatado}/${ano}${nomeDia ? ` - ${nomeDia}` : ""}`;
 };
-
+const ordenarMembrosOuEscala = (a, b) => {
+  const funcA = (a.funcao || "").trim().toLowerCase();
+  const funcB = (b.funcao || "").trim().toLowerCase();
+  const catA = (a.categoria || "").trim().toLowerCase();
+  const catB = (b.categoria || "").trim().toLowerCase();
+  const getFuncPriority = (f) => {
+    if (f.includes("instrumento")) return 1;
+    if (f.includes("voz")) return 2;
+    return 3;
+  };
+  const fpA = getFuncPriority(funcA);
+  const fpB = getFuncPriority(funcB);
+  if (fpA !== fpB) return fpA - fpB;
+  if (funcA.includes("instrumento") && funcB.includes("instrumento")) {
+    const getInstPriority = (cat) => {
+      if (cat.includes("teclado")) return 1;
+      if (cat.includes("violão") || cat.includes("violao")) return 2;
+      if (cat.includes("baixo")) return 3;
+      if (cat.includes("bateria")) return 4;
+      return 5;
+    };
+    const pA = getInstPriority(catA);
+    const pB = getInstPriority(catB);
+    if (pA !== pB) return pA - pB;
+    if (catA !== catB) return catA.localeCompare(catB);
+  }
+  if (funcA.includes("voz") && funcB.includes("voz")) {
+    const getVozPriority = (cat) => {
+      if (cat.includes("soprano")) return 1;
+      if (cat.includes("contralto")) return 2;
+      if (cat.includes("tenor")) return 3;
+      if (cat.includes("baixo")) return 4;
+      return 5;
+    };
+    const pA = getVozPriority(catA);
+    const pB = getVozPriority(catB);
+    if (pA !== pB) return pA - pB;
+    if (catA !== catB) return catA.localeCompare(catB);
+  }
+  if (catA !== catB) {
+    return catA.localeCompare(catB);
+  }
+  return (a.nome || "").localeCompare(b.nome || "");
+};
 export default function PainelEquipe() {
   const navigate = useNavigate();
   const cardEscalaRef = useRef(null);
-
-  const [abaAtiva, setAbaAtiva] = useState("escala");
   const [menuDropdownAberto, setMenuDropdownAberto] = useState(false);
-
   const [nomeIgreja, setNomeIgreja] = useState("Carregando...");
   const [carregandoValidacao, setCarregandoValidacao] = useState(true);
   const [userRole, setUserRole] = useState("user");
   const [carregandoIgreja, setCarregandoIgreja] = useState(false);
-
+  const [carregandoEscala, setCarregandoEscala] = useState(false);
   const userNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
   const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
   const temNuvem = userNuvem.trim() !== "";
-
-  // Estado de modo de edição
   const [modoEdicao, setModoEdicao] = useState(false);
   const [mostrarBotaoPadrao, setMostrarBotaoPadrao] = useState(false);
   const [mostrarFormAdicionar, setMostrarFormAdicionar] = useState(false);
-
   const [membrosCadastrados, setMembrosCadastrados] = useState([]);
   const [modalMembrosAberto, setModalMembrosAberto] = useState(false);
   const [formMembroModal, setFormMembroModal] = useState({ id: null, nome: "", equipe_padrao: false, funcao: "", categoria: "" });
   const [salvarNovoNoBanco, setSalvarNovoNoBanco] = useState(false);
-
   const funcoesMacro = ["Instrumento", "Voz", "Som", "Mídia / Projeção"];
   const categoriasFrequentes = {
-    "Instrumento": ["Teclado", "Violão", "Bateria", "Baixo", "Violino", "Guitarra"],
+    "Instrumento": [
+      "Teclado", 
+      "Violão", 
+      "Baixo", 
+      "Bateria", 
+      "Clarinete", 
+      "Flauta", 
+      "Guitarra", 
+      "Sax Alto", 
+      "Sax Soprano", 
+      "Trombone", 
+      "Trompete", 
+      "Viola", 
+      "Violino I", 
+      "Violino II", 
+      "Violoncelo"
+    ],
     "Voz": ["Soprano", "Contralto", "Tenor", "Baixo"],
     "Som": ["Operador de Áudio", "Auxiliar de Som"],
     "Mídia / Projeção": ["Projeção", "Transmissão", "Câmera"]
   };
-
-  const [canaisMapa, setCanaisMapa] = useState([]);
-  const [novoCanal, setNovoCanal] = useState({ canal: "", funcao: "", microfone: "", retorno: "" });
-  const [editandoCanalId, setEditandoCanalId] = useState(null);
-
   const [escalaCulto, setEscalaCulto] = useState([]);
   const [formEscala, setFormEscala] = useState({ funcao: "Instrumento", categoria: "", nome: "" });
   const [temAlteracoesPendentes, setTemAlteracoesPendentes] = useState(false);
   const [salvandoEscala, setSalvandoEscala] = useState(false);
-
   const [modalEditarEscala, setModalEditarEscala] = useState({ open: false, id: null, nome: "", funcao: "", categoria: "" });
   const [modalPreview, setModalPreview] = useState({ open: false, mode: "image" });
-
   const [historicoListas, setHistoricoListas] = useState([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
-  const [carregandoMapa, setCarregandoMapa] = useState(false);
-  const [carregandoEscala, setCarregandoEscala] = useState(false);
   const [mostrarModalHistorico, setMostrarModalHistorico] = useState(false);
-
-  const [listaSanfonaExpandida, setListaSanfonaExpandida] = useState(true);
-
-  // Inicia com tudo fechado (sem culto selecionado por padrão)
+  const [listaSanfonaExpandida, setListaSanfonaExpandida] = useState(false);
   const [cultoSelecionadoInfo, setCultoSelecionadoInfo] = useState({
     id: null,
     titulo: "",
     data: "",
-    responsavel: "",
+    louvor: "",
+    palavra: "",
     tipo: ""
   });
-
   const podeCriar = userRole === "super_admin" || userRole === "church_admin";
   const isSuper = userRole === "super_admin";
-
-  // Lista de cultos filtrando o culto selecionado no momento
   const outrosCultos = historicoListas.filter(
     (item) => item.id !== cultoSelecionadoInfo.id
   );
-
   useEffect(() => {
     const validarAcesso = async () => {
       try {
         setCarregandoValidacao(true);
+        if (!temNuvem) {
+          setCarregandoValidacao(false);
+          return;
+        }
         const roleSalva = localStorage.getItem("icmlyrics_role") || "user";
-
-        if (roleSalva === "super_admin" || userNuvem === "admin_geral") {
-          setUserRole("super_admin");
-          const nomeIgrejaDefinido = userNuvem || "Administração Geral";
-          setNomeIgreja(nomeIgrejaDefinido);
-          carregarMapaPalco(nomeIgrejaDefinido);
-          carregarMembrosCadastrados(nomeIgrejaDefinido);
-          buscarHistoricoListas(nomeIgrejaDefinido);
-          return;
-        }
-
-        if (!userNuvem.trim()) {
-          setUserRole("user");
-          const nomeIgrejaDefinido = localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local";
-          setNomeIgreja(nomeIgrejaDefinido);
-          carregarMapaPalco(nomeIgrejaDefinido);
-          carregarMembrosCadastrados(nomeIgrejaDefinido);
-          buscarHistoricoListas(nomeIgrejaDefinido);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from("igrejas_autorizadas")
-          .select("role, nome_igreja")
-          .eq("usuario", userNuvem.trim())
-          .maybeSingle();
-
+        let roleFinal = "user";
         let nomeFinal = userNuvem;
-
-        if (!error && data) {
-          const roleDoBanco = data.role?.toLowerCase() || "";
-          if (roleDoBanco === "super_admin" || roleDoBanco === "super_adm") {
-            setUserRole("super_admin");
-          } else if (roleDoBanco === "church_admin" || roleDoBanco === "adm_local" || roleSalva === "church_admin") {
-            setUserRole("church_admin");
-          } else {
-            setUserRole("user");
-          }
-          nomeFinal = data.nome_igreja || userNuvem;
-          setNomeIgreja(nomeFinal);
+        if (roleSalva === "super_admin" || userNuvem === "admin_geral") {
+          roleFinal = "super_admin";
+          nomeFinal = userNuvem || "Administração Geral";
         } else {
-          setUserRole(roleSalva);
-          nomeFinal = localStorage.getItem("icmlyrics_nome_igreja") || userNuvem;
-          setNomeIgreja(nomeFinal);
+          const { data, error } = await supabase
+            .from("igrejas_autorizadas")
+            .select("role, nome_igreja")
+            .eq("usuario", userNuvem.trim())
+            .maybeSingle();
+          if (!error && data) {
+            const roleDoBanco = data.role?.toLowerCase() || "";
+            if (roleDoBanco === "super_admin" || roleDoBanco === "super_adm") {
+              roleFinal = "super_admin";
+            } else if (roleDoBanco === "church_admin" || roleDoBanco === "adm_local" || roleSalva === "church_admin") {
+              roleFinal = "church_admin";
+            }
+            nomeFinal = data.nome_igreja || userNuvem;
+          } else {
+            roleFinal = roleSalva;
+            nomeFinal = localStorage.getItem("icmlyrics_nome_igreja") || userNuvem;
+          }
         }
-
-        carregarMapaPalco(nomeFinal);
+        setUserRole(roleFinal);
+        setNomeIgreja(nomeFinal);
         carregarMembrosCadastrados(nomeFinal);
-        buscarHistoricoListas(nomeFinal);
+        buscarHistoricoListas(roleFinal);
       } catch (err) {
         console.error("Erro ao validar permissões:", err);
         setUserRole(localStorage.getItem("icmlyrics_role") || "user");
@@ -164,22 +179,28 @@ export default function PainelEquipe() {
         setCarregandoValidacao(false);
       }
     };
-
     validarAcesso();
-  }, [userNuvem, usuarioLocal]);
-
-  // Carrega histórico mas inicia fechado
-  const buscarHistoricoListas = async () => {
+  }, [userNuvem, usuarioLocal, temNuvem]);
+  const buscarHistoricoListas = async (roleParam) => {
+    if (!temNuvem) return;
     setCarregandoHistorico(true);
+    const roleAtual = roleParam || userRole;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("listas")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(10);
-
+      if (userNuvem && userNuvem.trim() !== "" && userNuvem !== "admin_geral" && roleAtual !== "super_admin") {
+        query = query.eq("acesso_usuario", userNuvem.trim());
+      }
+      const { data, error } = await query;
       if (!error && data) {
         setHistoricoListas(data);
+        const ehAdmin = roleAtual === "super_admin" || roleAtual === "church_admin";
+        if (!ehAdmin && data.length > 0) {
+          selecionarCulto(data[0]);
+        }
       }
     } catch (err) {
       console.error("Erro ao buscar histórico de listas:", err);
@@ -187,68 +208,44 @@ export default function PainelEquipe() {
       setCarregandoHistorico(false);
     }
   };
-
   const carregarMembrosCadastrados = async (igrejaNome) => {
+    if (!temNuvem) return;
     const igrejaParaBuscar = igrejaNome || nomeIgreja;
     if (!igrejaParaBuscar || igrejaParaBuscar === "Carregando...") return;
-
     try {
       const { data, error } = await supabase
         .from("membros_equipe")
         .select("*")
-        .eq("nome_igreja", igrejaParaBuscar)
-        .order("nome", { ascending: true });
-
-      if (!error && data) setMembrosCadastrados(data);
+        .eq("nome_igreja", igrejaParaBuscar);
+      if (!error && data) {
+        const ordenados = [...data].sort(ordenarMembrosOuEscala);
+        setMembrosCadastrados(ordenados);
+      }
     } catch (err) {
       console.error("Erro ao carregar membros cadastrados:", err);
     }
   };
-
-  const carregarMapaPalco = async (igrejaNome) => {
-    const igrejaParaBuscar = igrejaNome || nomeIgreja;
-    if (!igrejaParaBuscar || igrejaParaBuscar === "Carregando...") return;
-
-    setCarregandoMapa(true);
-    try {
-      const { data, error } = await supabase
-        .from("mapa_palco")
-        .select("*")
-        .eq("nome_igreja", igrejaParaBuscar)
-        .order("canal", { ascending: true });
-
-      if (!error && data) setCanaisMapa(data);
-    } catch (err) {
-      console.error("Erro ao carregar mapa de palco:", err);
-    } finally {
-      setCarregandoMapa(false);
-    }
-  };
-
   const carregarEscalaEquipe = async (listaId, igrejaNome) => {
-    if (!listaId) return setEscalaCulto([]);
+    if (!temNuvem || !listaId) return setEscalaCulto([]);
     const nomeParaBuscar = igrejaNome || nomeIgreja;
     setCarregandoEscala(true);
-
     try {
       let query = supabase
         .from("escala_equipe")
         .select("*")
         .eq("lista_id", listaId);
-
       if (nomeParaBuscar && nomeParaBuscar !== "Carregando...") {
         query = query.eq("nome_igreja", nomeParaBuscar);
       }
-
-      const { data, error } = await query.order("created_at", { ascending: true });
-
+      const { data, error } = await query;
       if (!error && data) {
         const formatado = data.map(item => ({
           ...item,
           funcao: item.funcao || item.cargo || "Instrumento",
           categoria: item.categoria || item.detalhe || ""
         }));
-        setEscalaCulto(formatado);
+        const ordenados = formatado.sort(ordenarMembrosOuEscala);
+        setEscalaCulto(ordenados);
         setTemAlteracoesPendentes(false);
       }
     } catch (err) {
@@ -257,11 +254,10 @@ export default function PainelEquipe() {
       setCarregandoEscala(false);
     }
   };
-
   const carregarNomeIgreja = async () => {
+    if (!temNuvem) return;
     setCarregandoIgreja(true);
     const usuarioAtual = userNuvem || usuarioLocal;
-
     if (temNuvem && usuarioAtual) {
       try {
         const { data, error } = await supabase
@@ -269,15 +265,12 @@ export default function PainelEquipe() {
           .select("nome_igreja")
           .eq("usuario", usuarioAtual)
           .maybeSingle();
-
         if (!error && data && data.nome_igreja) {
           setNomeIgreja(data.nome_igreja);
-          carregarMapaPalco(data.nome_igreja);
           carregarMembrosCadastrados(data.nome_igreja);
         } else {
           const nomeSalvo = localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual;
           setNomeIgreja(nomeSalvo);
-          carregarMapaPalco(nomeSalvo);
           carregarMembrosCadastrados(nomeSalvo);
         }
       } catch (e) {
@@ -287,57 +280,50 @@ export default function PainelEquipe() {
       }
     }
   };
-
-  const handleSelecionarCulto = (item) => {
+  const selecionarCulto = (item) => {
+    if (!temNuvem) return;
     const listaId = item.id;
-    const dataRaw = item.data || item.created_at?.split("T")[0];
-
+    const dataRaw = item.data_culto || item.data || item.created_at?.split("T")[0];
     setCultoSelecionadoInfo({
       id: listaId,
-      titulo: item.titulo || item.assunto || item.tipo_culto || "Culto / Evento Geral",
+      titulo: item.tipo_culto || item.evento || item.titulo || item.assunto || "Culto / Evento Geral",
       data: formatarDataComDiaSemana(dataRaw),
-      responsavel: item.responsavel || item.autor || "Não informado",
+      louvor: item.responsavel || item.autor || "",
+      palavra: item.palavra || "",
       tipo: item.tipo_culto || item.evento || "Culto"
     });
-
     carregarEscalaEquipe(listaId, nomeIgreja);
     setMostrarBotaoPadrao(true);
     setMostrarModalHistorico(false);
+    setListaSanfonaExpandida(false);
     setModoEdicao(false);
     setMostrarFormAdicionar(false);
   };
-
   const handleCarregarEquipePadrao = async () => {
-    if (!podeCriar) return;
+    if (!temNuvem || !podeCriar) return;
     if (!cultoSelecionadoInfo.id) {
       return alert("Selecione primeiro um culto na lista para vincular a equipe padrão.");
     }
-
     try {
       const { data: membrosPadrao, error: errMembros } = await supabase
         .from("membros_equipe")
         .select("*")
         .eq("nome_igreja", nomeIgreja)
         .eq("equipe_padrao", true);
-
       if (errMembros || !membrosPadrao || membrosPadrao.length === 0) {
         alert("Nenhum integrante marcado como 'Equipe Padrão' no Banco de Membros.");
         return;
       }
-
       const nomesNaEscala = new Set(
         escalaCulto.map((item) => item.nome.trim().toLowerCase())
       );
-
       const membrosNovos = membrosPadrao.filter(
         (membro) => !nomesNaEscala.has(membro.nome.trim().toLowerCase())
       );
-
       if (membrosNovos.length === 0) {
         alert("Todos os integrantes da equipe padrão já estão na lista.");
         return;
       }
-
       const novosItensLocais = membrosNovos.map((membro) => ({
         id: `temp_${Date.now()}_${Math.random()}`,
         lista_id: cultoSelecionadoInfo.id,
@@ -346,20 +332,18 @@ export default function PainelEquipe() {
         nome: membro.nome,
         nome_igreja: nomeIgreja
       }));
-
-      setEscalaCulto((prev) => [...prev, ...novosItensLocais]);
+      const combinados = [...escalaCulto, ...novosItensLocais].sort(ordenarMembrosOuEscala);
+      setEscalaCulto(combinados);
       setTemAlteracoesPendentes(true);
       setModoEdicao(true);
     } catch (err) {
       console.error("Erro ao puxar equipe padrão:", err);
     }
   };
-
   const handleAdicionarItemEscalaLocal = (e) => {
     e.preventDefault();
-    if (!podeCriar) return alert("Apenas administradores podem alterar a escala.");
+    if (!temNuvem || !podeCriar) return alert("Apenas administradores podem alterar a escala.");
     if (!formEscala.nome.trim()) return alert("Preencha o nome do integrante.");
-
     const novoItem = {
       id: `temp_${Date.now()}`,
       lista_id: cultoSelecionadoInfo.id,
@@ -368,8 +352,8 @@ export default function PainelEquipe() {
       nome: formEscala.nome.trim(),
       nome_igreja: nomeIgreja
     };
-    setEscalaCulto((prev) => [...prev, novoItem]);
-
+    const combinados = [...escalaCulto, novoItem].sort(ordenarMembrosOuEscala);
+    setEscalaCulto(combinados);
     if (salvarNovoNoBanco && formEscala.nome.trim()) {
       supabase.from("membros_equipe").insert([{
         nome: formEscala.nome.trim(),
@@ -379,18 +363,15 @@ export default function PainelEquipe() {
         nome_igreja: nomeIgreja
       }]).then(() => carregarMembrosCadastrados(nomeIgreja));
     }
-
     setFormEscala({ funcao: "Instrumento", categoria: "", nome: "" });
     setSalvarNovoNoBanco(false);
     setTemAlteracoesPendentes(true);
   };
-
   const handleDeletarItemEscalaLocal = (id) => {
     if (!podeCriar) return;
     setEscalaCulto((prev) => prev.filter((item) => item.id !== id));
     setTemAlteracoesPendentes(true);
   };
-
   const handleLimparMembrosEscalados = () => {
     if (!podeCriar) return;
     if (escalaCulto.length === 0) return;
@@ -399,14 +380,14 @@ export default function PainelEquipe() {
       setTemAlteracoesPendentes(true);
     }
   };
-
   const handleCancelarEscala = () => {
     setEscalaCulto([]);
     setCultoSelecionadoInfo({
       id: null,
       titulo: "",
       data: "",
-      responsavel: "",
+      louvor: "",
+      palavra: "",
       tipo: ""
     });
     setMostrarBotaoPadrao(false);
@@ -414,53 +395,55 @@ export default function PainelEquipe() {
     setTemAlteracoesPendentes(false);
     setModoEdicao(false);
   };
-
   const handleCancelarEdicao = () => {
     setModoEdicao(false);
     setMostrarFormAdicionar(false);
     setTemAlteracoesPendentes(false);
     carregarEscalaEquipe(cultoSelecionadoInfo.id, nomeIgreja);
   };
-
-  const handleExcluirEscalaDoCulto = async () => {
+  const handleExcluirCultoDaLista = async () => {
     if (!podeCriar) return;
     if (!cultoSelecionadoInfo.id) return alert("Nenhum culto selecionado.");
-
-    if (!window.confirm("Deseja realmente apagar a escala deste culto do banco de dados?")) {
+    if (!window.confirm("Tem certeza que deseja excluir este culto?")) {
       return;
     }
-
     setSalvandoEscala(true);
     try {
       const { error } = await supabase
+        .from("listas")
+        .delete()
+        .eq("id", cultoSelecionadoInfo.id);
+      if (error) throw error;
+      await supabase
         .from("escala_equipe")
         .delete()
-        .eq("lista_id", cultoSelecionadoInfo.id)
-        .eq("nome_igreja", nomeIgreja);
-
-      if (error) throw error;
-
+        .eq("lista_id", cultoSelecionadoInfo.id);
       handleCancelarEscala();
-      alert("Escala removida do banco de dados com sucesso!");
+      buscarHistoricoListas();
+      alert("Culto excluído da tabela listas com sucesso!");
     } catch (err) {
-      console.error("Erro ao excluir escala do banco:", err);
-      alert("Erro ao apagar escala do banco de dados.");
+      console.error("Erro ao excluir culto da tabela listas:", err);
+      alert("Erro ao excluir o culto.");
     } finally {
       setSalvandoEscala(false);
     }
   };
-
   const handleSalvarEscalaBanco = async () => {
     if (!cultoSelecionadoInfo.id) return alert("Nenhum culto selecionado.");
     setSalvandoEscala(true);
-
     try {
+      await supabase
+        .from("listas")
+        .update({
+          responsavel: cultoSelecionadoInfo.louvor,
+          palavra: cultoSelecionadoInfo.palavra
+        })
+        .eq("id", cultoSelecionadoInfo.id);
       await supabase
         .from("escala_equipe")
         .delete()
         .eq("lista_id", cultoSelecionadoInfo.id)
         .eq("nome_igreja", nomeIgreja);
-
       if (escalaCulto.length > 0) {
         const payload = escalaCulto.map((item) => ({
           lista_id: cultoSelecionadoInfo.id,
@@ -471,11 +454,9 @@ export default function PainelEquipe() {
           nome: item.nome,
           nome_igreja: nomeIgreja
         }));
-
         const { error } = await supabase.from("escala_equipe").insert(payload);
         if (error) throw error;
       }
-
       setTemAlteracoesPendentes(false);
       setModoEdicao(false);
       setMostrarFormAdicionar(false);
@@ -488,7 +469,6 @@ export default function PainelEquipe() {
       setSalvandoEscala(false);
     }
   };
-
   const handleGerarPreview = async (mode) => {
     if (escalaCulto.length === 0) {
       return alert("Não há integrantes na escala para gerar a visualização.");
@@ -498,12 +478,10 @@ export default function PainelEquipe() {
     }
     setModalPreview({ open: true, mode });
   };
-
   const handleSalvarMembroModal = async (e) => {
     e.preventDefault();
     if (!podeCriar) return alert("Permissão negada.");
     if (!formMembroModal.nome.trim()) return alert("O nome do integrante é obrigatório.");
-
     try {
       if (formMembroModal.id) {
         const { error } = await supabase
@@ -515,45 +493,37 @@ export default function PainelEquipe() {
             categoria: formMembroModal.categoria
           })
           .eq("id", formMembroModal.id);
-
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("membros_equipe")
           .insert([{
             nome: formMembroModal.nome.trim(),
-            equipe_padrao: formMembroModal.equipe_padrao,
             funcao: formMembroModal.funcao || "Instrumento",
             categoria: formMembroModal.categoria || "",
             nome_igreja: nomeIgreja
           }]);
-
         if (error) throw error;
       }
-
       setFormMembroModal({ id: null, nome: "", equipe_padrao: false, funcao: "", categoria: "" });
       carregarMembrosCadastrados(nomeIgreja);
     } catch (err) {
       console.error("Erro ao salvar membro no banco:", err);
     }
   };
-
   const handleDeletarMembroBanco = async (membroId) => {
     if (!podeCriar) return;
     if (!window.confirm("Deseja remover este integrante do banco de dados?")) return;
-
     try {
       const { error } = await supabase
         .from("membros_equipe")
         .delete()
         .eq("id", membroId);
-
       if (!error) carregarMembrosCadastrados(nomeIgreja);
     } catch (err) {
       console.error("Erro ao deletar membro do banco:", err);
     }
   };
-
   const handleAlternarEquipePadrao = async (membroId, statusAtual) => {
     if (!podeCriar) return;
     try {
@@ -561,56 +531,11 @@ export default function PainelEquipe() {
         .from("membros_equipe")
         .update({ equipe_padrao: !statusAtual })
         .eq("id", membroId);
-
       if (!error) carregarMembrosCadastrados(nomeIgreja);
     } catch (err) {
       console.error("Erro ao alterar status da equipe padrão:", err);
     }
   };
-
-  const handleSalvarCanal = async () => {
-    if (!podeCriar) return alert("Apenas administradores podem gerenciar o mapa de palco.");
-    if (!novoCanal.canal || !novoCanal.funcao) return alert("Preencha os campos obrigatórios (Canal e Função).");
-
-    try {
-      if (editandoCanalId) {
-        const { error } = await supabase
-          .from("mapa_palco")
-          .update({ ...novoCanal, nome_igreja: nomeIgreja })
-          .eq("id", editandoCanalId)
-          .eq("nome_igreja", nomeIgreja);
-
-        if (error) throw error;
-        setEditandoCanalId(null);
-      } else {
-        const { error } = await supabase.from("mapa_palco").insert([{ ...novoCanal, nome_igreja: nomeIgreja }]);
-        if (error) throw error;
-      }
-
-      setNovoCanal({ canal: "", funcao: "", microfone: "", retorno: "" });
-      carregarMapaPalco(nomeIgreja);
-    } catch (err) {
-      console.error("Erro ao salvar canal:", err);
-    }
-  };
-
-  const handleDeletarCanal = async (id) => {
-    if (!podeCriar) return;
-    if (!window.confirm("Deseja remover este canal do mapa de palco?")) return;
-
-    try {
-      const { error } = await supabase
-        .from("mapa_palco")
-        .delete()
-        .eq("id", id)
-        .eq("nome_igreja", nomeIgreja);
-
-      if (!error) carregarMapaPalco(nomeIgreja);
-    } catch (err) {
-      console.error("Erro ao deletar canal:", err);
-    }
-  };
-
   const rowsParaPreview = escalaCulto.map((item) => ({
     id: item.id,
     type: "louvor",
@@ -621,10 +546,8 @@ export default function PainelEquipe() {
     nome: item.nome,
     observacao: ""
   }));
-
   return (
     <div className="min-h-screen bg-slate-50 pb-28 flex flex-col">
-      {/* Cabeçalho */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-5 sticky top-0 z-30 shadow-md">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -638,7 +561,6 @@ export default function PainelEquipe() {
               <p className="text-slate-400 text-xs">Organização, técnica e escala para o culto</p>
             </div>
           </div>
-
           <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
             {carregandoValidacao ? (
               <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
@@ -664,29 +586,12 @@ export default function PainelEquipe() {
             )}
           </div>
         </div>
-
-        {/* Abas */}
         <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80">
           <div className="flex-1 flex gap-2">
-            <button
-              onClick={() => setAbaAtiva("escala")}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                abaAtiva === "escala" ? "bg-slate-800 text-white shadow-sm border border-slate-700" : "bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white"
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5" /> Escala
-            </button>
-
-            <button
-              onClick={() => setAbaAtiva("mapa")}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                abaAtiva === "mapa" ? "bg-slate-800 text-white shadow-sm border border-slate-700" : "bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white"
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5" /> Mapa de Palco
-            </button>
+            <div className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-slate-800 text-white shadow-sm border border-slate-700 flex items-center justify-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" /> Escala da Equipe
+            </div>
           </div>
-
           <div className="relative">
             <button
               onClick={() => setMenuDropdownAberto(!menuDropdownAberto)}
@@ -694,9 +599,14 @@ export default function PainelEquipe() {
             >
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
-
             {menuDropdownAberto && (
               <div className="absolute right-0 mt-2 w-52 bg-slate-800 rounded-2xl shadow-xl border border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <button
+                  onClick={() => { setMenuDropdownAberto(false); navigate("/mapa-palco"); }}
+                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-slate-400" /> Mapa de Palco
+                </button>
                 <button
                   onClick={() => { setMenuDropdownAberto(false); navigate("/Aquecimento-Vocal"); }}
                   className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
@@ -720,13 +630,17 @@ export default function PainelEquipe() {
           </div>
         </div>
       </div>
-
-      {/* Conteúdo Aba Escala */}
-      <div className="px-4 mt-4 space-y-4 flex-1">
-        {abaAtiva === "escala" && (
+      <div className="px-4 mt-4 space-y-4 flex-1 flex flex-col">
+        {!temNuvem ? (
+          <div className="bg-white p-8 rounded-2xl border border-slate-100 text-center shadow-sm space-y-3 my-auto mx-auto max-w-md w-full">
+            <Cloud className="w-10 h-10 text-slate-300 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-700">Nenhuma Nuvem Conectada</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Você precisa estar conectado a uma nuvem para visualizar e gerenciar o Painel da Equipe e suas escalas.
+            </p>
+          </div>
+        ) : (
           <div className="space-y-4 animate-in fade-in duration-200">
-            
-            {/* Botões de Ação para Admin */}
             {podeCriar && (
               <div className="flex w-full gap-2 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
                 <Button 
@@ -738,9 +652,8 @@ export default function PainelEquipe() {
                   <UserPlus className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                   <span className="truncate">Membros</span>
                 </Button>
-
                 <Button 
-                  onClick={() => { buscarHistoricoListas(); setMostrarModalHistorico(true); }}
+                  onClick={() => { buscarHistoricoListas(); setMostrarModalHistorico(true); setListaSanfonaExpandida(false); }}
                   size="sm"
                   variant="outline"
                   className="flex-1 h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold gap-1.5 border-slate-200 px-2 cursor-pointer"
@@ -748,7 +661,6 @@ export default function PainelEquipe() {
                   <FileText className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                   <span className="truncate">Cultos</span>
                 </Button>
-
                 {mostrarBotaoPadrao && cultoSelecionadoInfo.id && (
                   <Button 
                     onClick={handleCarregarEquipePadrao}
@@ -763,39 +675,35 @@ export default function PainelEquipe() {
                 )}
               </div>
             )}
-
-            {/* Modal de Seleção de Cultos */}
             {mostrarModalHistorico && (
               <div className="bg-slate-100 border border-slate-200 p-4 rounded-2xl space-y-3 shadow-sm">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-bold text-slate-800 uppercase">Selecionar Culto / Evento</h4>
                   <button onClick={() => setMostrarModalHistorico(false)} className="text-xs text-slate-500 hover:text-slate-800 font-bold">Fechar</button>
                 </div>
-                
                 {carregandoHistorico ? (
                   <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-600" /></div>
                 ) : historicoListas.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-2">Nenhum registro encontrado.</p>
+                  <p className="text-xs text-slate-500 text-center py-2">Nenhum registro encontrado nesta nuvem.</p>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {historicoListas.map((item) => {
-                      const dataFormatada = formatarDataComDiaSemana(item.data || item.created_at);
+                      const dataFormatada = formatarDataComDiaSemana(item.data_culto || item.data || item.created_at);
                       const tipoEvento = item.tipo_culto || item.evento || item.titulo || item.assunto || "Culto";
-                      const responsavel = item.responsavel || item.autor || "Geral";
-
+                      const louvor = item.responsavel || item.autor || "Geral";
                       return (
                         <div 
                           key={item.id}
-                          onClick={() => handleSelecionarCulto(item)}
+                          onClick={() => selecionarCulto(item)}
                           className="bg-white p-2.5 rounded-xl border border-slate-200 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors"
                         >
                           <div>
                             <p className="font-bold text-slate-800">{dataFormatada}</p>
                             <p className="text-[10px] text-slate-500">
-                              <span className="font-semibold text-slate-700">{tipoEvento}</span> • Resp: {responsavel}
+                              <span className="font-semibold text-slate-700">{tipoEvento}</span> • Louvor: {louvor}
                             </p>
                           </div>
-                          <span className="text-[10px] bg-slate-800 text-white font-bold px-2 py-1 rounded-lg">Mostrar</span>
+                          <span className="text-[10px] bg-slate-800 text-white font-bold px-2 py-1 rounded-lg">Mostrar Escala</span>
                         </div>
                       );
                     })}
@@ -803,31 +711,53 @@ export default function PainelEquipe() {
                 )}
               </div>
             )}
-
-            {/* Card Principal da Escala do Culto Selecionado */}
-            {cultoSelecionadoInfo.id ? (
+            {cultoSelecionadoInfo.id && (
               <div ref={cardEscalaRef} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                 <div className="flex justify-between items-start gap-3 pb-3 border-b border-slate-100">
-                  <div>
+                  <div className="flex-1">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                       {cultoSelecionadoInfo.tipo}
                     </span>
                     <h3 className="text-lg font-bold text-slate-900">{cultoSelecionadoInfo.titulo}</h3>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 mt-1">
-                      <div><span className="text-slate-400">Data:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.data}</strong></div>
-                      <div><span className="text-slate-400">Responsável:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.responsavel}</strong></div>
-                    </div>
+                    {modoEdicao && podeCriar ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-100">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Louvor</label>
+                          <Input 
+                            value={cultoSelecionadoInfo.louvor}
+                            onChange={(e) => setCultoSelecionadoInfo({ ...cultoSelecionadoInfo, louvor: e.target.value })}
+                            className="h-8 text-xs bg-white"
+                            placeholder="Responsável pelo louvor"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Palavra</label>
+                          <Input 
+                            value={cultoSelecionadoInfo.palavra}
+                            onChange={(e) => setCultoSelecionadoInfo({ ...cultoSelecionadoInfo, palavra: e.target.value })}
+                            className="h-8 text-xs bg-white"
+                            placeholder="Responsável pela palavra"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 mt-1">
+                        <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Data:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.data}</strong></div>
+                        <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Louvor:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.louvor || "Não informado"}</strong></div>
+                        {cultoSelecionadoInfo.palavra && (
+                          <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Palavra:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.palavra}</strong></div>
+                        )}
+                      </div>
+                    )}
                   </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {!podeCriar ? (
-                      <Button 
-                        onClick={() => navigate(`/lista/${cultoSelecionadoInfo.id}`)}
-                        className="h-8 bg-slate-900 hover:bg-slate-800 text-white text-[10px] uppercase tracking-wider px-2.5 rounded-lg flex items-center gap-1.5 shadow-sm"
-                      >
-                        <span className="hidden sm:inline">Ir p/</span> Lista <ArrowRight className="w-3 h-3" />
-                      </Button>
-                    ) : modoEdicao ? (
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                    <Button 
+                      onClick={() => navigate("/historico-listas", { state: { listaId: cultoSelecionadoInfo.id } })}
+                      className="h-8 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-lg shadow-sm flex items-center gap-1.5"
+                    >
+                      Lista de Louvores <ArrowRight className="w-3 h-3" />
+                    </Button>
+                    {podeCriar && modoEdicao ? (
                       <button
                         type="button"
                         onClick={() => setMostrarFormAdicionar(!mostrarFormAdicionar)}
@@ -836,33 +766,33 @@ export default function PainelEquipe() {
                       >
                         {mostrarFormAdicionar ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                       </button>
-                    ) : (
-                      <>
-                        <Button 
-                          onClick={() => navigate(`/lista/${cultoSelecionadoInfo.id}`)}
-                          className="h-8 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-lg border border-slate-300"
-                        >
-                           Ver Lista
-                        </Button>
+                    ) : podeCriar && !modoEdicao ? (
+                      <div className="flex items-center gap-1.5">
                         <Button 
                           onClick={() => setModoEdicao(true)}
-                          className="h-8 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-lg shadow-sm flex items-center gap-1.5"
+                          className="h-8 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-lg shadow-sm flex items-center gap-1.5"
                         >
                           <Edit3 className="w-3.5 h-3.5" /> Alterar
                         </Button>
-                      </>
-                    )}
+                        <Button 
+                          onClick={handleExcluirCultoDaLista}
+                          disabled={salvandoEscala}
+                          variant="outline"
+                          className="h-8 w-8 p-0 border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg flex items-center justify-center shadow-sm cursor-pointer"
+                          title="Excluir Culto"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-
-                {/* Formulário de Adicionar Participante */}
                 {mostrarFormAdicionar && podeCriar && modoEdicao && (
                   <form onSubmit={handleAdicionarItemEscalaLocal} className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="flex justify-between items-center flex-wrap gap-2">
                       <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                         Adicionar Participante à Escala
                       </span>
-
                       {membrosCadastrados.length > 0 && (
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-slate-400">Puxar do banco:</span>
@@ -890,7 +820,6 @@ export default function PainelEquipe() {
                         </div>
                       )}
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1">
                       <div>
                         <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Função (Grupo)</label>
@@ -904,7 +833,6 @@ export default function PainelEquipe() {
                           ))}
                         </select>
                       </div>
-
                       <div>
                         <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Categoria / Detalhe</label>
                         <select 
@@ -918,7 +846,6 @@ export default function PainelEquipe() {
                           ))}
                         </select>
                       </div>
-
                       <div>
                         <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Nome</label>
                         <Input 
@@ -929,7 +856,6 @@ export default function PainelEquipe() {
                         />
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2 pt-0.5">
                       <input 
                         type="checkbox" 
@@ -942,20 +868,16 @@ export default function PainelEquipe() {
                         Salvar também este integrante no Banco de Membros
                       </label>
                     </div>
-
                     <Button type="submit" className="w-full h-9 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl cursor-pointer">
                       Adicionar à Lista
                     </Button>
                   </form>
                 )}
-
-                {/* Lista de Membros Escalados */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                       Membros Escalados ({escalaCulto.length})
                     </span>
-
                     {escalaCulto.length > 0 && podeCriar && modoEdicao && (
                       <button
                         type="button"
@@ -966,7 +888,6 @@ export default function PainelEquipe() {
                       </button>
                     )}
                   </div>
-                  
                   {carregandoEscala ? (
                     <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-slate-600" /></div>
                   ) : escalaCulto.length === 0 ? (
@@ -986,7 +907,6 @@ export default function PainelEquipe() {
                             </div>
                             <span className="font-semibold text-slate-800 text-sm">{item.nome}</span>
                           </div>
-                          
                           {podeCriar && modoEdicao && (
                             <div className="flex items-center gap-1">
                               <button 
@@ -1019,18 +939,7 @@ export default function PainelEquipe() {
                   )}
                 </div>
               </div>
-            ) : (
-              /* Mensagem Inicial quando nenhum culto está aberto */
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 text-center shadow-xs">
-                <Calendar className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <h3 className="text-sm font-bold text-slate-700">Nenhum Culto Selecionado</h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Clique em um culto na lista abaixo para visualizar ou editar os membros escalados.
-                </p>
-              </div>
             )}
-
-            {/* Painel de Ações e Exportação se houver Culto Aberto */}
             {cultoSelecionadoInfo.id && (
               <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                 {podeCriar && modoEdicao ? (
@@ -1041,28 +950,22 @@ export default function PainelEquipe() {
                     <div className="flex gap-2">
                       <Button
                         onClick={handleSalvarEscalaBanco}
-                        disabled={salvandoEscala || !temAlteracoesPendentes}
-                        className={`flex-1 h-10 text-xs font-bold rounded-xl gap-2 cursor-pointer transition-all ${
-                          temAlteracoesPendentes 
-                            ? "bg-slate-900 hover:bg-slate-800 text-white shadow-md animate-pulse" 
-                            : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                        }`}
+                        disabled={salvandoEscala}
+                        className="flex-1 h-10 text-xs font-bold rounded-xl gap-2 cursor-pointer transition-all bg-slate-900 hover:bg-slate-800 text-white shadow-md"
                       >
                         {salvandoEscala ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-emerald-400" />}
-                        {temAlteracoesPendentes ? "Salvar Escala no Banco *" : "Nenhuma Alteração"}
+                        Salvar Escala no Banco
                       </Button>
-
                       <Button
-                        onClick={handleExcluirEscalaDoCulto}
+                        onClick={handleExcluirCultoDaLista}
                         disabled={salvandoEscala}
                         variant="outline"
                         className="h-10 border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold px-3 rounded-xl cursor-pointer"
-                        title="Apagar escala deste culto no banco de dados"
+                        title="Excluir este culto da tabela listas desta nuvem"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                    
                     <Button
                       onClick={handleCancelarEdicao}
                       variant="outline"
@@ -1076,7 +979,6 @@ export default function PainelEquipe() {
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                       Compartilhar / Exportar Escala
                     </span>
-                    
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         onClick={() => handleGerarPreview("image")}
@@ -1085,7 +987,6 @@ export default function PainelEquipe() {
                         <ImageIcon className="w-3.5 h-3.5" />
                         Gerar Imagem
                       </Button>
-
                       <Button
                         onClick={() => handleGerarPreview("image-text")}
                         variant="secondary"
@@ -1095,13 +996,20 @@ export default function PainelEquipe() {
                         Imagem e Texto
                       </Button>
                     </div>
-                    
                     {podeCriar && (
-                      <div className="pt-2 border-t border-slate-100">
+                      <div className="pt-2 border-t border-slate-100 flex gap-2">
+                        <Button
+                          onClick={handleExcluirCultoDaLista}
+                          disabled={salvandoEscala}
+                          variant="outline"
+                          className="h-8 border-rose-200 text-rose-600 hover:bg-rose-50 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer px-3"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Excluir Culto (Listas)
+                        </Button>
                         <Button
                           onClick={handleCancelarEscala}
                           variant="ghost"
-                          className="h-8 text-slate-500 hover:bg-slate-100 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer w-full"
+                          className="flex-1 h-8 text-slate-500 hover:bg-slate-100 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer"
                         >
                           <X className="w-3.5 h-3.5" /> Fechar Visualização
                         </Button>
@@ -1111,20 +1019,18 @@ export default function PainelEquipe() {
                 )}
               </div>
             )}
-
-            {/* CARD DE CULTOS / ESCALAS (LAYOUT ORIGINAL DA IMAGEM 1 - POSICIONADO APÓS A ESCALA) */}
             {historicoListas.length > 0 && (
               <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                 <button
                   type="button"
-                  onClick={() => setListaSanfonaExpandida(!listaSanfonaExpandida)}
+                  onClick={() => { setListaSanfonaExpandida(!listaSanfonaExpandida); setMostrarModalHistorico(false); }}
                   className="w-full flex justify-between items-center text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-slate-600" />
                     <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                       {cultoSelecionadoInfo.id 
-                        ? `Outros Cultos / Escalas (${outrosCultos.length})` 
+                        ? `Outras Escalas (${outrosCultos.length})` 
                         : `Cultos e Escalas (${historicoListas.length})`}
                     </span>
                   </div>
@@ -1134,28 +1040,26 @@ export default function PainelEquipe() {
                     <ChevronDown className="w-4 h-4 text-slate-400" />
                   )}
                 </button>
-
                 {listaSanfonaExpandida && (
                   <div className="pt-2 space-y-2 max-h-60 overflow-y-auto pr-1 animate-in fade-in duration-150">
                     {(cultoSelecionadoInfo.id ? outrosCultos : historicoListas).map((item) => {
-                      const dataF = formatarDataComDiaSemana(item.data || item.created_at);
+                      const dataF = formatarDataComDiaSemana(item.data_culto || item.data || item.created_at);
                       const tipoE = item.tipo_culto || item.evento || item.titulo || item.assunto || "Culto";
-                      const responsavel = item.responsavel || item.autor || "Geral";
-                      
+                      const louvor = item.responsavel || item.autor || "Geral";
                       return (
                         <div
                           key={item.id}
-                          onClick={() => handleSelecionarCulto(item)}
+                          onClick={() => selecionarCulto(item)}
                           className="p-3 rounded-xl text-xs cursor-pointer flex justify-between items-center transition-all border bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200/80 hover:border-slate-300"
                         >
                           <div>
                             <span className="font-bold text-slate-800">{dataF}</span>
                             <p className="text-[10px] text-slate-500 mt-0.5">
-                              <span className="font-semibold text-slate-700">{tipoE}</span> • Resp: {responsavel}
+                              <span className="font-semibold text-slate-700">{tipoE}</span> • Louvor: {louvor}
                             </p>
                           </div>
                           <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 text-white shrink-0">
-                            Mostrar Culto
+                            Mostrar Escala
                           </span>
                         </div>
                       );
@@ -1166,9 +1070,7 @@ export default function PainelEquipe() {
             )}
           </div>
         )}
-
-        {/* Modal de Gerenciamento de Membros */}
-        {modalMembrosAberto && (
+        {modalMembrosAberto && temNuvem && (
           <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
               <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
@@ -1186,7 +1088,6 @@ export default function PainelEquipe() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
               <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
                 <form onSubmit={handleSalvarMembroModal} className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
                   <div className="flex justify-between items-center">
@@ -1203,7 +1104,6 @@ export default function PainelEquipe() {
                       </button>
                     )}
                   </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <select
                       value={formMembroModal.funcao}
@@ -1213,7 +1113,6 @@ export default function PainelEquipe() {
                       <option value="">Função...</option>
                       {funcoesMacro.map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
-
                     <select
                       value={formMembroModal.categoria}
                       onChange={(e) => setFormMembroModal({ ...formMembroModal, categoria: e.target.value })}
@@ -1222,7 +1121,6 @@ export default function PainelEquipe() {
                       <option value="">Categoria/Instrumento...</option>
                       {(categoriasFrequentes[formMembroModal.funcao] || []).map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-
                     <div className="relative flex items-center">
                       <Input 
                         placeholder="Nome" 
@@ -1240,18 +1138,15 @@ export default function PainelEquipe() {
                       </button>
                     </div>
                   </div>
-
                   <Button type="submit" size="sm" className="w-full h-9 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl cursor-pointer">
                     <Plus className="w-4 h-4 mr-1" /> Salvar Integrante no Banco
                   </Button>
                 </form>
-
                 <div className="space-y-2">
                   <div className="flex justify-between items-center px-1">
                     <span className="text-xs font-bold text-slate-500 uppercase">Integrantes Salvos ({membrosCadastrados.length})</span>
                     <span className="text-[10px] text-slate-400">★ Equipe Padrão</span>
                   </div>
-
                   {membrosCadastrados.length === 0 ? (
                     <p className="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                       Nenhum participante cadastrado no banco ainda.
@@ -1272,7 +1167,6 @@ export default function PainelEquipe() {
                             >
                               <Star className={`w-4 h-4 transition-transform active:scale-125 ${membro.equipe_padrao ? "text-amber-500 fill-amber-500" : "text-slate-300 hover:text-amber-400"}`} />
                             </button>
-                            
                             <div className="flex flex-col flex-1 min-w-0">
                               <span className="font-semibold text-slate-800 text-xs truncate">
                                 {membro.nome}
@@ -1282,7 +1176,6 @@ export default function PainelEquipe() {
                               </span>
                             </div>
                           </div>
-
                           <div className="flex items-center gap-1 shrink-0">
                             <button
                               type="button"
@@ -1313,7 +1206,6 @@ export default function PainelEquipe() {
                   )}
                 </div>
               </div>
-
               <div className="bg-slate-50 px-5 py-3 border-t border-slate-100 text-right">
                 <Button 
                   type="button" 
@@ -1327,119 +1219,8 @@ export default function PainelEquipe() {
             </div>
           </div>
         )}
-
-        {/* Aba Mapa de Palco */}
-        {abaAtiva === "mapa" && (
-          <div className="space-y-3 animate-in fade-in duration-200">
-            {podeCriar && (
-              <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {editandoCanalId ? "Editar Canal" : "Adicionar Canal ao Mapa"}
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input 
-                    placeholder="Canal (ex: 06)" 
-                    value={novoCanal.canal} 
-                    onChange={(e) => setNovoCanal({ ...novoCanal, canal: e.target.value })}
-                    className="h-8 text-xs"
-                  />
-                  <Input 
-                    placeholder="Função (ex: Violão)" 
-                    value={novoCanal.funcao} 
-                    onChange={(e) => setNovoCanal({ ...novoCanal, funcao: e.target.value })}
-                    className="h-8 text-xs"
-                  />
-                  <Input 
-                    placeholder="Microfone / DI" 
-                    value={novoCanal.microfone} 
-                    onChange={(e) => setNovoCanal({ ...novoCanal, microfone: e.target.value })}
-                    className="h-8 text-xs"
-                  />
-                  <Input 
-                    placeholder="Retorno (ex: Fone P2)" 
-                    value={novoCanal.retorno} 
-                    onChange={(e) => setNovoCanal({ ...novoCanal, retorno: e.target.value })}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleSalvarCanal} className="w-full h-8 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl cursor-pointer">
-                    {editandoCanalId ? "Salvar Alterações do Canal" : "Adicionar Canal ao Mapa"}
-                  </Button>
-                  {editandoCanalId && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setEditandoCanalId(null);
-                        setNovoCanal({ canal: "", funcao: "", microfone: "", retorno: "" });
-                      }}
-                      className="h-8 text-xs cursor-pointer"
-                    >
-                      Cancelar
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Configuração de Canais e Palco</h3>
-              
-              {carregandoMapa ? (
-                <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-slate-600" /></div>
-              ) : canaisMapa.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6">Nenhum canal cadastrado no mapa de palco desta igreja.</p>
-              ) : (
-                <div className="space-y-2.5">
-                  {canaisMapa.map((item) => (
-                    <div key={item.id} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-7 h-7 bg-slate-800 text-white font-bold rounded-lg flex items-center justify-center text-[11px]">
-                          {item.canal}
-                        </span>
-                        <div>
-                          <p className="font-semibold text-slate-800">{item.funcao}</p>
-                          <p className="text-[10px] text-slate-400">Mic: {item.microfone || "-"} • Retorno: {item.retorno || "-"}</p>
-                        </div>
-                      </div>
-                      
-                      {podeCriar && (
-                        <div className="flex gap-1.5">
-                          <button 
-                            onClick={() => {
-                              setNovoCanal({
-                                canal: item.canal,
-                                funcao: item.funcao,
-                                microfone: item.microfone || "",
-                                retorno: item.retorno || ""
-                              });
-                              setEditandoCanalId(item.id);
-                            }}
-                            className="p-1.5 bg-slate-200/60 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors cursor-pointer"
-                            title="Editar canal"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeletarCanal(item.id)}
-                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
-                            title="Excluir canal"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* Modal Editar Integrante na Escala */}
-      {modalEditarEscala.open && (
+      {modalEditarEscala.open && temNuvem && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
@@ -1501,13 +1282,12 @@ export default function PainelEquipe() {
                 type="button" 
                 onClick={() => {
                   if (!modalEditarEscala.nome.trim()) return alert("O nome é obrigatório.");
-                  setEscalaCulto((prev) =>
-                    prev.map((item) =>
-                      item.id === modalEditarEscala.id
-                        ? { ...item, nome: modalEditarEscala.nome.trim(), funcao: modalEditarEscala.funcao, categoria: modalEditarEscala.categoria.trim() }
-                        : item
-                    )
-                  );
+                  const atualizados = escalaCulto.map((item) =>
+                    item.id === modalEditarEscala.id
+                      ? { ...item, nome: modalEditarEscala.nome.trim(), funcao: modalEditarEscala.funcao, categoria: modalEditarEscala.categoria.trim() }
+                      : item
+                  ).sort(ordenarMembrosOuEscala);
+                  setEscalaCulto(atualizados);
                   setTemAlteracoesPendentes(true);
                   setModalEditarEscala({ open: false, id: null, nome: "", funcao: "", categoria: "" });
                 }}
@@ -1519,18 +1299,18 @@ export default function PainelEquipe() {
           </div>
         </div>
       )}
-
-      {/* Modal Preview Escala */}
-      <PreviewModalEscala 
-        open={modalPreview.open} 
-        onOpenChange={(open) => setModalPreview({ ...modalPreview, open })} 
-        mode={modalPreview.mode} 
-        rows={rowsParaPreview} 
-        dataCulto={cultoSelecionadoInfo.data}
-        tipoCulto={cultoSelecionadoInfo.titulo || cultoSelecionadoInfo.tipo}
-        responsavel={cultoSelecionadoInfo.responsavel}
-        nomeIgreja={nomeIgreja}
-      />
+      {temNuvem && (
+        <PreviewModalEscala 
+          open={modalPreview.open} 
+          onOpenChange={(open) => setModalPreview({ ...modalPreview, open })} 
+          mode={modalPreview.mode} 
+          rows={rowsParaPreview} 
+          dataCulto={cultoSelecionadoInfo.data}
+          tipoCulto={cultoSelecionadoInfo.titulo || cultoSelecionadoInfo.tipo}
+          responsavel={cultoSelecionadoInfo.louvor}
+          nomeIgreja={nomeIgreja}
+        />
+      )}
     </div>
   );
 }

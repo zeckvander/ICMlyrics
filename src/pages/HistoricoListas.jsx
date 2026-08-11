@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Trash2, Calendar, Music, Printer, Cloud, Edit3, Plus, X, Check, Play, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PreviewModal from "@/components/lista/PreviewModal";
 import { supabase } from "@/lib/supabaseClient";
 
-// Função para remover acentos e pontuações (.,!?- etc.)
 const normalizarTexto = (texto) =>
   String(texto || "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"¡!¿]/g, "") // Remove pontuações
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"¡!¿]/g, "") 
     .trim();
 
-// Função de busca e ordenação com prioridade para número exato
 const buscarELimitarLouvores = (listaLouvores, queryText, limite = 5) => {
   const termoBruto = (queryText || "").trim();
   if (!termoBruto) return [];
@@ -33,7 +31,6 @@ const buscarELimitarLouvores = (listaLouvores, queryText, limite = 5) => {
       return matchNumero || matchNome || matchLetra || matchCategoria;
     })
     .sort((a, b) => {
-      // 🏆 PRIORIDADE 1: Correspondência EXATA do número vai para o topo!
       if (buscaNum) {
         const numA = (a.numero !== null && a.numero !== undefined) ? String(a.numero).trim().toLowerCase() : "";
         const numB = (b.numero !== null && b.numero !== undefined) ? String(b.numero).trim().toLowerCase() : "";
@@ -44,8 +41,6 @@ const buscarELimitarLouvores = (listaLouvores, queryText, limite = 5) => {
         if (exatoA && !exatoB) return -1;
         if (!exatoA && exatoB) return 1;
       }
-
-      // 🏆 PRIORIDADE 2: Ordenação Padrão por Categoria e Número / Nome
       const obterPeso = (item) => {
         const temNumero = item.numero !== null && item.numero !== undefined && String(item.numero).trim() !== "";
         if (item.categoria === "Coletânea" && temNumero) return 1;
@@ -54,7 +49,6 @@ const buscarELimitarLouvores = (listaLouvores, queryText, limite = 5) => {
         if (item.categoria === "Avulsos") return 4;
         return 5;
       };
-
       const pesoA = obterPeso(a);
       const pesoB = obterPeso(b);
 
@@ -68,9 +62,18 @@ const buscarELimitarLouvores = (listaLouvores, queryText, limite = 5) => {
     })
     .slice(0, limite);
 };
-
 export default function HistoricoListas() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const listaIdEspecifica = location.state?.listaId || location.state?.lista?.id;
+  const handleVoltar = () => {
+    const origemRetorno = location.state?.from || location.state?.origem;
+    if (origemRetorno) {
+      navigate(origemRetorno);
+    } else {
+      navigate(-1);
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [listas, setListas] = useState([]);
   const [nomeIgreja, setNomeIgreja] = useState("");
@@ -132,18 +135,23 @@ export default function HistoricoListas() {
       console.error("Erro ao carregar banco de louvores:", e);
     }
   };
-
   const carregarListas = async () => {
     setLoading(true);
     if (temNuvem) {
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from("listas")
-          .select("*, lista_itens(*, louvores(*))")
-          .eq("acesso_usuario", usuarioNuvem)
-          .order("data_culto", { ascending: false })
-          .limit(12);
+          .select("*, lista_itens(*, louvores(*))");
 
+        if (listaIdEspecifica) {
+          query = query.eq("id", listaIdEspecifica);
+        } else {
+          query = query
+            .eq("acesso_usuario", usuarioNuvem)
+            .order("data_culto", { ascending: false })
+            .limit(12);
+        }
+        const { data, error } = await query;
         if (error) throw error;
         setListas(data || []);
       } catch (e) {
@@ -154,7 +162,11 @@ export default function HistoricoListas() {
     } else {
       try {
         const local = JSON.parse(localStorage.getItem("icmlyrics_historico_listas") || "[]");
-        setListas(local.slice(0, 12));
+        if (listaIdEspecifica) {
+          setListas(local.filter(l => l.id === listaIdEspecifica));
+        } else {
+          setListas(local.slice(0, 12));
+        }
       } catch (e) {
         console.error("Erro ao carregar local:", e);
       } finally {
@@ -162,24 +174,20 @@ export default function HistoricoListas() {
       }
     }
   };
-
   const handleSincronizar = () => {
     carregarBancoLouvores();
     carregarListas();
   };
-
   useEffect(() => {
     carregarBancoLouvores();
     carregarListas();
-  }, []);
-
+  }, [listaIdEspecifica]);
   const calcularDiaSemana = (dataStr) => {
     if (!dataStr) return "";
     const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
     const dataObj = new Date(dataStr.split("T")[0] + "T00:00:00");
     return DIAS[dataObj.getDay()] || "";
   };
-
   const formatarDataBR = (dataStr) => {
     if (!dataStr) return "";
     const partes = dataStr.split("T")[0].split("-");
@@ -188,7 +196,6 @@ export default function HistoricoListas() {
     }
     return dataStr;
   };
-
   const abrirEdicaoLista = (lista) => {
     setListaSelecionada(lista);
     setDataCulto(lista.data_culto || lista.dataCulto || "");
@@ -196,7 +203,6 @@ export default function HistoricoListas() {
     setResponsavel(lista.responsavel || "");
     setAbaAtiva(1);
     setModoAdicao(null);
-
     const itensBrutos = lista.lista_itens || lista.rows || [];
     const itensFormatados = itensBrutos.map((item, idx) => ({
       id: item.id || `item_${idx}`,
@@ -210,15 +216,12 @@ export default function HistoricoListas() {
       text: item.texto_secao || item.text || "",
       isEditing: false
     }));
-
     setRows(itensFormatados);
   };
-
   const handleAbrirReimpressao = (lista) => {
     setDataCulto(lista.data_culto || lista.dataCulto || "");
     setTipoCulto(lista.tipo_culto || lista.tipoCulto || "");
     setResponsavel(lista.responsavel || "");
-
     const itensBrutos = lista.lista_itens || lista.rows || [];
     const itensFormatados = itensBrutos.map((item, idx) => ({
       id: item.id || `item_${idx}`,
@@ -230,11 +233,9 @@ export default function HistoricoListas() {
       letra_musica: item.louvores?.letra_musica || item.letra_musica || "",
       text: item.texto_secao || item.text || ""
     }));
-
     setRows(itensFormatados);
     setPreviewOpen(true);
   };
-
   const moverItem = (index, novoIndex) => {
     if (novoIndex < 0 || novoIndex >= rows.length) return;
     const items = [...rows];
@@ -242,7 +243,6 @@ export default function HistoricoListas() {
     items.splice(novoIndex, 0, reorderedItem);
     setRows(items);
   };
-
   const handleAdicionarSecao = () => {
     if (!novoTextoSecao.trim()) {
       alert("Informe o título da seção.");
@@ -259,13 +259,11 @@ export default function HistoricoListas() {
     setNovoTextoSecao("");
     setModoAdicao(null);
   };
-
   const handleSalvarEdicao = async () => {
     if (rows.length === 0) {
       alert("A lista precisa ter pelo menos um item.");
       return;
     }
-
     const diaSemana = calcularDiaSemana(dataCulto);
     setLoading(true);
 
@@ -293,7 +291,6 @@ export default function HistoricoListas() {
           texto_secao: row.type === "divider" ? row.text : null,
           louvor_id: row.id_louvor_db || null
         }));
-
         const { error: errItens } = await supabase.from("lista_itens").insert(itensParaInserir);
         if (errItens) throw errItens;
 
@@ -340,7 +337,6 @@ export default function HistoricoListas() {
       }
     }
   };
-
   const handleExcluirLista = async (id) => {
     if (!window.confirm("Deseja realmente excluir esta lista?")) return;
     setLoading(true);
@@ -370,7 +366,6 @@ export default function HistoricoListas() {
       }
     }
   };
-
   const handleExcluirTodasNuvem = async () => {
     if (!window.confirm("Tem certeza que deseja excluir TODAS as listas salvas na nuvem? Esta ação não pode ser desfeita.")) return;
     setLoading(true);
@@ -408,17 +403,16 @@ export default function HistoricoListas() {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
+          <button onClick={handleVoltar} className="text-slate-300 hover:text-white transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Histórico</h1>
-            <p className="text-slate-400 text-xs">Listas anteriores</p>
+            <h1 className="text-xl font-bold tracking-tight">Lista de Louvores</h1>
+            <p className="text-slate-400 text-xs">Visualização da escala selecionada</p>
           </div>
         </div>
 
@@ -430,7 +424,7 @@ export default function HistoricoListas() {
           )}
 
           <div className="flex items-center gap-2 mt-1">
-            {temNuvem && listas.length > 0 && (
+            {temNuvem && listas.length > 0 && !listaIdEspecifica && (
               <button
                 onClick={handleExcluirTodasNuvem}
                 className="text-rose-400 hover:text-rose-300 transition-colors p-0.5"
@@ -458,7 +452,7 @@ export default function HistoricoListas() {
         <div className="space-y-3">
           {listas.length === 0 ? (
             <p className="text-center text-xs text-slate-400 py-8 bg-white rounded-2xl border border-dashed border-slate-200">
-              Nenhuma lista encontrada no histórico.
+              Nenhuma lista encontrada para esta escala.
             </p>
           ) : (
             listas.map((lista) => {
@@ -467,7 +461,6 @@ export default function HistoricoListas() {
               const tema = lista.tipo_culto || lista.tipoCulto || "";
               const resp = lista.responsavel || "";
               const itensLista = lista.lista_itens || lista.rows || [];
-
               return (
                 <div key={lista.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
                   <div className="flex items-center justify-between">
@@ -478,7 +471,6 @@ export default function HistoricoListas() {
                         {temNuvem ? "NUVEM" : "LOCAL"}
                       </span>
                     </div>
-
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => abrirEdicaoLista(lista)}
@@ -496,14 +488,12 @@ export default function HistoricoListas() {
                       </button>
                     </div>
                   </div>
-
                   {(tema || resp) && (
                     <div className="bg-slate-50 px-3 py-2 rounded-xl text-xs text-slate-700 flex items-center gap-3">
                       {tema && <span><strong>Culto:</strong> {tema}</span>}
-                      {resp && <span><strong>Responsável:</strong> {resp}</span>}
+                      {resp && <span><strong>Louvor:</strong> {resp}</span>}
                     </div>
                   )}
-
                   <div className="space-y-1.5">
                     {itensLista.map((item, idx) => {
                       const tipo = item.tipo || item.type || "louvor";
@@ -511,7 +501,6 @@ export default function HistoricoListas() {
                       const nomeBanco = item.louvores?.nome || item.nome || item.text || "";
                       const cat = item.louvores?.categoria || item.categoria || "Coletânea";
                       const textoSecao = item.texto_secao || item.text || nomeBanco;
-
                       const ehCias = cat === "Cias" || cat === "CIAS" || cat === "cias";
                       const nomeExibicao = ehCias && !nomeBanco.toLowerCase().includes("(cias)") ? `${nomeBanco} (Cias)` : nomeBanco;
 
@@ -532,7 +521,6 @@ export default function HistoricoListas() {
                       );
                     })}
                   </div>
-
                   <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                     <Button
                       onClick={() => navigate("/modo-playlist", { state: { lista: lista } })}
@@ -554,7 +542,6 @@ export default function HistoricoListas() {
           )}
         </div>
       </div>
-
       {listaSelecionada && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
@@ -682,7 +669,6 @@ export default function HistoricoListas() {
                       </div>
                     </div>
                   )}
-
                   {modoAdicao === 'divider' && (
                     <div className="bg-indigo-50/50 border border-indigo-100 p-3.5 rounded-xl space-y-3">
                       <div className="flex items-center justify-between">
@@ -709,7 +695,6 @@ export default function HistoricoListas() {
                       </Button>
                     </div>
                   )}
-
                   <p className="text-xs font-semibold text-slate-600 pt-1">Utilize as setas para reordenar ou o lápis para editar:</p>
 
                   <div className="space-y-2">
@@ -717,10 +702,8 @@ export default function HistoricoListas() {
                       const resultadosBusca = !row.isEditing || row.type === 'divider' 
                         ? [] 
                         : buscarELimitarLouvores(todosLouvoresBanco, row.nome, 5);
-
                       const ehCiasModal = row.categoria === "Cias" || row.categoria === "CIAS" || row.categoria === "cias";
                       const nomeExibicaoModal = ehCiasModal && !(row.nome || "").toLowerCase().includes("(cias)") ? `${row.nome} (Cias)` : row.nome;
-
                       return (
                         <div key={row.id || index} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
                           {row.isEditing ? (
@@ -769,7 +752,6 @@ export default function HistoricoListas() {
                                     <div className="bg-slate-100 text-slate-600 font-semibold px-2 py-1.5 rounded-lg text-xs w-12 text-center border border-slate-200 flex-shrink-0">
                                       {row.numero || "—"}
                                     </div>
-
                                     <div className="relative flex-1">
                                       <input
                                         type="text"
@@ -819,7 +801,6 @@ export default function HistoricoListas() {
                                         </div>
                                       )}
                                     </div>
-
                                     <button
                                       onClick={() => {
                                         const novasRows = [...rows];
@@ -928,7 +909,6 @@ export default function HistoricoListas() {
                       );
                     })}
                   </div>
-
                   <div className="flex gap-2 pt-3 border-t border-slate-100 mt-4">
                     <button
                       onClick={() => setModoAdicao(modoAdicao === 'louvor' ? null : 'louvor')}
@@ -950,7 +930,6 @@ export default function HistoricoListas() {
                 </div>
               )}
             </div>
-
             <div className="flex gap-3 pt-2 border-t border-slate-100 flex-shrink-0">
               <Button 
                 variant="outline" 
@@ -970,7 +949,6 @@ export default function HistoricoListas() {
           </div>
         </div>
       )}
-
       <PreviewModal 
         open={previewOpen} 
         onOpenChange={setPreviewOpen} 

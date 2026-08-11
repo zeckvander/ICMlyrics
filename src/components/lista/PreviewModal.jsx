@@ -69,7 +69,7 @@ export default function PreviewModal({
     let texto = `Louvores`;
     if (dataFinal) texto += `\n${formatarData(dataFinal)}${diaSemana ? ` — ${diaSemana}` : ""}`;
     if (cultoFinal) texto += `\nCulto: ${cultoFinal}`;
-    if (responsavelFinal) texto += `\nResponsável: ${responsavelFinal}`;
+    if (responsavelFinal) texto += `\nLouvor: ${responsavelFinal}`;
     
     texto += `\n\n-----------\n`;
 
@@ -190,7 +190,7 @@ export default function PreviewModal({
                 {responsavelFinal && (
                   <div className="pt-1 text-xs text-slate-300 flex items-center justify-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 
-                    <span>Responsável: <span className="text-white font-semibold">{responsavelFinal}</span></span>
+                    <span>Louvor: <span className="text-white font-semibold">{responsavelFinal}</span></span>
                   </div>
                 )}
               </div>
