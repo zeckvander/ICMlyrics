@@ -19,7 +19,7 @@ import Drive from '@/pages/Drive';
 import HistoricoListas from '@/pages/HistoricoListas'; 
 import Dashboard from '@/pages/Dashboard';
 import Chat from '@/pages/Chat';
-import Biblia from '@/pages/biblia'; 
+import Biblia from '@/pages/Biblia'; 
 import ModoPlaylist from '@/pages/ModoPlaylist';
 import Backup from '@/pages/Backup'; 
 import Avisos from '@/pages/Avisos';
