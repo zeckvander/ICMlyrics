@@ -30,7 +30,7 @@ import PainelEquipe from '@/pages/PainelEquipe'
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 import AquecimentoVocal from "./pages/AquecimentoVocal";
 import Sugestoes from "./pages/Sugestoes";
-import MapaPalco from "./pages/MapaPalco";
+import MapaPalco from "@/pages/MapaPalco";
 
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
