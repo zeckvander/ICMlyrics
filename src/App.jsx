@@ -32,6 +32,7 @@ import AquecimentoVocal from "./pages/AquecimentoVocal";
 import Sugestoes from "./pages/Sugestoes";
 import MapaPalco from "@/pages/MapaPalco";
 import RadiosOnline from '@/pages/RadiosOnline';
+import TvOnline from '@/pages/TvOnline';
 
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -113,6 +114,7 @@ function App() {
             <Route path="/repertorio" element={<PrivateLayout><Repertorio /></PrivateLayout>} />
             <Route path="/repertorio/lista/:id" element={<PrivateLayout><ListaRepertorio /></PrivateLayout>} />
             <Route path="/radios-online" element={<PrivateLayout><RadiosOnline /></PrivateLayout>} /> 
+            <Route path="/tv-online" element={<TvOnline />} />
             <Route path="/aquecimento-vocal" element={<AquecimentoVocal />} />
             <Route path="/sugestoes" element={<Sugestoes />} />
             <Route path="/mapa-palco" element={<MapaPalco />} />

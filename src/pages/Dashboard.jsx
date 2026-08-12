@@ -341,10 +341,9 @@ export default function Dashboard() {
   const ferramentas = [
     { label: "Metrônomo", icon: Gauge, color: "bg-purple-500", onClick: openMetronomo },
     { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfinador },
-    { label: "Rádios Online", icon: Radio, path: "/radios-online", color: "bg-red-600" },
+    { label: "Rádio e Tv Online", icon: Radio, path: "/radios-online", color: "bg-red-600" },
     { label: "Perfil", icon: Settings, color: "bg-slate-700", onClick: () => navigate("/perfil") } 
   ];
-
   return (
     <div className="min-h-screen bg-slate-50 pb-28 relative flex flex-col justify-between">
       <div>

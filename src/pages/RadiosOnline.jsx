@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Radio, Play, Pause, 
-  Volume2, VolumeX, Trash2, Link as LinkIcon, Plus, Signal
+  Volume2, VolumeX, Trash2, Signal, Tv
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabaseClient";
+import Hls from "hls.js";
 
 export default function RadiosOnline() {
   const navigate = useNavigate();
@@ -15,21 +16,32 @@ export default function RadiosOnline() {
   const userNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
   const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
 
-  // Estados do Player
   const audioRef = useRef(null);
+  const hlsRef = useRef(null);
+  const menuTvRef = useRef(null);
+
   const [reproduzindo, setReproduzindo] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [mostrarVolume, setMostrarVolume] = useState(false);
+  const [menuTvAberto, setMenuTvAberto] = useState(false);
 
-  // Estados do Banco e Seleção
   const [radios, setRadios] = useState([]);
   const [radioSelecionada, setRadioSelecionada] = useState(null);
   const [carregando, setCarregando] = useState(true);
   
   const [novaRadio, setNovaRadio] = useState({ nome: "", url: "", categoria: "Gospel" });
 
-  // Validar acessos de administrador
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuTvRef.current && !menuTvRef.current.contains(event.target)) {
+        setMenuTvAberto(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     const validarAcesso = async () => {
       try {
@@ -74,7 +86,6 @@ export default function RadiosOnline() {
     validarAcesso();
   }, [userNuvem, usuarioLocal]);
 
-  // Carregar Rádios do Supabase
   const buscarRadios = async () => {
     setCarregando(true);
     try {
@@ -96,6 +107,12 @@ export default function RadiosOnline() {
 
   useEffect(() => {
     buscarRadios();
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+    };
   }, []);
 
   const podeCriar = userRole === "super_admin" || userRole === "church_admin";
@@ -113,38 +130,80 @@ export default function RadiosOnline() {
     setMostrarVolume(false);
   };
 
+  const tocarStream = (radio) => {
+    if (!radio?.url_stream || !audioRef.current) return;
+
+    const url = radio.url_stream;
+
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (Hls.isSupported() && url.includes(".m3u8")) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
+
+      hls.loadSource(url);
+      hls.attachMedia(audioRef.current);
+      hlsRef.current = hls;
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        audioRef.current.play()
+          .then(() => setReproduzindo(true))
+          .catch((err) => console.error("Erro ao dar play:", err));
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              setReproduzindo(false);
+              break;
+          }
+        }
+      });
+    } else {
+      const cacheBusterUrl = url.includes("?")
+        ? `${url}&_t=${Date.now()}`
+        : `${url}?_t=${Date.now()}`;
+
+      audioRef.current.src = cacheBusterUrl;
+      audioRef.current.load();
+      audioRef.current.play()
+        .then(() => setReproduzindo(true))
+        .catch((err) => console.error("Erro no play nativo:", err));
+    }
+  };
+
   const togglePlayPrincipal = async () => {
     if (!audioRef.current || !radioSelecionada?.url_stream) return;
 
-    try {
-      if (reproduzindo) {
-        audioRef.current.pause();
-        setReproduzindo(false);
-      } else {
-        await audioRef.current.play();
-        setReproduzindo(true);
+    if (reproduzindo) {
+      audioRef.current.pause();
+      if (hlsRef.current) {
+        hlsRef.current.stopLoad();
       }
-    } catch (error) {
-      console.error("Erro ao reproduzir a rádio:", error);
+      setReproduzindo(false);
+    } else {
+      tocarStream(radioSelecionada);
     }
   };
 
   const handleSelecionarEReproduzir = async (radio) => {
     setRadioSelecionada(radio);
     setReproduzindo(false);
-
-    setTimeout(async () => {
-      if (audioRef.current) {
-        try {
-          audioRef.current.pause();
-          audioRef.current.src = radio.url_stream;
-          audioRef.current.load();
-          await audioRef.current.play();
-          setReproduzindo(true);
-        } catch (error) {
-          console.error("Erro ao trocar de estação:", error);
-        }
-      }
+    setTimeout(() => {
+      tocarStream(radio);
     }, 100);
   };
 
@@ -198,6 +257,7 @@ export default function RadiosOnline() {
 
       if (radioSelecionada?.id === id) {
         if (audioRef.current) audioRef.current.pause();
+        if (hlsRef.current) hlsRef.current.destroy();
         setRadioSelecionada(listaAtualizada[0] || null);
         setReproduzindo(false);
       }
@@ -208,14 +268,13 @@ export default function RadiosOnline() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28 flex flex-col">
-      {/* Cabeçalho */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 sticky top-0 z-30 shadow-md">
-        <div className="flex items-center mb-2">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => navigate("/painel-equipe")} 
+              onClick={() => navigate("/dashboard")} 
               className="text-slate-300 hover:text-white transition-colors"
-              aria-label="Voltar ao Painel"
+              aria-label="Voltar ao dashboard"
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
@@ -226,6 +285,28 @@ export default function RadiosOnline() {
               <p className="text-slate-400 text-xs">Transmita rádios ao vivo direto no player</p>
             </div>
           </div>
+
+          <div className="relative" ref={menuTvRef}>
+            <button
+              onClick={() => setMenuTvAberto(!menuTvAberto)}
+              className="flex items-center justify-center bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 p-2.5 rounded-xl transition-all active:scale-95 text-xs font-semibold"
+              title="TV Web Maanaim"
+            >
+              <Tv className="w-5 h-5 text-red-500" />
+            </button>
+
+            {menuTvAberto && (
+              <div className="absolute right-0 mt-2 w-max bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <button
+                  onClick={() => { setMenuTvAberto(false); navigate("/tv-online"); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-200 hover:bg-slate-800 hover:text-white transition-colors whitespace-nowrap"
+                >
+                  <Tv className="w-4 h-4 text-red-500" />
+                  <span>TV Web</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -234,11 +315,9 @@ export default function RadiosOnline() {
           
           <audio
             ref={audioRef}
-            src={radioSelecionada?.url_stream}
             onEnded={() => setReproduzindo(false)}
           />
 
-          {/* Card Principal da Rádio Ativa */}
           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm text-center">
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
               <Radio className="w-8 h-8" />
@@ -251,10 +330,8 @@ export default function RadiosOnline() {
               {radioSelecionada?.categoria || "Estação de Rádio"}
             </p>
 
-            {/* Player Estilo Barra */}
             <div className="bg-slate-900 text-white p-4 rounded-2xl mt-4 flex items-center justify-between shadow-md relative">
               
-              {/* Botão Play / Pause */}
               <button 
                 onClick={togglePlayPrincipal}
                 disabled={!radioSelecionada?.url_stream}
@@ -263,18 +340,16 @@ export default function RadiosOnline() {
                 {reproduzindo ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
               </button>
 
-              {/* Indicador AO VIVO */}
               <div className="flex-1 mx-4 flex items-center justify-center gap-2 bg-slate-800/80 py-2.5 rounded-xl border border-slate-700/50">
                 <Signal className={`w-4 h-4 ${reproduzindo ? "text-red-500 animate-pulse" : "text-slate-500"}`} />
                 <span className="text-xs font-bold tracking-wider uppercase text-slate-200">
-                  {reproduzindo ? "Ao Vivo" : "Pronto para Transmitir"}
+                  {reproduzindo ? "Ao Vivo" : "Clique no play"}
                 </span>
                 {reproduzindo && (
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
                 )}
               </div>
 
-              {/* Botão de Volume / Slider que substitui o ícone no local correto */}
               <div className="relative flex items-center">
                 {!mostrarVolume ? (
                   <button 
@@ -320,42 +395,9 @@ export default function RadiosOnline() {
                   </div>
                 )}
               </div>
-
             </div>
           </div>
 
-          {/* Form para adicionar rádios (se for Admin) */}
-          {podeCriar && (
-            <form onSubmit={handleAdicionarRadio} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cadastrar Nova Rádio</p>
-              <div className="space-y-2">
-                <Input 
-                  placeholder="Nome da Rádio"
-                  value={novaRadio.nome}
-                  onChange={(e) => setNovaRadio({ ...novaRadio, nome: e.target.value })}
-                  className="h-9 text-xs"
-                />
-                <div className="relative">
-                  <Input 
-                    placeholder="URL do Stream da Rádio (.mp3 / stream)"
-                    value={novaRadio.url}
-                    onChange={(e) => setNovaRadio({ ...novaRadio, url: e.target.value })}
-                    className="h-9 text-xs pl-8"
-                  />
-                  <LinkIcon className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                </div>
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full h-9 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold gap-1.5 rounded-xl"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Cadastrar Rádio
-              </Button>
-            </form>
-          )}
-
-          {/* Lista de Rádios */}
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Estações Disponíveis</p>
 
@@ -369,7 +411,6 @@ export default function RadiosOnline() {
               radios.map((radio) => {
                 const estaAtiva = radioSelecionada?.id === radio.id;
                 const tocandoEsta = estaAtiva && reproduzindo;
-
                 return (
                   <div
                     key={radio.id}
