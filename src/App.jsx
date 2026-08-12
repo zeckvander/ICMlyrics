@@ -30,6 +30,7 @@ import PainelEquipe from '@/pages/PainelEquipe'
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 import AquecimentoVocal from "./pages/AquecimentoVocal";
 import Sugestoes from "./pages/Sugestoes";
+import MapaPalco from "./pages/MapaPalco";
 
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -112,6 +113,7 @@ function App() {
             <Route path="/repertorio/lista/:id" element={<PrivateLayout><ListaRepertorio /></PrivateLayout>} />
             <Route path="/aquecimento-vocal" element={<AquecimentoVocal />} />
             <Route path="/sugestoes" element={<Sugestoes />} />
+            <Route path="/mapa-palco" element={<MapaPalco />} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>

@@ -6,11 +6,9 @@ import {
   Calendar, Users, ArrowRight, Eye
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-
 export default function Avisos() {
   const navigate = useNavigate();
 
-  // Estados dos Avisos
   const [avisos, setAvisos] = useState([]);
   const [assuntoAviso, setAssuntoAviso] = useState("");
   const [novoAviso, setNovoAviso] = useState("");
@@ -23,36 +21,23 @@ export default function Avisos() {
   const [salvando, setSalvando] = useState(false);
   const [avisoExpandido, setAvisoExpandido] = useState(null);
   const [listaExpandida, setListaExpandida] = useState(false);
-
-  // Estados de Usuário / Igreja
   const [nomeIgreja, setNomeIgreja] = useState("Carregando...");
   const [carregandoValidacao, setCarregandoValidacao] = useState(true);
   const [userRole, setUserRole] = useState("user");
-
-  // Estados para Modais de Seleção (Listagem)
   const [modalEscalaOpen, setModalEscalaOpen] = useState(false);
   const [escalas, setEscalas] = useState([]);
   const [carregandoEscalas, setCarregandoEscalas] = useState(false);
-
   const [modalRepertorioOpen, setModalRepertorioOpen] = useState(false);
   const [repertorios, setRepertorios] = useState([]);
   const [carregandoRepertorios, setCarregandoRepertorios] = useState(false);
-
-  // Estados para Modais de Informações (Visualização ao clicar no item abaixo)
   const [modalInfoEscalaOpen, setModalInfoEscalaOpen] = useState(false);
   const [modalInfoRepertorioOpen, setModalInfoRepertorioOpen] = useState(false);
-
-  // Identificadores locais
   const userNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
   const userName = localStorage.getItem("icmlyrics_user") || "Usuário";
-
-  // Função auxiliar para garantir URLs válidas
   const formatarUrl = (url) => {
     if (!url) return "#";
     return url.startsWith("http://") || url.startsWith("https://") ? url : `https://${url}`;
   };
-
-  // Helper de Formatação de Data Simples
   const formatarData = (dataStr) => {
     if (!dataStr) return "";
     const partes = dataStr.split("T")[0].split("-");
@@ -61,8 +46,6 @@ export default function Avisos() {
     }
     return dataStr;
   };
-
-  // Helper de Formatação de Data com Dia da Semana (Escalas e Repertório)
   const formatarDataComDiaSemana = (dataRaw) => {
     if (!dataRaw) return "Data não definida";
     const strData = dataRaw.split("T")[0];
@@ -80,38 +63,30 @@ export default function Avisos() {
     const nomeDia = diasSemana[dataObj.getDay()] || "";
     return `${diaFormatado}/${mesFormatado}/${ano}${nomeDia ? ` - ${nomeDia}` : ""}`;
   };
-
-  // 1. VALIDAÇÃO DE PERMISSÕES
   useEffect(() => {
     const validarAcesso = async () => {
       try {
         setCarregandoValidacao(true);
-
         const roleSalva = localStorage.getItem("icmlyrics_role") || "user";
-
         if (roleSalva === "super_admin" || userNuvem === "admin_geral") {
           setUserRole("super_admin");
           setNomeIgreja(userNuvem || "Administração Geral");
           setCarregandoValidacao(false);
           return;
         }
-
         if (!userNuvem.trim()) {
           setUserRole("user");
           setNomeIgreja("Modo Offline");
           setCarregandoValidacao(false);
           return;
         }
-
         const { data, error } = await supabase
           .from("igrejas_autorizadas")
           .select("role, nome_igreja")
           .eq("usuario", userNuvem.trim())
           .maybeSingle();
-
         if (!error && data) {
           const roleDoBanco = data.role?.toLowerCase() || "";
-
           if (roleDoBanco === "super_admin" || roleDoBanco === "super_adm") {
             setUserRole("super_admin");
           } else if (
@@ -123,7 +98,6 @@ export default function Avisos() {
           } else {
             setUserRole("user");
           }
-
           setNomeIgreja(data.nome_igreja || userNuvem);
         } else {
           setUserRole(roleSalva);
@@ -136,18 +110,14 @@ export default function Avisos() {
         setCarregandoValidacao(false);
       }
     };
-
     validarAcesso();
   }, [userNuvem]);
-
-  // CAPTURA DADOS PENDENTES DO REPERTÓRIO
   useEffect(() => {
     const dadosTemporarios = localStorage.getItem('icmlyrics_aviso_pendente');
 
     if (dadosTemporarios) {
       try {
         const dados = JSON.parse(dadosTemporarios);
-
         const assuntoFinal = dados.titulo || dados.assunto || "";
         const mensagemFinal = dados.mensagem || dados.texto || dados.observacao || "";
         const linksFinais = dados.links || [];
@@ -161,7 +131,6 @@ export default function Avisos() {
             if (data) setRepertorioSelecionado(data);
           });
         }
-        
         if (linksFinais.length > 0) {
           const linksMapeados = linksFinais.map(l => ({
             texto: l.titulo || l.texto || "",
@@ -176,7 +145,6 @@ export default function Avisos() {
       }
     }
   }, []);
-
   const podeCriar = userRole === "super_admin" || userRole === "church_admin";
   const isSuper = userRole === "super_admin";
 
@@ -190,7 +158,6 @@ export default function Avisos() {
     }
     return false;
   };
-
   const buscarAvisosDoBanco = async () => {
     setCarregandoAvisos(true);
     try {
@@ -212,12 +179,9 @@ export default function Avisos() {
       setCarregandoAvisos(false);
     }
   };
-
   useEffect(() => {
     buscarAvisosDoBanco();
   }, [userNuvem]);
-
-  // Buscar Escalas
   const buscarEscalas = async () => {
     setCarregandoEscalas(true);
     try {
@@ -226,7 +190,6 @@ export default function Avisos() {
         queryEquipe = queryEquipe.eq("nome_igreja", nomeIgreja);
       }
       const { data: equipeData, error: equipeError } = await queryEquipe;
-
       const { data: listasData, error: listasError } = await supabase
         .from("listas")
         .select("*")
@@ -240,7 +203,6 @@ export default function Avisos() {
             membros: membrosDaLista
           };
         }).filter(lista => lista.membros.length > 0);
-
         setEscalas(escalasExistentes);
       }
     } catch (err) {
@@ -249,8 +211,6 @@ export default function Avisos() {
       setCarregandoEscalas(false);
     }
   };
-
-  // Buscar Repertórios (utilizando a tabela correta listas_repertorio e ordenando por data_evento)
   const buscarRepertorios = async () => {
     setCarregandoRepertorios(true);
     try {
@@ -268,12 +228,10 @@ export default function Avisos() {
       setCarregandoRepertorios(false);
     }
   };
-
   const handleSalvarAviso = async () => {
     if (!assuntoAviso.trim() || !novoAviso.trim()) {
       return alert("Assunto e texto são obrigatórios.");
     }
-
     setSalvando(true);
     try {
       if (avisoEditandoId) {
@@ -283,7 +241,6 @@ export default function Avisos() {
           setSalvando(false);
           return;
         }
-
         const { error: errorAviso } = await supabase
           .from("avisos")
           .update({
@@ -292,12 +249,9 @@ export default function Avisos() {
             repertorio_id: repertorioId || null,
           })
           .eq("id", avisoEditandoId);
-
         if (errorAviso) throw errorAviso;
-
         const { error: errDel } = await supabase.from("avisos_links").delete().eq("aviso_id", avisoEditandoId);
         if (errDel) throw errDel;
-
         const linksParaSalvar = linksForm
           .filter((l) => l.url.trim() !== "")
           .map((l) => ({
@@ -305,7 +259,6 @@ export default function Avisos() {
             titulo_link: l.texto.trim() || "Link",
             url: l.url.trim(),
           }));
-
         if (linksParaSalvar.length > 0) {
           const { error: errIns } = await supabase.from("avisos_links").insert(linksParaSalvar);
           if (errIns) throw errIns;
@@ -326,9 +279,7 @@ export default function Avisos() {
           ])
           .select()
           .single();
-
         if (errorCriar) throw errorCriar;
-
         const linksParaSalvar = linksForm
           .filter((l) => l.url.trim() !== "")
           .map((l) => ({
@@ -336,13 +287,11 @@ export default function Avisos() {
             titulo_link: l.texto.trim() || "Link",
             url: l.url.trim(),
           }));
-
         if (linksParaSalvar.length > 0) {
           const { error: errIns } = await supabase.from("avisos_links").insert(linksParaSalvar);
           if (errIns) throw errIns;
         }
       }
-
       setAvisoEditandoId(null);
       setAssuntoAviso("");
       setNovoAviso("");
@@ -358,12 +307,10 @@ export default function Avisos() {
       setSalvando(false);
     }
   };
-
   const handleDeletarAviso = async (aviso) => {
     if (!podeModificarAviso(aviso)) {
       return alert("Você não tem permissão para excluir avisos do Super Admin.");
     }
-
     if (!window.confirm("Deseja realmente excluir este aviso?")) return;
     try {
       const { error } = await supabase.from("avisos").delete().eq("id", aviso.id);
@@ -374,12 +321,10 @@ export default function Avisos() {
       alert("Erro ao excluir aviso.");
     }
   };
-
   const handleIniciarEdicao = (aviso) => {
     if (!podeModificarAviso(aviso)) {
       return alert("Você não tem permissão para editar este aviso.");
     }
-
     setAvisoEditandoId(aviso.id);
     setAssuntoAviso(aviso.assunto || "");
     setNovoAviso(aviso.texto || "");
@@ -401,7 +346,6 @@ export default function Avisos() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
-      {/* Cabeçalho */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button 
@@ -448,10 +392,7 @@ export default function Avisos() {
           )}
         </div>
       </div>
-
-      {/* Conteúdo Principal */}
       <div className="p-4 space-y-6 max-w-md mx-auto mt-2">
-        {/* Formulário de Criação/Edição */}
         {podeCriar && (
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
             <div className="flex justify-between items-center flex-wrap gap-2">
@@ -501,14 +442,12 @@ export default function Avisos() {
               placeholder="Assunto do aviso"
               className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
             />
-
             <textarea
               value={novoAviso}
               onChange={(e) => setNovoAviso(e.target.value)}
               placeholder="Escreva a mensagem do aviso..."
               className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl resize-none h-32 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900"
             />
-
             <div className="space-y-2">
               {linksForm.map((link, idx) => (
                 <div key={idx} className="bg-slate-50 p-2 rounded-xl border border-slate-200 relative">
@@ -544,8 +483,6 @@ export default function Avisos() {
                 </div>
               ))}
             </div>
-
-            {/* Aparece abaixo só se tiver vinculado, e ao clicar abre o modal com as informações */}
             {(repertorioSelecionado || escalaSelecionada) && (
               <div className="space-y-2 pt-1">
                 {repertorioSelecionado && (
@@ -588,7 +525,6 @@ export default function Avisos() {
                 )}
               </div>
             )}
-
             <div className="flex gap-2 pt-1">
               {avisoEditandoId && (
                 <button
@@ -620,8 +556,6 @@ export default function Avisos() {
             </div>
           </div>
         )}
-
-        {/* Lista de Avisos */}
         <div className="space-y-4">
           {carregandoAvisos ? (
             <div className="flex justify-center py-8">
@@ -632,7 +566,6 @@ export default function Avisos() {
               Nenhum aviso no mural
             </div>
           ) : !podeCriar ? (
-            /* VISUALIZAÇÃO PARA MEMBROS */
             <>
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
@@ -666,7 +599,6 @@ export default function Avisos() {
                   </a>
                 ))}
               </div>
-
               {avisos.length > 1 && (
                 <div className="space-y-2">
                   <button
@@ -738,15 +670,12 @@ export default function Avisos() {
               )}
             </>
           ) : (
-            /* VISUALIZAÇÃO PARA ADMINISTRADORES */
             <div className="space-y-3">
               <span className="text-xs font-bold text-slate-400 uppercase px-1 block">
                 Gerenciar Avisos ({avisos.length})
               </span>
-
               {avisos.map((aviso) => {
                 const temPermissaoEdicao = podeModificarAviso(aviso);
-
                 return (
                   <div
                     key={aviso.id}
@@ -836,8 +765,6 @@ export default function Avisos() {
           )}
         </div>
       </div>
-
-      {/* ================= MODAL DE SELEÇÃO: ESCALA ================= */}
       {modalEscalaOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
@@ -869,7 +796,6 @@ export default function Avisos() {
                     const dataFormatada = formatarDataComDiaSemana(escala.data_culto || escala.data || escala.created_at);
                     const tipoEvento = (escala.tipo_culto || escala.evento || escala.titulo || escala.assunto || "").toLowerCase();
                     const ehCeiaOuCasamento = tipoEvento.includes("ceia") || tipoEvento.includes("casamento");
-
                     return (
                       <div
                         key={escala.id}
@@ -916,8 +842,6 @@ export default function Avisos() {
           </div>
         </div>
       )}
-
-      {/* ================= MODAL DE SELEÇÃO: REPERTÓRIO ================= */}
       {modalRepertorioOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
@@ -983,8 +907,6 @@ export default function Avisos() {
           </div>
         </div>
       )}
-
-      {/* ================= MODAL SIMPLES: INFORMAÇÕES DA ESCALA ================= */}
       {modalInfoEscalaOpen && escalaSelecionada && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
@@ -1052,8 +974,6 @@ export default function Avisos() {
           </div>
         </div>
       )}
-
-      {/* ================= MODAL SIMPLES: INFORMAÇÕES DO REPERTÓRIO ================= */}
       {modalInfoRepertorioOpen && repertorioSelecionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
@@ -1069,7 +989,6 @@ export default function Avisos() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             <div className="p-5 space-y-3 bg-slate-50">
               <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm space-y-1">
                 <p className="text-[11px] text-slate-400 uppercase font-bold">Repertório</p>
@@ -1083,7 +1002,6 @@ export default function Avisos() {
                 )}
               </div>
             </div>
-
             <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between">
               <button
                 onClick={() => {
