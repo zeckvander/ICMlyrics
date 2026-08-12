@@ -31,6 +31,7 @@ import { ToolsProvider } from '@/components/tools/ToolsProvider';
 import AquecimentoVocal from "./pages/AquecimentoVocal";
 import Sugestoes from "./pages/Sugestoes";
 import MapaPalco from "@/pages/MapaPalco";
+import RadiosOnline from '@/pages/RadiosOnline';
 
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -111,6 +112,7 @@ function App() {
             <Route path="/painel-equipe" element={<PrivateLayout><PainelEquipe /></PrivateLayout>} />
             <Route path="/repertorio" element={<PrivateLayout><Repertorio /></PrivateLayout>} />
             <Route path="/repertorio/lista/:id" element={<PrivateLayout><ListaRepertorio /></PrivateLayout>} />
+            <Route path="/radios-online" element={<PrivateLayout><RadiosOnline /></PrivateLayout>} /> 
             <Route path="/aquecimento-vocal" element={<AquecimentoVocal />} />
             <Route path="/sugestoes" element={<Sugestoes />} />
             <Route path="/mapa-palco" element={<MapaPalco />} />

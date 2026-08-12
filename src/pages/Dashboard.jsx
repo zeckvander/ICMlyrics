@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
-  Music2, ListPlus, FolderOpen, Gauge, Mic, History, LogOut, 
+  Music2, ListPlus, Radio, Gauge, Mic, History, LogOut, 
   BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, 
   AlertTriangle, Database, Megaphone, ListMusic, Sparkles, Settings, Users 
 } from "lucide-react";
@@ -341,7 +341,7 @@ export default function Dashboard() {
   const ferramentas = [
     { label: "Metrônomo", icon: Gauge, color: "bg-purple-500", onClick: openMetronomo },
     { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfinador },
-    { label: "Drive", icon: FolderOpen, path: "/drive", color: "bg-blue-500" },
+    { label: "Rádios Online", icon: Radio, path: "/radios-online", color: "bg-red-600" },
     { label: "Perfil", icon: Settings, color: "bg-slate-700", onClick: () => navigate("/perfil") } 
   ];
 
