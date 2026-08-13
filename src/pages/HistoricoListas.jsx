@@ -25,920 +25,648 @@ const buscarELimitarLouvores = (listaLouvores, queryText, limite = 5) => {
       const numStr = l.numero !== null && l.numero !== undefined ? String(l.numero).trim().toLowerCase() : "";
       const matchNumero = numStr ? numStr.startsWith(buscaNum) : false;
       const matchNome = normalizarTexto(l.nome).includes(termoNormalizado);
-      const matchLetra = normalizarTexto(l.letra_musica).includes(termoNormalizado);
-      const matchCategoria = normalizarTexto(l.categoria).includes(termoNormalizado);
-
-      return matchNumero || matchNome || matchLetra || matchCategoria;
-    })
-    .sort((a, b) => {
-      if (buscaNum) {
-        const numA = (a.numero !== null && a.numero !== undefined) ? String(a.numero).trim().toLowerCase() : "";
-        const numB = (b.numero !== null && b.numero !== undefined) ? String(b.numero).trim().toLowerCase() : "";
-
-        const exatoA = numA === buscaNum;
-        const exatoB = numB === buscaNum;
-
-        if (exatoA && !exatoB) return -1;
-        if (!exatoA && exatoB) return 1;
-      }
-      const obterPeso = (item) => {
-        const temNumero = item.numero !== null && item.numero !== undefined && String(item.numero).trim() !== "";
-        if (item.categoria === "Coletânea" && temNumero) return 1;
-        if (item.categoria === "Cias" && temNumero) return 2;
-        if (item.categoria === "Cias" && !temNumero) return 3;
-        if (item.categoria === "Avulsos") return 4;
-        return 5;
-      };
-      const pesoA = obterPeso(a);
-      const pesoB = obterPeso(b);
-
-      if (pesoA !== pesoB) return pesoA - pesoB;
-
-      if (pesoA === 1 || pesoA === 2) {
-        return (parseInt(a.numero, 10) || 0) - (parseInt(b.numero, 10) || 0);
-      }
-
-      return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+      return matchNumero || matchNome;
     })
     .slice(0, limite);
 };
+
 export default function HistoricoListas() {
   const navigate = useNavigate();
   const location = useLocation();
-  const listaIdEspecifica = location.state?.listaId || location.state?.lista?.id;
-  const handleVoltar = () => {
-    const origemRetorno = location.state?.from || location.state?.origem;
-    if (origemRetorno) {
-      navigate(origemRetorno);
-    } else {
-      navigate(-1);
-    }
-  };
-  const [loading, setLoading] = useState(false);
-  const [listas, setListas] = useState([]);
-  const [nomeIgreja, setNomeIgreja] = useState("");
 
-  const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
-  const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
-  const temNuvem = usuarioNuvem.trim() !== "";
+  const [listas, setListas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [louvores, setLouvores] = useState([]);
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState("image");
+  const [listaParaPreview, setListaParaPreview] = useState(null);
 
   const [listaSelecionada, setListaSelecionada] = useState(null);
-  const [rows, setRows] = useState([]);
-  const [dataCulto, setDataCulto] = useState("");
-  const [tipoCulto, setTipoCulto] = useState("");
-  const [responsavel, setResponsavel] = useState("");
+  const [buscaEdicao, setBuscaEdicao] = useState("");
+  const [sugestoesEdicao, setSugestoesEdicao] = useState([]);
+  const [observacaoEdicao, setObservacaoEdicao] = useState("");
+  const [modoAdicao, setModoAdicao] = useState("louvor");
+  const [textoSecao, setTextoSecao] = useState("");
 
-  const [todosLouvoresBanco, setTodosLouvoresBanco] = useState([]);
-  const [abaAtiva, setAbaAtiva] = useState(1);
-  const [modoAdicao, setModoAdicao] = useState(null);
-  const [novoNome, setNovoNome] = useState("");
-  const [novoTextoSecao, setNovoTextoSecao] = useState("");
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
+  const temNuvem = usuarioNuvem.trim() !== "";
 
-  useEffect(() => {
-    const carregarNomeIgreja = async () => {
-      const usuarioAtual = usuarioNuvem || usuarioLocal;
-      if (temNuvem && usuarioAtual) {
-        try {
-          const { data, error } = await supabase
-            .from("igrejas_autorizadas")
-            .select("nome_igreja")
-            .eq("usuario", usuarioAtual)
-            .maybeSingle();
-
-          if (!error && data && data.nome_igreja) {
-            setNomeIgreja(data.nome_igreja);
-          } else {
-            setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
-          }
-        } catch (e) {
-          console.error("Erro ao buscar igreja autorizada:", e);
-          setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
-        }
-      } else {
-        setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local");
-      }
-    };
-    carregarNomeIgreja();
-  }, [temNuvem, usuarioNuvem, usuarioLocal]);
-
-  const carregarBancoLouvores = async () => {
-    if (todosLouvoresBanco.length > 0) return;
+  const carregarLouvores = async () => {
     try {
-      const { data, error } = await supabase
-        .from("louvores")
-        .select("id, numero, nome, categoria, letra_musica")
-        .order("nome", { ascending: true });
-      if (error) throw error;
-      setTodosLouvoresBanco(data || []);
-    } catch (e) {
-      console.error("Erro ao carregar banco de louvores:", e);
+      let todosOsLouvores = [];
+      let buscarMais = true;
+      let inicio = 0;
+      const limitePorPagina = 1000;
+
+      while (buscarMais) {
+        const { data, error } = await supabase
+          .from("louvores")
+          .select("id, numero, nome, categoria")
+          .order("id", { ascending: true })
+          .range(inicio, inicio + limitePorPagina - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          todosOsLouvores = [...todosOsLouvores, ...data];
+          inicio += limitePorPagina;
+
+          if (data.length < limitePorPagina) {
+            buscarMais = false;
+          }
+        } else {
+          buscarMais = false;
+        }
+      }
+      setLouvores(todosOsLouvores);
+    } catch (error) {
+      console.error(error.message);
     }
   };
+
   const carregarListas = async () => {
     setLoading(true);
     if (temNuvem) {
       try {
-        let query = supabase
+        const { data, error } = await supabase
           .from("listas")
-          .select("*, lista_itens(*, louvores(*))");
+          .select(`
+            *,
+            lista_itens (
+              id,
+              ordem,
+              tipo,
+              observacao,
+              texto_secao,
+              louvor_id,
+              louvores ( id, numero, nome, categoria )
+            )
+          `)
+          .eq("acesso_usuario", usuarioNuvem)
+          .order("created_at", { ascending: false });
 
-        if (listaIdEspecifica) {
-          query = query.eq("id", listaIdEspecifica);
-        } else {
-          query = query
-            .eq("acesso_usuario", usuarioNuvem)
-            .order("data_culto", { ascending: false })
-            .limit(12);
-        }
-        const { data, error } = await query;
-        if (error) throw error;
-        setListas(data || []);
-      } catch (e) {
-        console.error("Erro ao carregar do Supabase:", e);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      try {
-        const local = JSON.parse(localStorage.getItem("icmlyrics_historico_listas") || "[]");
-        if (listaIdEspecifica) {
-          setListas(local.filter(l => l.id === listaIdEspecifica));
-        } else {
-          setListas(local.slice(0, 12));
-        }
-      } catch (e) {
-        console.error("Erro ao carregar local:", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-  const handleSincronizar = () => {
-    carregarBancoLouvores();
-    carregarListas();
-  };
-  useEffect(() => {
-    carregarBancoLouvores();
-    carregarListas();
-  }, [listaIdEspecifica]);
-  const calcularDiaSemana = (dataStr) => {
-    if (!dataStr) return "";
-    const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-    const dataObj = new Date(dataStr.split("T")[0] + "T00:00:00");
-    return DIAS[dataObj.getDay()] || "";
-  };
-  const formatarDataBR = (dataStr) => {
-    if (!dataStr) return "";
-    const partes = dataStr.split("T")[0].split("-");
-    if (partes.length === 3) {
-      return `${partes[2]}/${partes[1]}/${partes[0]}`;
-    }
-    return dataStr;
-  };
-  const abrirEdicaoLista = (lista) => {
-    setListaSelecionada(lista);
-    setDataCulto(lista.data_culto || lista.dataCulto || "");
-    setTipoCulto(lista.tipo_culto || lista.tipoCulto || "");
-    setResponsavel(lista.responsavel || "");
-    setAbaAtiva(1);
-    setModoAdicao(null);
-    const itensBrutos = lista.lista_itens || lista.rows || [];
-    const itensFormatados = itensBrutos.map((item, idx) => ({
-      id: item.id || `item_${idx}`,
-      type: item.tipo || item.type || "louvor",
-      numero: item.louvores?.numero || item.numero || "",
-      nome: item.louvores?.nome || item.nome || item.text || "",
-      categoria: item.louvores?.categoria || item.categoria || "Coletânea",
-      observacao: item.observacao || "",
-      letra_musica: item.louvores?.letra_musica || item.letra_musica || "",
-      id_louvor_db: item.louvores?.id || item.louvor_id || item.id_louvor_db || null,
-      text: item.texto_secao || item.text || "",
-      isEditing: false
-    }));
-    setRows(itensFormatados);
-  };
-  const handleAbrirReimpressao = (lista) => {
-    setDataCulto(lista.data_culto || lista.dataCulto || "");
-    setTipoCulto(lista.tipo_culto || lista.tipoCulto || "");
-    setResponsavel(lista.responsavel || "");
-    const itensBrutos = lista.lista_itens || lista.rows || [];
-    const itensFormatados = itensBrutos.map((item, idx) => ({
-      id: item.id || `item_${idx}`,
-      type: item.tipo || item.type || "louvor",
-      numero: item.louvores?.numero || item.numero || "",
-      nome: item.louvores?.nome || item.nome || item.text || "",
-      categoria: item.louvores?.categoria || item.categoria || "Coletânea",
-      observacao: item.observacao || "",
-      letra_musica: item.louvores?.letra_musica || item.letra_musica || "",
-      text: item.texto_secao || item.text || ""
-    }));
-    setRows(itensFormatados);
-    setPreviewOpen(true);
-  };
-  const moverItem = (index, novoIndex) => {
-    if (novoIndex < 0 || novoIndex >= rows.length) return;
-    const items = [...rows];
-    const [reorderedItem] = items.splice(index, 1);
-    items.splice(novoIndex, 0, reorderedItem);
-    setRows(items);
-  };
-  const handleAdicionarSecao = () => {
-    if (!novoTextoSecao.trim()) {
-      alert("Informe o título da seção.");
-      return;
-    }
-    const novoItem = {
-      id: `local_new_${Date.now()}`,
-      type: "divider",
-      text: novoTextoSecao.trim(),
-      observacao: "",
-      isEditing: false
-    };
-    setRows([...rows, novoItem]);
-    setNovoTextoSecao("");
-    setModoAdicao(null);
-  };
-  const handleSalvarEdicao = async () => {
-    if (rows.length === 0) {
-      alert("A lista precisa ter pelo menos um item.");
-      return;
-    }
-    const diaSemana = calcularDiaSemana(dataCulto);
-    setLoading(true);
+        if (!error && data) {
+          const listasFormatadas = data.map((l) => {
+            const itensOrdenados = (l.lista_itens || []).sort((a, b) => a.ordem - b.ordem);
+            const rows = itensOrdenados.map((item) => {
+              if (item.tipo === "divider") {
+                return {
+                  id: item.id || Math.random().toString(36).slice(2, 9),
+                  type: "divider",
+                  text: item.texto_secao || ""
+                };
+              } else {
+                return {
+                  id: item.id || Math.random().toString(36).slice(2, 9),
+                  type: "louvor",
+                  id_louvor_db: item.louvor_id,
+                  numero: item.louvores?.numero || "",
+                  nome: item.louvores?.nome || "",
+                  categoria: item.louvores?.categoria || "--",
+                  observacao: item.observacao || ""
+                };
+              }
+            });
 
-    if (temNuvem && listaSelecionada?.id) {
-      try {
-        const { error: errCabecalho } = await supabase
-          .from("listas")
-          .update({
-            data_culto: dataCulto,
-            dia_semana: diaSemana,
-            tipo_culto: tipoCulto,
-            responsavel: responsavel
-          })
-          .eq("id", listaSelecionada.id);
-
-        if (errCabecalho) throw errCabecalho;
-
-        await supabase.from("lista_itens").delete().eq("lista_id", listaSelecionada.id);
-
-        const itensParaInserir = rows.map((row, index) => ({
-          lista_id: listaSelecionada.id,
-          ordem: index + 1,
-          tipo: row.type || "louvor",
-          observacao: row.observacao || null,
-          texto_secao: row.type === "divider" ? row.text : null,
-          louvor_id: row.id_louvor_db || null
-        }));
-        const { error: errItens } = await supabase.from("lista_itens").insert(itensParaInserir);
-        if (errItens) throw errItens;
-
-        setListaSelecionada(null);
-        carregarListas();
-      } catch (e) {
-        alert(`Erro ao atualizar: ${e.message}`);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      try {
-        const historico = JSON.parse(localStorage.getItem("icmlyrics_historico_listas") || "[]");
-        const atualizado = historico.map(l => {
-          if (l.id === listaSelecionada.id) {
             return {
-              ...l,
-              dataCulto,
-              diaSemana,
-              tipoCulto,
-              responsavel,
-              rows: rows.map(r => ({
-                id: r.id,
-                type: r.type,
-                categoria: r.categoria,
-                observacao: r.observacao,
-                text: r.text,
-                nome: r.nome,
-                numero: r.numero,
-                letra_musica: r.letra_musica,
-                id_louvor_db: r.id_louvor_db
-              }))
+              id: l.id,
+              dataCulto: l.data_culto,
+              diaSemana: l.dia_semana,
+              tipo_culto: l.tipo_culto,
+              responsavel: l.responsavel,
+              rows: rows,
+              origem: "nuvem"
             };
-          }
-          return l;
-        });
-        localStorage.setItem("icmlyrics_historico_listas", JSON.stringify(atualizado));
-        setListaSelecionada(null);
-        carregarListas();
+          });
+          setListas(listasFormatadas);
+        }
       } catch (e) {
-        alert(`Erro ao atualizar localmente: ${e.message}`);
-      } finally {
-        setLoading(false);
+        console.error(e);
+      }
+    } else {
+      const local = localStorage.getItem("icmlyrics_historico_listas");
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          setListas(parsed.map((item) => ({ ...item, origem: "local" })));
+        } catch (e) {
+          setListas([]);
+        }
       }
     }
+    setLoading(false);
   };
-  const handleExcluirLista = async (id) => {
+
+  useEffect(() => {
+    carregarListas();
+    carregarLouvores();
+  }, [temNuvem, usuarioNuvem]);
+
+  useEffect(() => {
+    if (buscaEdicao.trim() && modoAdicao === "louvor") {
+      setSugestoesEdicao(buscarELimitarLouvores(louvores, buscaEdicao, 5));
+    } else {
+      setSugestoesEdicao([]);
+    }
+  }, [buscaEdicao, louvores, modoAdicao]);
+
+  const excluirLista = async (id, origem) => {
     if (!window.confirm("Deseja realmente excluir esta lista?")) return;
-    setLoading(true);
-    if (temNuvem) {
+
+    if (origem === "nuvem") {
       try {
         await supabase.from("lista_itens").delete().eq("lista_id", id);
         const { error } = await supabase.from("listas").delete().eq("id", id);
         if (error) throw error;
-        alert("Lista excluída com sucesso!");
-        carregarListas();
+        setListas((prev) => prev.filter((l) => l.id !== id));
       } catch (e) {
-        alert(`Erro ao excluir: ${e.message}`);
-      } finally {
-        setLoading(false);
+        alert("Erro ao excluir lista da nuvem.");
       }
     } else {
-      try {
-        const historico = JSON.parse(localStorage.getItem("icmlyrics_historico_listas") || "[]");
-        const filtrado = historico.filter(l => l.id !== id);
-        localStorage.setItem("icmlyrics_historico_listas", JSON.stringify(filtrado));
-        alert("Lista excluída localmente!");
-        carregarListas();
-      } catch (e) {
-        alert(`Erro ao excluir: ${e.message}`);
-      } finally {
-        setLoading(false);
-      }
+      const novaLista = listas.filter((l) => l.id !== id);
+      setListas(novaLista);
+      localStorage.setItem("icmlyrics_historico_listas", JSON.stringify(novaLista));
     }
   };
-  const handleExcluirTodasNuvem = async () => {
-    if (!window.confirm("Tem certeza que deseja excluir TODAS as listas salvas na nuvem? Esta ação não pode ser desfeita.")) return;
+
+  const abrirPreview = (lista, mode) => {
+    setListaParaPreview(lista);
+    setPreviewMode(mode);
+    setPreviewOpen(true);
+  };
+
+  const abrirEdicao = (lista) => {
+    setListaSelecionada(JSON.parse(JSON.stringify(lista)));
+    setBuscaEdicao("");
+    setObservacaoEdicao("");
+    setTextoSecao("");
+    setModoAdicao("louvor");
+  };
+
+  const adicionarItemNaEdicao = (louvorObj = null) => {
+    if (!listaSelecionada) return;
+
+    if (modoAdicao === "louvor") {
+      if (!louvorObj) return;
+      const novoItem = {
+        id: Math.random().toString(36).slice(2, 9),
+        type: "louvor",
+        id_louvor_db: louvorObj.id,
+        numero: louvorObj.numero,
+        nome: louvorObj.nome,
+        categoria: louvorObj.categoria || "--",
+        observacao: observacaoEdicao.trim()
+      };
+      setListaSelecionada((prev) => ({
+        ...prev,
+        rows: [...prev.rows, novoItem]
+      }));
+      setBuscaEdicao("");
+      setObservacaoEdicao("");
+      setSugestoesEdicao([]);
+    } else {
+      if (!textoSecao.trim()) return;
+      const novaSecao = {
+        id: Math.random().toString(36).slice(2, 9),
+        type: "divider",
+        text: textoSecao.trim()
+      };
+      setListaSelecionada((prev) => ({
+        ...prev,
+        rows: [...prev.rows, novaSecao]
+      }));
+      setTextoSecao("");
+    }
+  };
+
+  const removerItemEdicao = (idItem) => {
+    setListaSelecionada((prev) => ({
+      ...prev,
+      rows: prev.rows.filter((r) => r.id !== idItem)
+    }));
+  };
+
+  const moverItemEdicao = (index, direcao) => {
+    if (!listaSelecionada) return;
+    const novosRows = [...listaSelecionada.rows];
+    const targetIndex = index + direcao;
+
+    if (targetIndex < 0 || targetIndex >= novosRows.length) return;
+
+    const temp = novosRows[index];
+    novosRows[index] = novosRows[targetIndex];
+    novosRows[targetIndex] = temp;
+
+    setListaSelecionada((prev) => ({
+      ...prev,
+      rows: novosRows
+    }));
+  };
+
+  const handleSalvarEdicao = async () => {
+    if (!listaSelecionada) return;
     setLoading(true);
-    try {
-      const { data: listasUser, error: errFetch } = await supabase
-        .from("listas")
-        .select("id")
-        .eq("acesso_usuario", usuarioNuvem);
 
-      if (errFetch) throw errFetch;
-
-      if (listasUser && listasUser.length > 0) {
-        const ids = listasUser.map(l => l.id);
-
-        const { error: errItens } = await supabase
-          .from("lista_itens")
-          .delete()
-          .in("lista_id", ids);
-
-        if (errItens) throw errItens;
-
-        const { error: errListas } = await supabase
+    if (listaSelecionada.origem === "nuvem") {
+      try {
+        await supabase
           .from("listas")
-          .delete()
-          .eq("acesso_usuario", usuarioNuvem);
+          .update({
+            data_culto: listaSelecionada.dataCulto,
+            dia_semana: listaSelecionada.diaSemana,
+            tipo_culto: listaSelecionada.tipo_culto || null,
+            responsavel: listaSelecionada.responsavel || null
+          })
+          .eq("id", listaSelecionada.id);
 
-        if (errListas) throw errListas;
+        await supabase.from("lista_itens").delete().eq("lista_id", listaSelecionada.id);
+
+        const itensParaInserir = listaSelecionada.rows.map((row, index) => ({
+          lista_id: listaSelecionada.id,
+          ordem: index,
+          tipo: row.type,
+          louvor_id: row.type === "louvor" ? (row.id_louvor_db || null) : null,
+          observacao: row.type === "louvor" ? (row.observacao || null) : null,
+          texto_secao: row.type === "divider" ? (row.text || null) : null
+        }));
+
+        if (itensParaInserir.length > 0) {
+          await supabase.from("lista_itens").insert(itensParaInserir);
+        }
+
+        await carregarListas();
+        setListaSelecionada(null);
+      } catch (e) {
+        alert("Erro ao salvar alterações da lista na nuvem.");
       }
-
-      alert("Todas as listas da nuvem foram apagadas com sucesso!");
-      carregarListas();
-    } catch (e) {
-      alert(`Erro ao apagar todas as listas: ${e.message}`);
-    } finally {
-      setLoading(false);
+    } else {
+      const historicoAtual = listas.map((l) => (l.id === listaSelecionada.id ? listaSelecionada : l));
+      setListas(historicoAtual);
+      localStorage.setItem("icmlyrics_historico_listas", JSON.stringify(historicoAtual));
+      setListaSelecionada(null);
     }
+    setLoading(false);
   };
+
+  const handleReimprimir = (lista, e) => {
+    if (e) e.stopPropagation();
+    navigate("/nova-lista", {
+      state: {
+        listaParaReimprimir: lista,
+        dispararImpressao: true
+      }
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
+    <div className="min-h-screen bg-slate-50 pb-8">
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={handleVoltar} className="text-slate-300 hover:text-white transition-colors">
+          <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Lista de Louvores</h1>
-            <p className="text-slate-400 text-xs">Visualização da escala selecionada</p>
+            <h1 className="text-xl font-bold tracking-tight">Histórico de Listas</h1>
+            <p className="text-slate-400 text-xs">Suas últimas listas salvas (Máx. 12)</p>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
-          {temNuvem && (
-            <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
-              {nomeIgreja}
-            </span>
-          )}
-
-          <div className="flex items-center gap-2 mt-1">
-            {temNuvem && listas.length > 0 && !listaIdEspecifica && (
-              <button
-                onClick={handleExcluirTodasNuvem}
-                className="text-rose-400 hover:text-rose-300 transition-colors p-0.5"
-                title="Apagar todas as listas da nuvem"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-
-            <div 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSincronizar();
-              }}
-              className="px-2 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors"
-              title={temNuvem ? "Clique para sincronizar/atualizar dados da nuvem" : "Clique para atualizar dados locais"}
-            >
-              <Cloud className={`w-3 h-3 ${temNuvem ? "text-emerald-400" : "text-slate-400"} ${loading ? "animate-spin" : ""}`} />
-            </div>
+        {temNuvem && (
+          <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
+            <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-xs font-medium text-slate-300">Nuvem</span>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="p-4 max-w-lg mx-auto space-y-4">
-        <div className="space-y-3">
-          {listas.length === 0 ? (
-            <p className="text-center text-xs text-slate-400 py-8 bg-white rounded-2xl border border-dashed border-slate-200">
-              Nenhuma lista encontrada para esta escala.
-            </p>
-          ) : (
-            listas.map((lista) => {
-              const dataFormatada = formatarDataBR(lista.data_culto || lista.dataCulto || "");
-              const diaSemana = lista.dia_semana || lista.diaSemana || "";
-              const tema = lista.tipo_culto || lista.tipoCulto || "";
-              const resp = lista.responsavel || "";
-              const itensLista = lista.lista_itens || lista.rows || [];
-              return (
-                <div key={lista.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900">{dataFormatada}</span>
-                      <span className="text-xs text-slate-500 font-medium">{diaSemana}</span>
-                      <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
-                        {temNuvem ? "NUVEM" : "LOCAL"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => abrirEdicaoLista(lista)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors"
-                        title="Editar lista"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleExcluirLista(lista.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
-                        title="Excluir lista"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  {(tema || resp) && (
-                    <div className="bg-slate-50 px-3 py-2 rounded-xl text-xs text-slate-700 flex items-center gap-3">
-                      {tema && <span><strong>Culto:</strong> {tema}</span>}
-                      {resp && <span><strong>Louvor:</strong> {resp}</span>}
-                    </div>
-                  )}
-                  <div className="space-y-1.5">
-                    {itensLista.map((item, idx) => {
-                      const tipo = item.tipo || item.type || "louvor";
-                      const num = item.louvores?.numero || item.numero || "";
-                      const nomeBanco = item.louvores?.nome || item.nome || item.text || "";
-                      const cat = item.louvores?.categoria || item.categoria || "Coletânea";
-                      const textoSecao = item.texto_secao || item.text || nomeBanco;
-                      const ehCias = cat === "Cias" || cat === "CIAS" || cat === "cias";
-                      const nomeExibicao = ehCias && !nomeBanco.toLowerCase().includes("(cias)") ? `${nomeBanco} (Cias)` : nomeBanco;
+      <div className="px-4 mt-4 space-y-3">
+        {loading ? (
+          <div className="text-center py-12 text-slate-400 text-sm font-medium">
+            Carregando histórico...
+          </div>
+        ) : listas.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm space-y-3">
+            <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <p className="text-slate-600 font-medium text-sm">Nenhuma lista encontrada.</p>
+            <Button onClick={() => navigate("/nova-lista")} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">
+              Criar Nova Lista
+            </Button>
+          </div>
+        ) : (
+          listas.map((lista) => {
+            const dataFmt = lista.dataCulto
+              ? new Date(lista.dataCulto + "T00:00:00").toLocaleDateString("pt-BR")
+              : "";
 
-                      return (
-                        <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
-                          {tipo === "divider" ? (
-                            <span className="font-bold text-indigo-600 uppercase tracking-wide">✦ {textoSecao}</span>
-                          ) : (
-                            <div className="flex items-center gap-2.5 truncate w-full">
-                              <Music className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                              <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px] text-center w-12 flex-shrink-0">
-                                {num || cat}
-                              </span>
-                              <span className="truncate text-slate-800 font-medium">{nomeExibicao}</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+            return (
+              <div key={lista.id} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-3 hover:border-slate-200 transition-all">
+                <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded-md">
+                        {lista.diaSemana || "Culto"}
+                      </span>
+                      <span className="text-xs font-medium text-slate-500">{dataFmt}</span>
+                    </div>
+
+                    {(lista.tipo_culto || lista.responsavel) && (
+                      <div className="mt-1.5 flex flex-wrap gap-2 text-xs text-slate-600">
+                        {lista.tipo_culto && (
+                          <span className="font-semibold text-slate-800">Culto: {lista.tipo_culto}</span>
+                        )}
+                        {lista.responsavel && (
+                          <span className="text-slate-500">| Louvor: {lista.responsavel}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                    <Button
-                      onClick={() => navigate("/modo-playlist", { state: { lista: lista } })}
-                      className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs h-9 font-semibold gap-2"
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => abrirEdicao(lista)}
+                      title="Editar Lista"
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors"
                     >
-                      <Play className="w-3.5 h-3.5 fill-current" /> Playlist
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleAbrirReimpressao(lista)}
-                      className="w-1/2 bg-white hover:bg-slate-100 text-slate-800 border-slate-200 rounded-xl text-xs h-9 font-semibold gap-2"
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => excluirLista(lista.id, lista.origem)}
+                      title="Excluir Lista"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-50 rounded-lg transition-colors"
                     >
-                      <Printer className="w-3.5 h-3.5" /> Reimprimir
-                    </Button>
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
+
+                <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                  {lista.rows && lista.rows.map((row) => (
+                    <div key={row.id} className="text-xs flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50/70">
+                      {row.type === "divider" ? (
+                        <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
+                          --- {row.text} ---
+                        </span>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 truncate">
+                            <span className="font-bold text-slate-700 min-w-[30px]">
+                              {row.numero ? `${row.numero}.` : "-"}
+                            </span>
+                            <span className="text-slate-800 font-medium truncate">{row.nome}</span>
+                          </div>
+                          {row.observacao && (
+                            <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-1.5 py-0.5 rounded ml-2 whitespace-nowrap">
+                              {row.observacao}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 flex flex-wrap gap-2 border-t border-slate-100">
+                  <Button
+                    onClick={() => abrirPreview(lista, "image")}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-8 text-xs font-semibold rounded-xl bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
+                  >
+                    Imagem
+                  </Button>
+                  <Button
+                    onClick={() => abrirPreview(lista, "image-text")}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-8 text-xs font-semibold rounded-xl bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
+                  >
+                    Imagem + Texto
+                  </Button>
+                  <Button
+                    onClick={(e) => handleReimprimir(lista, e)}
+                    size="sm"
+                    className="h-8 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white gap-1"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Reenviar
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
+
+      <PreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        mode={previewMode}
+        rows={listaParaPreview?.rows || []}
+        dataCulto={listaParaPreview?.dataCulto || ""}
+        tipoCulto={listaParaPreview?.tipo_culto || ""}
+        responsavel={listaParaPreview?.responsavel || ""}
+      />
+
       {listaSelecionada && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-shrink-0">
-              <h2 className="text-lg font-bold text-slate-900">Editar Lista do Culto</h2>
-              <button 
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-xl overflow-hidden p-4 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Editar Lista</h2>
+                <p className="text-xs text-slate-400">Altere louvores, seções ou observações</p>
+              </div>
+              <button
                 onClick={() => setListaSelecionada(null)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex border-b border-slate-200 flex-shrink-0">
-              <button
-                onClick={() => setAbaAtiva(1)}
-                className={`flex-1 pb-3 text-xs font-bold transition-all border-b-2 ${
-                  abaAtiva === 1 
-                    ? "border-indigo-600 text-indigo-600" 
-                    : "border-transparent text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                Informações do Culto
-              </button>
-              <button
-                onClick={() => setAbaAtiva(2)}
-                className={`flex-1 pb-3 text-xs font-bold transition-all border-b-2 ${
-                  abaAtiva === 2 
-                    ? "border-indigo-600 text-indigo-600" 
-                    : "border-transparent text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                Louvores / Itens ({rows.length})
-              </button>
-            </div>
-
             <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-              {abaAtiva === 1 ? (
-                <div className="space-y-4 pt-1">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700">Data do Culto</label>
-                    <input 
-                      type="date"
-                      value={dataCulto}
-                      onChange={(e) => setDataCulto(e.target.value)}
-                      className="w-full mt-1 p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700">Tipo de Culto (Tema)</label>
-                    <input 
-                      type="text"
-                      value={tipoCulto}
-                      onChange={(e) => setTipoCulto(e.target.value)}
-                      className="w-full mt-1 p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700">Responsável</label>
-                    <input 
-                      type="text"
-                      value={responsavel}
-                      onChange={(e) => setResponsavel(e.target.value)}
-                      className="w-full mt-1 p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Data</label>
+                  <input
+                    type="date"
+                    value={listaSelecionada.dataCulto || ""}
+                    onChange={(e) =>
+                      setListaSelecionada((prev) => ({ ...prev, dataCulto: e.target.value }))
+                    }
+                    className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg p-1.5 mt-0.5 text-slate-800"
+                  />
                 </div>
-              ) : (
-                <div className="space-y-4 pt-1 flex flex-col">
-                  {modoAdicao === 'louvor' && (
-                    <div className="bg-indigo-50/50 border border-indigo-100 p-3.5 rounded-xl space-y-3 relative">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-indigo-900">Adicionar Louvor</p>
-                        <button onClick={() => setModoAdicao(null)} className="text-slate-400 hover:text-slate-600 p-1">
-                          <X className="w-4 h-4" />
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Culto</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Ceia"
+                    value={listaSelecionada.tipo_culto || ""}
+                    onChange={(e) =>
+                      setListaSelecionada((prev) => ({ ...prev, tipo_culto: e.target.value }))
+                    }
+                    className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg p-1.5 mt-0.5 text-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">
+                  Itens da Lista ({listaSelecionada.rows.length})
+                </label>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+                  {listaSelecionada.rows.map((row, idx) => (
+                    <div
+                      key={row.id}
+                      className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-100 text-xs shadow-2xs"
+                    >
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moverItemEdicao(idx, -1)}
+                          disabled={idx === 0}
+                          className="p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-slate-400"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moverItemEdicao(idx, 1)}
+                          disabled={idx === listaSelecionada.rows.length - 1}
+                          className="p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-slate-400"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={novoNome}
-                          onChange={(e) => setNovoNome(e.target.value)}
-                          placeholder="Digite o nome, número ou trecho da letra..."
-                          autoFocus
-                          className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                        {novoNome.trim() !== "" && (
-                          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
-                            {buscarELimitarLouvores(todosLouvoresBanco, novoNome, 5).map((louvor) => (
-                              <div
-                                key={louvor.id}
-                                onClick={() => {
-                                  const novoItem = {
-                                    id: `local_new_${Date.now()}`,
-                                    type: "louvor",
-                                    numero: louvor.numero || "",
-                                    nome: louvor.nome || "",
-                                    categoria: louvor.categoria || "Coletânea",
-                                    observacao: "",
-                                    letra_musica: louvor.letra_musica || "",
-                                    id_louvor_db: louvor.id,
-                                    isEditing: false
-                                  };
-                                  setRows([...rows, novoItem]);
-                                  setNovoNome("");
-                                  setModoAdicao(null);
-                                }}
-                                className="px-3 py-2.5 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-none flex items-center justify-between text-xs"
-                              >
-                                <div className="flex items-center gap-2 truncate">
-                                  <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded w-12 text-center flex-shrink-0">
-                                    {louvor.numero || "—"}
-                                  </span>
-                                  <span className="text-slate-800 font-medium truncate">
-                                    {louvor.nome} {louvor.categoria === "Cias" || louvor.categoria === "CIAS" ? "(Cias)" : ""}
-                                  </span>
-                                </div>
-                                <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full flex-shrink-0">
-                                  Selecionar
-                                </span>
-                              </div>
-                            ))}
+
+                      <div className="flex-1 px-2 truncate">
+                        {row.type === "divider" ? (
+                          <span className="font-bold text-slate-500 uppercase text-[10px]">
+                            [Seção] {row.text}
+                          </span>
+                        ) : (
+                          <div className="truncate">
+                            <span className="font-bold text-slate-800 mr-1.5">
+                              {row.numero ? `${row.numero}.` : ""}
+                            </span>
+                            <span className="text-slate-700">{row.nome}</span>
+                            {row.observacao && (
+                              <span className="ml-2 text-[10px] text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded font-medium">
+                                {row.observacao}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
-                  {modoAdicao === 'divider' && (
-                    <div className="bg-indigo-50/50 border border-indigo-100 p-3.5 rounded-xl space-y-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-indigo-900">Adicionar Nova Seção</p>
-                        <button onClick={() => setModoAdicao(null)} className="text-slate-400 hover:text-slate-600 p-1">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div>
-                        <input
-                          type="text"
-                          value={novoTextoSecao}
-                          onChange={(e) => setNovoTextoSecao(e.target.value)}
-                          placeholder="Ex: Louvores de Adoração..."
-                          autoFocus
-                          className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      <Button
-                        onClick={handleAdicionarSecao}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs font-semibold rounded-lg mt-1"
+
+                      <button
+                        type="button"
+                        onClick={() => removerItemEdicao(row.id)}
+                        className="p-1 text-slate-300 hover:text-rose-600 rounded transition-colors"
                       >
-                        Adicionar Seção
-                      </Button>
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                  )}
-                  <p className="text-xs font-semibold text-slate-600 pt-1">Utilize as setas para reordenar ou o lápis para editar:</p>
-
-                  <div className="space-y-2">
-                    {rows.map((row, index) => {
-                      const resultadosBusca = !row.isEditing || row.type === 'divider' 
-                        ? [] 
-                        : buscarELimitarLouvores(todosLouvoresBanco, row.nome, 5);
-                      const ehCiasModal = row.categoria === "Cias" || row.categoria === "CIAS" || row.categoria === "cias";
-                      const nomeExibicaoModal = ehCiasModal && !(row.nome || "").toLowerCase().includes("(cias)") ? `${row.nome} (Cias)` : row.nome;
-                      return (
-                        <div key={row.id || index} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
-                          {row.isEditing ? (
-                            <div className="space-y-2 relative">
-                              {row.type === 'divider' ? (
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="text"
-                                    value={row.text}
-                                    onChange={(e) => {
-                                      const novasRows = [...rows];
-                                      novasRows[index].text = e.target.value;
-                                      setRows(novasRows);
-                                    }}
-                                    placeholder="Nome da Seção"
-                                    autoFocus
-                                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-600 uppercase"
-                                  />
-                                  <button
-                                    onClick={() => {
-                                      const novasRows = [...rows];
-                                      novasRows[index].isEditing = false;
-                                      setRows(novasRows);
-                                    }}
-                                    className="p-1 text-emerald-600 hover:text-emerald-700 transition-colors"
-                                    title="Salvar alteração da seção"
-                                  >
-                                    <Check className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const novasRows = [...rows];
-                                      novasRows[index].text = novasRows[index].originalText || "";
-                                      novasRows[index].isEditing = false;
-                                      setRows(novasRows);
-                                    }}
-                                    className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
-                                    title="Cancelar"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="space-y-2 relative">
-                                  <div className="flex items-center gap-2">
-                                    <div className="bg-slate-100 text-slate-600 font-semibold px-2 py-1.5 rounded-lg text-xs w-12 text-center border border-slate-200 flex-shrink-0">
-                                      {row.numero || "—"}
-                                    </div>
-                                    <div className="relative flex-1">
-                                      <input
-                                        type="text"
-                                        value={row.nome}
-                                        onChange={(e) => {
-                                          const novasRows = [...rows];
-                                          novasRows[index].nome = e.target.value;
-                                          setRows(novasRows);
-                                        }}
-                                        placeholder="Nome, número ou trecho da letra"
-                                        autoFocus
-                                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                      />
-                                      {resultadosBusca.length > 0 && (
-                                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
-                                          {resultadosBusca.map((louvor) => (
-                                            <div
-                                              key={louvor.id}
-                                              onClick={() => {
-                                                const novasRows = [...rows];
-                                                novasRows[index] = {
-                                                  ...novasRows[index],
-                                                  nome: louvor.nome,
-                                                  numero: louvor.numero,
-                                                  categoria: louvor.categoria || "Coletânea",
-                                                  letra_musica: louvor.letra_musica || "",
-                                                  id_louvor_db: louvor.id,
-                                                  isEditing: false
-                                                };
-                                                setRows(novasRows);
-                                              }}
-                                              className="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-none flex items-center justify-between text-xs"
-                                            >
-                                              <div className="flex items-center gap-2 truncate">
-                                                <span className="font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded w-12 text-center flex-shrink-0">
-                                                  {louvor.numero || "—"}
-                                                </span>
-                                                <span className="text-slate-800 font-medium truncate">
-                                                  {louvor.nome} {louvor.categoria === "Cias" || louvor.categoria === "CIAS" ? "(Cias)" : ""}
-                                                </span>
-                                              </div>
-                                              <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full flex-shrink-0">
-                                                Selecionar
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <button
-                                      onClick={() => {
-                                        const novasRows = [...rows];
-                                        novasRows[index].nome = novasRows[index].originalNome || "";
-                                        novasRows[index].numero = novasRows[index].originalNumero || "";
-                                        novasRows[index].categoria = novasRows[index].originalCategoria || "Coletânea";
-                                        novasRows[index].observacao = novasRows[index].originalObservacao || "";
-                                        novasRows[index].id_louvor_db = novasRows[index].originalIdLouvorDb || null;
-                                        novasRows[index].isEditing = false;
-                                        setRows(novasRows);
-                                      }}
-                                      className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
-                                      title="Cancelar edição"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                  <div>
-                                    <input
-                                      type="text"
-                                      value={row.observacao || ""}
-                                      onChange={(e) => {
-                                        const novasRows = [...rows];
-                                        novasRows[index].observacao = e.target.value;
-                                        setRows(novasRows);
-                                      }}
-                                      placeholder="Observação (opcional)"
-                                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-2 truncate pr-2">
-                                {row.type === "divider" ? (
-                                  <span className="font-bold text-indigo-600 uppercase tracking-wide">✦ {row.text || "Seção"}</span>
-                                ) : (
-                                  <div className="flex items-center gap-2 truncate">
-                                    <Music className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                                    <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px] text-center w-12 flex-shrink-0">
-                                      {row.numero || (row.categoria === "Avulsos" ? "Av" : (row.categoria || "—"))}
-                                    </span>
-                                    <span className="truncate text-slate-800 font-medium">{nomeExibicaoModal}</span>
-                                    {row.observacao && (
-                                      <span className="text-[10px] text-slate-400 italic">({row.observacao})</span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <button
-                                  onClick={() => moverItem(index, index - 1)}
-                                  disabled={index === 0}
-                                  className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors"
-                                  title="Mover para cima"
-                                >
-                                  <ArrowUp className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => moverItem(index, index + 1)}
-                                  disabled={index === rows.length - 1}
-                                  className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors"
-                                  title="Mover para baixo"
-                                >
-                                  <ArrowDown className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const novasRows = [...rows];
-                                    if (row.type === 'divider') {
-                                      novasRows[index].originalText = novasRows[index].text;
-                                    } else {
-                                      novasRows[index].originalNome = novasRows[index].nome;
-                                      novasRows[index].originalNumero = novasRows[index].numero;
-                                      novasRows[index].originalCategoria = novasRows[index].categoria;
-                                      novasRows[index].originalObservacao = novasRows[index].observacao;
-                                      novasRows[index].originalIdLouvorDb = novasRows[index].id_louvor_db;
-                                      novasRows[index].nome = "";
-                                      novasRows[index].numero = "";
-                                    }
-                                    novasRows[index].isEditing = true;
-                                    setRows(novasRows);
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-indigo-600 transition-colors ml-1"
-                                  title="Editar item"
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const novasRows = rows.filter((_, i) => i !== index);
-                                    setRows(novasRows);
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
-                                  title="Remover item"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex gap-2 pt-3 border-t border-slate-100 mt-4">
-                    <button
-                      onClick={() => setModoAdicao(modoAdicao === 'louvor' ? null : 'louvor')}
-                      className={`w-1/2 py-2.5 text-xs font-semibold rounded-xl border flex items-center justify-center gap-1.5 transition-all ${
-                        modoAdicao === 'louvor' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Louvor
-                    </button>
-                    <button
-                      onClick={() => setModoAdicao(modoAdicao === 'divider' ? null : 'divider')}
-                      className={`w-1/2 py-2.5 text-xs font-semibold rounded-xl border flex items-center justify-center gap-1.5 transition-all ${
-                        modoAdicao === 'divider' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Seção
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              )}
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                <span className="text-xs font-bold text-slate-700 block">Adicionar Novo Item</span>
+
+                {modoAdicao === "louvor" ? (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Buscar louvor por nº ou nome..."
+                        value={buscaEdicao}
+                        onChange={(e) => setBuscaEdicao(e.target.value)}
+                        className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2 text-slate-800"
+                      />
+                      {sugestoesEdicao.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 max-h-36 overflow-y-auto">
+                          {sugestoesEdicao.map((sug) => (
+                            <div
+                              key={sug.id}
+                              onClick={() => adicionarItemNaEdicao(sug)}
+                              className="p-2 text-xs hover:bg-indigo-50 cursor-pointer border-b border-slate-50 last:border-none flex items-center justify-between"
+                            >
+                              <span className="font-bold text-slate-800">
+                                {sug.numero} - {sug.nome}
+                              </span>
+                              <span className="text-[10px] text-slate-400">{sug.categoria}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="Observação (Ex: Coral, Tonalidade G...)"
+                      value={observacaoEdicao}
+                      onChange={(e) => setObservacaoEdicao(e.target.value)}
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2 text-slate-800"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nome da Seção (Ex: LOUVORES ESPECIAIS)"
+                      value={textoSecao}
+                      onChange={(e) => setTextoSecao(e.target.value)}
+                      className="flex-1 text-xs bg-white border border-slate-200 rounded-lg p-2 text-slate-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => adicionarItemNaEdicao()}
+                      className="bg-indigo-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-indigo-700"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setModoAdicao("louvor")}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1 ${
+                      modoAdicao === "louvor"
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Louvor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModoAdicao("divider")}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1 ${
+                      modoAdicao === "divider"
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Seção
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-3 pt-2 border-t border-slate-100 flex-shrink-0">
-              <Button 
-                variant="outline" 
+
+            <div className="flex gap-3 pt-2 border-t border-slate-100 shrink-0">
+              <Button
+                variant="outline"
                 onClick={() => setListaSelecionada(null)}
                 className="w-1/2 bg-white hover:bg-slate-100 text-slate-700 border-slate-200 rounded-xl text-xs h-10 font-semibold"
               >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={handleSalvarEdicao}
                 disabled={loading}
                 className="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs h-10 font-semibold gap-2"
@@ -949,15 +677,6 @@ export default function HistoricoListas() {
           </div>
         </div>
       )}
-      <PreviewModal 
-        open={previewOpen} 
-        onOpenChange={setPreviewOpen} 
-        mode="image" 
-        rows={rows} 
-        dataCulto={dataCulto} 
-        tipoCulto={tipoCulto}       
-        responsavel={responsavel}  
-      />
     </div>
   );
 }

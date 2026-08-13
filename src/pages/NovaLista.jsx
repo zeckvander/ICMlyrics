@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
-import { ArrowLeft, Plus, Image, FileText, Cloud } from "lucide-react";
+import { ArrowLeft, Plus, Image, FileText, Cloud, Save, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ListaRow from "@/components/lista/ListaRow";
@@ -36,15 +36,11 @@ export default function NovaLista() {
 
   const [tipoCulto, setTipoCulto] = useState("");
   const [responsavel, setResponsavel] = useState("");
-
   const [showTema, setShowTema] = useState(false);
   const [showResponsavel, setShowResponsavel] = useState(false);
-
-  // Estado apenas para o nome da igreja
   const [nomeIgreja, setNomeIgreja] = useState("");
   const [carregandoIgreja, setCarregandoIgreja] = useState(false);
 
-  // Inicializa as 3 primeiras linhas com "--" por padrão
   const [rows, setRows] = useState([
     emptyRow("--"),
     emptyRow("--"),
@@ -52,6 +48,14 @@ export default function NovaLista() {
   ]);
 
   const [modal, setModal] = useState({ open: false, mode: "image" });
+  const [modalImprimir, setModalImprimir] = useState({ open: false, etapa: "pergunta" });
+  const [dadosPreview, setDadosPreview] = useState({
+    rows: [],
+    dataCulto: "",
+    tipoCulto: "",
+    responsavel: ""
+  });
+
   const [louvoresDB, setLouvoresDB] = useState([]);
   const [listaSalvaId, setListaSalvaId] = useState(null);
   const [salvando, setSalvando] = useState(false);
@@ -61,7 +65,6 @@ export default function NovaLista() {
   const senhaNuvem = localStorage.getItem("icmlyrics_senha_nuvem") || "";
   const temNuvem = usuarioNuvem.trim() !== "";
 
-  // Busca o nome oficial da igreja na tabela igrejas_autorizadas filtrando por "usuario"
   const carregarNomeIgreja = async () => {
     setCarregandoIgreja(true);
     const usuarioAtual = usuarioNuvem || usuarioLocal;
@@ -80,7 +83,6 @@ export default function NovaLista() {
           setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
         }
       } catch (e) {
-        console.error("Erro ao buscar igreja autorizada:", e);
         setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioAtual);
       } finally {
         setCarregandoIgreja(false);
@@ -98,16 +100,39 @@ export default function NovaLista() {
   useEffect(() => {
     async function fetchLouvores() {
       try {
-        const { data, error } = await supabase
-          .from("louvores") 
-          .select("id, numero, nome, categoria"); 
+        let todosOsLouvores = [];
+        let buscarMais = true;
+        let inicio = 0;
+        const limitePorPagina = 1000;
 
-        if (error) throw error;
-        if (data) setLouvoresDB(data);
+        while (buscarMais) {
+          const { data, error } = await supabase
+            .from("louvores") 
+            .select("id, numero, nome, categoria")
+            .order("id", { ascending: true })
+            .range(inicio, inicio + limitePorPagina - 1);
+
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            todosOsLouvores = [...todosOsLouvores, ...data];
+            inicio += limitePorPagina;
+
+            if (data.length < limitePorPagina) {
+              buscarMais = false;
+            }
+          } else {
+            buscarMais = false;
+          }
+        }
+        
+        setLouvoresDB(todosOsLouvores);
+        
       } catch (error) {
-        console.error("Erro ao buscar louvores do Supabase:", error.message);
+        console.error(error.message);
       }
     }
+    
     fetchLouvores();
   }, []);
 
@@ -130,6 +155,12 @@ export default function NovaLista() {
       }
       
       if (location.state?.dispararImpressao) {
+        setDadosPreview({
+          rows: listaantiga.rows || [],
+          dataCulto: listaantiga.dataCulto || "",
+          tipoCulto: tipoCarregado || "",
+          responsavel: responsavelCarregado || ""
+        });
         setModal({ open: true, mode: "image" });
       }
     }
@@ -140,6 +171,24 @@ export default function NovaLista() {
   }, [rows, dataCulto, tipoCulto, responsavel]);
 
   const diaSemana = dataCulto ? DIAS[new Date(dataCulto + "T00:00:00").getDay()] : "";
+
+  const resetForm = () => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+    const d = String(hoje.getDate()).padStart(2, "0");
+    setDataCulto(`${ano}-${mes}-${d}`);
+    setTipoCulto("");
+    setResponsavel("");
+    setShowTema(false);
+    setShowResponsavel(false);
+    setRows([
+      emptyRow("--"),
+      emptyRow("--"),
+      emptyRow("--")
+    ]);
+    setListaSalvaId(null);
+  };
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -219,7 +268,6 @@ export default function NovaLista() {
         setSalvando(false);
         return listaId;
       } catch (error) {
-        console.error("Erro ao salvar na nuvem:", error);
         alert(`Atenção: Não foi possível salvar na nuvem (${error.message}). A lista será salva apenas neste dispositivo.`);
       }
     }
@@ -249,22 +297,39 @@ export default function NovaLista() {
       setListaSalvaId(novaListaLocal.id);
       return novaListaLocal.id;
     } catch (e) {
-      console.error("Erro ao salvar localmente", e);
       return null;
     } finally {
       setSalvando(false);
     }
   };
 
-  const handleGerarPreview = async (mode) => {
+  const handleSalvarClick = async () => {
     const idSalvo = await salvarListaHibrida();
     if (idSalvo) {
-      setModal({ open: true, mode });
+      setDadosPreview({
+        rows: [...rows],
+        dataCulto,
+        tipoCulto,
+        responsavel
+      });
+      setModalImprimir({ open: true, etapa: "pergunta" });
     }
+  };
+
+  const handleFinalizarSemImprimir = () => {
+    setModalImprimir({ open: false, etapa: "pergunta" });
+    resetForm();
+  };
+
+  const handleEscolherFormatoPreview = (mode) => {
+    setModalImprimir({ open: false, etapa: "pergunta" });
+    setModal({ open: true, mode });
+    resetForm();
   };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-8">
+      {/* Cabeçalho */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
@@ -276,7 +341,6 @@ export default function NovaLista() {
           </div>
         </div>
 
-        {/* Indicador do Usuário/Igreja e Nuvem */}
         <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
           {temNuvem && (
             <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
@@ -291,7 +355,6 @@ export default function NovaLista() {
                 carregarNomeIgreja();
               }}
               className="px-2 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors"
-              title="Clique para atualizar/sincronizar"
             >
               <Cloud className={`w-3 h-3 ${temNuvem ? "text-emerald-400" : "text-slate-400"} ${carregandoIgreja ? "animate-spin" : ""}`} />
             </div>
@@ -383,26 +446,88 @@ export default function NovaLista() {
           </Button>
         </div>
 
+        {/* Botão Salvar único na cor do cabeçalho (bg-slate-900) */}
         <div className="flex flex-col gap-2 pt-2">
-          <div className="flex gap-2">
-            <Button onClick={() => handleGerarPreview("image")} className="flex-1" disabled={salvando}>
-              <Image className="w-4 h-4 mr-2" /> {salvando ? "A salvar..." : "Gerar Imagem"}
-            </Button>
-            <Button onClick={() => handleGerarPreview("image-text")} variant="secondary" className="flex-1" disabled={salvando}>
-              <FileText className="w-4 h-4 mr-2" /> {salvando ? "A salvar..." : "Imagem e Texto"}
-            </Button>
-          </div>
+          <Button 
+            onClick={handleSalvarClick} 
+            className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl flex items-center justify-center" 
+            disabled={salvando}
+          >
+            <Save className="w-4 h-4 mr-2" /> {salvando ? "A salvar..." : "Salvar Lista"}
+          </Button>
         </div>
       </div>
+
+      {/* Modal de confirmação e seleção de formato (com botões na cor bg-slate-900) */}
+      {modalImprimir.open && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-4 text-center">
+            {modalImprimir.etapa === "pergunta" ? (
+              <>
+                <div className="w-12 h-12 bg-slate-100 text-slate-900 rounded-full flex items-center justify-center mx-auto">
+                  <Printer className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Lista Salva com Sucesso!</h3>
+                  <p className="text-xs text-slate-500 mt-1">Deseja imprimir ou gerar imagem da lista agora?</p>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleFinalizarSemImprimir}
+                    className="flex-1 h-10 text-xs font-semibold rounded-xl border-slate-200"
+                  >
+                    Não
+                  </Button>
+                  <Button
+                    onClick={() => setModalImprimir({ open: true, etapa: "opcoes" })}
+                    className="flex-1 h-10 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white"
+                  >
+                    Sim
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Escolha o Formato</h3>
+                  <p className="text-xs text-slate-500 mt-1">Como deseja gerar a imagem da sua lista?</p>
+                </div>
+                <div className="flex flex-col gap-2 pt-2">
+                  <Button
+                    onClick={() => handleEscolherFormatoPreview("image")}
+                    className="w-full h-10 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2"
+                  >
+                    <Image className="w-4 h-4" /> Gerar Imagem
+                  </Button>
+                  <Button
+                    onClick={() => handleEscolherFormatoPreview("image-text")}
+                    className="w-full h-10 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" /> Imagem e Texto
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={handleFinalizarSemImprimir}
+                    className="w-full h-8 text-xs text-slate-400 hover:text-slate-600 mt-1"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <PreviewModal 
         open={modal.open} 
         onOpenChange={(o) => setModal({ ...modal, open: o })} 
         mode={modal.mode} 
-        rows={rows} 
-        dataCulto={dataCulto}
-        tipoCulto={tipoCulto}
-        responsavel={responsavel}
+        rows={dadosPreview.rows} 
+        dataCulto={dadosPreview.dataCulto}
+        tipoCulto={dadosPreview.tipoCulto}
+        responsavel={dadosPreview.responsavel}
       />
     </div>
   );
