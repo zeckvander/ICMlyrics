@@ -3,13 +3,12 @@ import { Draggable } from "@hello-pangea/dnd";
 import { GripVertical, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-// Função para remover acentos e caracteres especiais (pontos, vírgulas, exclamações, etc.)
 const normalizarTexto = (texto) =>
   String(texto || "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"¡!¿]/g, "") // Remove pontuações
+    .replace(/[\u0300-\u036f]/g, "") 
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"¡!¿]/g, "") 
     .trim();
 
 export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
@@ -32,13 +31,11 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
       onChange({ ...row, nome: "", numero: "", id_louvor_db: null, categoria: row.categoria || "--" });
       return;
     }
-
     const termoNormalizado = normalizarTexto(value);
     const buscaNum = termoBruto.toLowerCase();
 
     const filtered = (louvores || [])
       .filter((l) => {
-        // Filtra pela categoria se estiver definida e diferente de "--"
         const bateCategoria = !row.categoria || row.categoria === "--" || l.categoria === row.categoria;
         if (!bateCategoria) return false;
 
@@ -54,23 +51,17 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
         const numA = String(a.numero || "").trim().toLowerCase();
         const numB = String(b.numero || "").trim().toLowerCase();
 
-        // 🏆 PRIORIDADE 1: Correspondência EXATA de número vai direto para o topo
-        // Ex: digitou "1" -> 1 da Coletânea e 1 da CIAS aparecem primeiro que 15, 10, etc.
         const exatoA = numA === buscaNum;
         const exatoB = numB === buscaNum;
 
         if (exatoA && !exatoB) return -1;
         if (!exatoA && exatoB) return 1;
-
-        // 🏆 PRIORIDADE 2: Ordenação por valor numérico crescente
         const nA = Number(a.numero) || 0;
         const nB = Number(b.numero) || 0;
         if (nA !== nB) return nA - nB;
-
-        // 🏆 PRIORIDADE 3: Se o número for igual, desempata pelo nome da Categoria
         return (a.categoria || "").localeCompare(b.categoria || "");
       })
-      .slice(0, 10); // Aumentado para até 10 itens no dropdown
+      .slice(0, 10);
 
     setSuggestions(filtered);
   };
@@ -91,7 +82,6 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
       id_louvor_db: louvor.id 
     });
   };
-
   const handleBlur = () => {
     setTimeout(() => {
       setSuggestions([]);
@@ -102,7 +92,6 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
       }
     }, 250);
   };
-
   if (row.type === "divider") {
     return (
       <Draggable draggableId={row.id} index={index}>
@@ -125,7 +114,6 @@ export default function ListaRow({ row, index, onChange, onRemove, louvores }) {
       </Draggable>
     );
   }
-
   return (
     <Draggable draggableId={row.id} index={index}>
       {(provided) => (

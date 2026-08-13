@@ -26,6 +26,8 @@ export default function NovaLista() {
   const navigate = useNavigate();
   const location = useLocation();
   
+  const veioDoHistorico = location.state?.veioDoHistorico;
+
   const [dataCulto, setDataCulto] = useState(() => {
     const hoje = new Date();
     const ano = hoje.getFullYear();
@@ -332,7 +334,10 @@ export default function NovaLista() {
       {/* Cabeçalho */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors">
+          <button 
+            onClick={() => navigate(veioDoHistorico ? "/historico-listas" : "/dashboard")} 
+            className="text-slate-300 hover:text-white transition-colors"
+          >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
@@ -458,7 +463,7 @@ export default function NovaLista() {
         </div>
       </div>
 
-      {/* Modal de confirmação e seleção de formato (com botões na cor bg-slate-900) */}
+      {/* Modal de confirmação e seleção de formato */}
       {modalImprimir.open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-4 text-center">

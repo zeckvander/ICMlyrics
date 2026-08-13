@@ -29,15 +29,12 @@ const ListaPreview = forwardRef(({ rows, dataCulto }, ref) => {
               </div>
             );
           }
-
           const numStr = String(row.numero || "").trim();
           const isAvulso = !row.numero || numStr === "" || row.categoria === "Avulsos" || numStr.startsWith("local_");
           const isCias = row.categoria === "Cias" || row.categoria === "CIAS";
           const nomeLouvor = (row.nome || row.buscaLouvor || "").toUpperCase();
-
           return (
             <div key={row.id || idx} className="flex items-center gap-3 text-xs font-semibold text-slate-700">
-              {/* Coluna do Número / AV */}
               <span className="w-8 text-slate-400 font-bold text-right shrink-0">
                 {isAvulso ? "AV" : row.numero}
               </span>
