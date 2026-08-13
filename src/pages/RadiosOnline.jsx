@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Radio, Play, Pause, 
-  Volume2, VolumeX, Trash2, Signal, Tv
+  Volume2, VolumeX, Signal, Tv
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,29 +18,17 @@ export default function RadiosOnline() {
 
   const audioRef = useRef(null);
   const hlsRef = useRef(null);
-  const menuTvRef = useRef(null);
 
   const [reproduzindo, setReproduzindo] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [mostrarVolume, setMostrarVolume] = useState(false);
-  const [menuTvAberto, setMenuTvAberto] = useState(false);
 
   const [radios, setRadios] = useState([]);
   const [radioSelecionada, setRadioSelecionada] = useState(null);
   const [carregando, setCarregando] = useState(true);
   
   const [novaRadio, setNovaRadio] = useState({ nome: "", url: "", categoria: "Gospel" });
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (menuTvRef.current && !menuTvRef.current.contains(event.target)) {
-        setMenuTvAberto(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   useEffect(() => {
     const validarAcesso = async () => {
@@ -200,11 +188,15 @@ export default function RadiosOnline() {
   };
 
   const handleSelecionarEReproduzir = async (radio) => {
-    setRadioSelecionada(radio);
-    setReproduzindo(false);
-    setTimeout(() => {
-      tocarStream(radio);
-    }, 100);
+    if (radioSelecionada?.id === radio.id) {
+      togglePlayPrincipal();
+    } else {
+      setRadioSelecionada(radio);
+      setReproduzindo(false);
+      setTimeout(() => {
+        tocarStream(radio);
+      }, 100);
+    }
   };
 
   const handleAdicionarRadio = async (e) => {
@@ -240,32 +232,6 @@ export default function RadiosOnline() {
     }
   };
 
-  const handleDeletarRadio = async (id) => {
-    if (!podeCriar) return alert("Apenas administradores podem excluir.");
-    if (!window.confirm("Deseja realmente remover esta rádio?")) return;
-
-    try {
-      const { error } = await supabase
-        .from("radios_online")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      const listaAtualizada = radios.filter((r) => r.id !== id);
-      setRadios(listaAtualizada);
-
-      if (radioSelecionada?.id === id) {
-        if (audioRef.current) audioRef.current.pause();
-        if (hlsRef.current) hlsRef.current.destroy();
-        setRadioSelecionada(listaAtualizada[0] || null);
-        setReproduzindo(false);
-      }
-    } catch (error) {
-      alert("Erro ao excluir rádio: " + error.message);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 pb-28 flex flex-col">
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 sticky top-0 z-30 shadow-md">
@@ -286,26 +252,14 @@ export default function RadiosOnline() {
             </div>
           </div>
 
-          <div className="relative" ref={menuTvRef}>
+          <div>
             <button
-              onClick={() => setMenuTvAberto(!menuTvAberto)}
+              onClick={() => navigate("/tv-online")}
               className="flex items-center justify-center bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 p-2.5 rounded-xl transition-all active:scale-95 text-xs font-semibold"
               title="TV Web Maanaim"
             >
               <Tv className="w-5 h-5 text-red-500" />
             </button>
-
-            {menuTvAberto && (
-              <div className="absolute right-0 mt-2 w-max bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <button
-                  onClick={() => { setMenuTvAberto(false); navigate("/tv-online"); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-200 hover:bg-slate-800 hover:text-white transition-colors whitespace-nowrap"
-                >
-                  <Tv className="w-4 h-4 text-red-500" />
-                  <span>TV Web</span>
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -441,7 +395,7 @@ export default function RadiosOnline() {
                             ? "bg-red-600 text-white"
                             : "bg-red-100 text-red-700 hover:bg-red-200"
                         }`}
-                        title="Ouvir Estação"
+                        title={tocandoEsta ? "Pausar Estação" : "Ouvir Estação"}
                       >
                         {tocandoEsta ? (
                           <Pause className="w-3.5 h-3.5" />
@@ -449,16 +403,6 @@ export default function RadiosOnline() {
                           <Play className="w-3.5 h-3.5 ml-0.5" />
                         )}
                       </button>
-
-                      {podeCriar && (
-                        <button
-                          onClick={() => handleDeletarRadio(radio.id)}
-                          className="ml-1 p-1.5 text-rose-500 hover:text-rose-700 transition-colors"
-                          title="Excluir Rádio"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
