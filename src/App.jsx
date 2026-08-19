@@ -26,13 +26,18 @@ import Avisos from '@/pages/Avisos';
 import Repertorio from '@/pages/Repertorio'; 
 import ListaRepertorio from '@/pages/ListaRepertorio'; 
 import Perfil from '@/pages/Perfil';
-import PainelEquipe from '@/pages/PainelEquipe'
+import PainelEquipe from '@/pages/PainelEquipe';
 import { ToolsProvider } from '@/components/tools/ToolsProvider';
 import AquecimentoVocal from "./pages/AquecimentoVocal";
 import Sugestoes from "./pages/Sugestoes";
 import MapaPalco from "@/pages/MapaPalco";
 import RadiosOnline from '@/pages/RadiosOnline';
 import TvOnline from '@/pages/TvOnline';
+import Culto from '@/pages/Culto';
+import RegistroDons from '@/pages/RegistroDons';
+import Dados from '@/pages/Dados';
+import Oracao from '@/pages/Oracao';
+import ListaOracao from '@/components/lista/ListaOracao';
 
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -65,7 +70,6 @@ function App() {
     if (savedVersion !== APP_VERSION) {
       console.log("Atualização detectada. Preservando sessão e dados do app...");
       
-      // Mantém chaves do Supabase (sb-) E chaves do aplicativo (icmlyrics_)
       const keysToKeep = Object.keys(localStorage).filter(
         key => key.startsWith('sb-') || key.startsWith('icmlyrics_')
       );
@@ -114,10 +118,15 @@ function App() {
             <Route path="/repertorio" element={<PrivateLayout><Repertorio /></PrivateLayout>} />
             <Route path="/repertorio/lista/:id" element={<PrivateLayout><ListaRepertorio /></PrivateLayout>} />
             <Route path="/radios-online" element={<PrivateLayout><RadiosOnline /></PrivateLayout>} /> 
+            <Route path="/culto" element={<PrivateLayout><Culto /></PrivateLayout>} />
             <Route path="/tv-online" element={<TvOnline />} />
             <Route path="/aquecimento-vocal" element={<AquecimentoVocal />} />
             <Route path="/sugestoes" element={<Sugestoes />} />
-            <Route path="/mapa-palco" element={<MapaPalco />} />
+            <Route path="/mapa-palco" element={<PrivateLayout><MapaPalco /></PrivateLayout>} />
+            <Route path="/registro-dons" element={<PrivateLayout><RegistroDons /></PrivateLayout>} />
+            <Route path="/dados" element={<Dados />} />
+            <Route path="/oracao" element={<Oracao />} />
+            <Route path="/lista-oracao/:id" element={<ListaOracao />} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>

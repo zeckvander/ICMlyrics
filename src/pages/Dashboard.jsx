@@ -335,7 +335,7 @@ export default function Dashboard() {
     { label: "Bíblia", icon: BookOpen, path: "/biblia", color: "bg-emerald-600" },
     { label: "Repertório", icon: ListMusic, path: "/repertorio", color: "bg-pink-500", count: novidades.repertorio, key: "repertorio" },
     { label: "Painel da Equipe", icon: Users, path: "/painel-equipe", color: "bg-violet-600" },
-    { label: "Culto", icon: Sparkles, color: "bg-amber-600", onClick: () => navigate("/culto-profetico") }
+    { label: "Culto", icon: Sparkles, color: "bg-amber-600", onClick: () => navigate("/culto") }
   ];
 
   const ferramentas = [
