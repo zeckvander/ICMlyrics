@@ -41,7 +41,6 @@ export default function Dashboard() {
 
   const [limparFavoritos, setLimparFavoritos] = useState(false);
 
-  // Contador de novidades não lidas
   const [novidades, setNovidades] = useState({
     avisos: 0,
     repertorio: 0
@@ -49,7 +48,6 @@ export default function Dashboard() {
 
   const SEU_TELEGRAM_LINK = "https://t.me/Ezequielvander"; 
 
-  // 1. Validação de Sessão / Nuvem
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const chaveRecebida = queryParams.get("master");
@@ -114,7 +112,6 @@ export default function Dashboard() {
     validarSessaoSegura();
   }, [location]);
 
-  // 2. Consulta de Novidades (Avisos + Repertório)
   useEffect(() => {
     const verificarNovidades = async () => {
       try {
@@ -123,8 +120,6 @@ export default function Dashboard() {
 
         let novosAvisosCount = 0;
         let novosRepertorioCount = 0;
-
-        // --- AVISOS ---
         let queryAvisos = supabase
           .from("avisos")
           .select("*", { count: "exact", head: true })
@@ -139,7 +134,6 @@ export default function Dashboard() {
         const { count: countAvisos, error: errAvisos } = await queryAvisos;
         if (!errAvisos && countAvisos) novosAvisosCount = countAvisos;
 
-        // --- REPERTÓRIO ---
         let queryRepertorio = supabase
           .from("listas_repertorio")
           .select("*", { count: "exact", head: true })

@@ -10,7 +10,6 @@ import { supabase } from "@/lib/supabaseClient";
 export default function Sugestoes() {
   const navigate = useNavigate();
 
-  // Estados de Usuário / Igreja / Permissões (Lógica mantida)
   const [nomeIgreja, setNomeIgreja] = useState("Carregando...");
   const [carregandoValidacao, setCarregandoValidacao] = useState(true);
   const [userRole, setUserRole] = useState("user");
@@ -20,7 +19,6 @@ export default function Sugestoes() {
   const temNuvem = userNuvem.trim() !== "";
   const userName = localStorage.getItem("icmlyrics_user") || "Usuário";
 
-  // Formulário de Sugestão
   const [sugestaoMusica, setSugestaoMusica] = useState("");
   const [sugestaoCantor, setSugestaoCantor] = useState("");
   const [sugestaoTom, setSugestaoTom] = useState("");

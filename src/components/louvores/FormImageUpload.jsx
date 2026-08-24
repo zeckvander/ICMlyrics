@@ -12,12 +12,10 @@ export default function FormImageUpload({ label, value, onChange }) {
 
     setUploading(true);
     try {
-      // 1. Gera um nome de arquivo único para evitar conflito de nomes repetidos
       const fileExt = file.name.split(".").pop();
       const fileName = `uploads/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-      const bucketName = "cifras"; // Nome do seu bucket criado no Supabase
+      const bucketName = "cifras";
 
-      // 2. Faz o upload da imagem para o Supabase Storage
       const { data, error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(fileName, file, {
@@ -27,12 +25,10 @@ export default function FormImageUpload({ label, value, onChange }) {
 
       if (uploadError) throw uploadError;
 
-      // 3. Busca a URL pública que foi gerada pelo Supabase
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(fileName);
 
-      // Envia a URL gerada para a função onChange correspondente
       onChange(publicUrl);
     } catch (err) {
       console.error("Erro no upload do arquivo:", err);

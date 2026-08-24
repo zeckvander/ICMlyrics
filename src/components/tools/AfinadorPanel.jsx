@@ -167,7 +167,6 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
 
   const startTuner = async () => {
     try {
-      // Solicitação limpa de áudio (Desativa tratamentos nativos que removem frequências instrumentais)
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: false,
@@ -179,18 +178,15 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
       
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
       
-      // Filtro passa-baixa para cortar ruídos agudos falsos acima de 800Hz
       const filter = audioCtxRef.current.createBiquadFilter();
       filter.type = "lowpass";
       filter.frequency.setValueAtTime(800, audioCtxRef.current.currentTime);
 
       analyserRef.current = audioCtxRef.current.createAnalyser();
-      // Otimizado para 8192 para ler ondas completas de baixos e notas graves com estabilidade
       analyserRef.current.fftSize = 8192; 
       
       const source = audioCtxRef.current.createMediaStreamSource(stream);
       
-      // Conexão em cascata: Mic -> Filtro Passa-Baixa -> Analisador FFT
       source.connect(filter);
       filter.connect(analyserRef.current);
       

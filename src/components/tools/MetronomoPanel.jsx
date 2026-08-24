@@ -203,7 +203,6 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
       style={{ transform: `translate(${mainPos.x}px, ${mainPos.y}px)` }}
       className="fixed bottom-5 left-5 z-50 bg-slate-950 text-slate-100 rounded-2xl shadow-2xl border border-slate-800 w-72 h-[460px] flex flex-col overflow-hidden select-none transition-transform font-sans"
     >
-      {/* CABEÇALHO ESCURO PRINCIPAL (ÍCONE REMOVIDO) */}
       <div 
         onMouseDown={handleMouseDown}
         className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between flex-shrink-0 cursor-move"
@@ -219,8 +218,7 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
       </div>
 
       <div className="p-4 flex-grow flex flex-col overflow-hidden space-y-4">
-        
-        {/* CONTEÚDO CONDICIONAL: SE ESTIVER NOS PRESETS (PADRÕES) */}
+      
         {showPresets ? (
           <div className="flex-grow flex flex-col overflow-hidden animate-fade-in">
             <div className="flex justify-between items-center bg-slate-900/50 border border-slate-900 -mx-4 -mt-4 px-4 py-2.5 mb-3 flex-shrink-0">
@@ -255,7 +253,6 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
             </div>
           </div>
         ) : showManual ? (
-          /* CONTEÚDO CONDICIONAL: SE ESTIVER NO MANUAL */
           <div className="flex-grow flex flex-col overflow-hidden animate-fade-in">
             <div className="flex justify-between items-center bg-slate-900/50 border border-slate-900 -mx-4 -mt-4 px-4 py-2.5 mb-3 flex-shrink-0">
               <div className="flex items-center gap-2 text-slate-400">
@@ -290,7 +287,7 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
             <Button onClick={() => setShowManual(false)} className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 h-11 rounded-xl font-black shadow-lg flex-shrink-0 mt-auto transition border border-emerald-400 uppercase tracking-wider text-xs">Aplicar Ajuste</Button>
           </div>
         ) : (
-          /* TELA PADRÃO DO METRÔNOMO */
+
           <div className="flex-grow flex flex-col justify-between overflow-hidden space-y-4">
             <div className="flex items-center justify-between gap-2">
               <Button 

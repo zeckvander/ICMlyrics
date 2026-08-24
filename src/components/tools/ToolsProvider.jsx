@@ -15,7 +15,6 @@ export function ToolsProvider({ children }) {
   const [metronomoMin, setMetronomoMin] = useState(false);
   const [afinadorMin, setAfinadorMin] = useState(false);
 
-  // O afinador vai subir se ele estiver minimizado E o metrônomo também estiver minimizado
   const afinadorSubiu = afinadorMin && metronomoMin;
 
   return (
@@ -30,7 +29,6 @@ export function ToolsProvider({ children }) {
           onClose={() => { setMetronomoOpen(false); setMetronomoMin(false); }} 
           minimized={metronomoMin}
           setMinimized={setMetronomoMin}
-          // O Metrônomo sempre fica na base (bottom-5)
           isStacked={false} 
         />
       )}
@@ -40,7 +38,6 @@ export function ToolsProvider({ children }) {
           onClose={() => { setAfinadorOpen(false); setAfinadorMin(false); }} 
           minimized={afinadorMin}
           setMinimized={setAfinadorMin}
-          // Passa true se for para aplicar o bottom-20 no Afinador
           isStacked={afinadorSubiu}
         />
       )}

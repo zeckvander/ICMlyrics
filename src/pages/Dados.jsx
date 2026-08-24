@@ -26,7 +26,6 @@ const formatarDataComDiaSemana = (dataRaw) => {
   return `${diaFormatado}/${mesFormatado}/${ano}${nomeDia ? ` - ${nomeDia}` : ""}`;
 };
 
-// Agrupamento por Categorias
 const GRUPOS_CATEGORIAS = [
   {
     titulo: "Cias",
@@ -83,7 +82,6 @@ const VALORES_INICIAIS = GRUPOS_CATEGORIAS.reduce((acc, grupo) => {
 export default function Dados() {
   const navigate = useNavigate();
 
-  // Autenticação e Permissões
   const [carregandoValidacao, setCarregandoValidacao] = useState(true);
   const [nomeIgreja, setNomeIgreja] = useState("Carregando...");
   const [userRole, setUserRole] = useState("user");
@@ -93,7 +91,6 @@ export default function Dados() {
   const temNuvem = userNuvem.trim() !== "";
   const isSuper = userRole === "super_admin";
 
-  // Culto Selecionado e Histórico
   const [historicoListas, setHistoricoListas] = useState([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
   const [mostrarModalHistorico, setMostrarModalHistorico] = useState(false);
@@ -104,16 +101,13 @@ export default function Dados() {
     tipo: ""
   });
 
-  // Responsáveis
   const [obreiroPorta, setObreiroPorta] = useState("");
   const [irmaoLouvor, setIrmaoLouvor] = useState("");
   const [irmaoPalavra, setIrmaoPalavra] = useState("");
 
-  // Quantitativos
   const [quantitativos, setQuantitativos] = useState(VALORES_INICIAIS);
   const [salvandoDados, setSalvandoDados] = useState(false);
 
-  // Estado das Sanfonas/Accordions (iniciam fechadas)
   const [gruposAbertos, setGruposAbertos] = useState({});
 
   useEffect(() => {
@@ -201,15 +195,12 @@ export default function Dados() {
       tipo: tipoCultoInformado
     });
 
-    // Responsável pelo Louvor (Vem prioritariamente da tabela 'listas.responsavel')
     const louvorEncontrado = item.responsavel || item.irmao_louvor || item.louvor || item.autor || "";
     setIrmaoLouvor(louvorEncontrado);
 
-    // Valores padrão diretos do item da lista
     let palavraEncontrada = item.irmao_palavra || item.palavra || item.pregador || "";
     let obreiroEncontrado = item.obreiro_porta || item.obreiro || item.porta || "";
 
-    // Busca detalhada na tabela 'escala_equipe' vinculada pelo lista_id
     try {
       const { data: equipeData, error: equipeError } = await supabase
         .from("escala_equipe")
@@ -217,7 +208,6 @@ export default function Dados() {
         .eq("lista_id", item.id);
 
       if (!equipeError && equipeData && equipeData.length > 0) {
-        // Busca pessoa escalada para a Palavra
         const membroPalavra = equipeData.find((m) => {
           const cargoStr = (m.cargo || m.funcao || m.categoria || "").toLowerCase();
           return cargoStr.includes("palavra") || cargoStr.includes("pregador") || cargoStr.includes("pregação") || cargoStr.includes("ministra");
@@ -226,7 +216,6 @@ export default function Dados() {
           palavraEncontrada = membroPalavra.nome;
         }
 
-        // Busca pessoa escalada para Obreiro / Porta
         const membroPorta = equipeData.find((m) => {
           const cargoStr = (m.cargo || m.funcao || m.categoria || "").toLowerCase();
           return cargoStr.includes("porta") || cargoStr.includes("recepção") || cargoStr.includes("obreiro");

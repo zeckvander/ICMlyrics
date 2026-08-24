@@ -18,7 +18,6 @@ export default function ForgotPassword() {
     setError("");
 
     try {
-      // Define o endereço para onde o usuário será enviado ao clicar no e-mail de redefinição
       const redirectUrl = `${window.location.origin}/reset-password`;
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
@@ -31,7 +30,6 @@ export default function ForgotPassword() {
     } catch (err) {
       console.error("Erro ao solicitar redefinição:", err);
       setError(err.message || "Ocorreu um erro ao tentar enviar o e-mail.");
-      // Definimos como enviado de qualquer forma por questões de segurança e UX padrão
       setSent(true);
     } finally {
       setLoading(false);

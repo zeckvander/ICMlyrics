@@ -26,7 +26,6 @@ export default function AdminLoginModal({ open, onOpenChange }) {
     setCarregando(true);
 
     try {
-      // 1. Faz o login usando a autenticação criptografada oficial do Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password: senha.trim(),
@@ -38,19 +37,14 @@ export default function AdminLoginModal({ open, onOpenChange }) {
         return;
       }
 
-      // 2. Extrai o nome_exibicao de dentro do raw_user_meta_data
       const nomeExibicao = data.user?.user_metadata?.nome_exibicao || "Administrador";
       
-      // CAPTURA DA ROLE: Lê o campo 'role' vindo diretamente do Supabase.
-      // Se não houver nada definido no banco, ele assume 'church_admin' por padrão.
       const roleDoUsuario = data.user?.user_metadata?.role || "church_admin";
 
-      // 3. Salva no localStorage para que o Dashboard.jsx identifique a sincronização
       localStorage.setItem("icmlyrics_user", nomeExibicao);
       localStorage.setItem("icmlyrics_user_nuvem", email.trim().toLowerCase());
       localStorage.setItem("icmlyrics_role", roleDoUsuario); 
 
-      // 4. Fecha o modal, vai para o dashboard e força o reload para atualizar o estado global
       onOpenChange(false);
       navigate("/dashboard"); 
       window.location.reload(); 

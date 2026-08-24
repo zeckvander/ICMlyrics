@@ -1,4 +1,3 @@
-// 1. Regras específicas para a Coletânea
 const TEMAS_COLETANEA = [
   { numero: "0", tema: "Contra-capa", categoria: "Coletânea" },
   ...Array.from({length: 56}, (_, i) => ({ numero: (i + 1).toString(), tema: "Clamor", categoria: "Coletânea" })),
@@ -14,7 +13,6 @@ const TEMAS_COLETANEA = [
   ...Array.from({length: 64}, (_, i) => ({ numero: (i + 731).toString(), tema: "Corinhos", categoria: "Coletânea" }))
 ];
 
-// 2. Regras para "Cias" atualizadas com os intervalos solicitados
 const TEMAS_CIAS = [
   ...Array.from({length: 12}, (_, i) => ({ numero: (i + 1).toString(), tema: "Clamor", categoria: "Cias" })),
   ...Array.from({length: 10}, (_, i) => ({ numero: (i + 13).toString(), tema: "Invocação e Comunhão", categoria: "Cias" })),
@@ -26,13 +24,11 @@ const TEMAS_CIAS = [
   ...Array.from({length: 22}, (_, i) => ({ numero: (i + 220).toString(), tema: "Louvor", categoria: "Cias" }))
 ];
 
-// 3. Regras para "Avulsos" (Deixamos pronto para você preencher depois)
 const TEMAS_AVULSOS = [
   // Exemplo futuro:
   // { numero: "100", tema: "Gratidão", categoria: "Avulsos" }
 ];
 
-// Juntamos todas as categorias em um único array exportado
 export const TEMAS_PADRAO = [
   ...TEMAS_COLETANEA,
   ...TEMAS_CIAS,

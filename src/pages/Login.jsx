@@ -19,7 +19,6 @@ export default function Login() {
     setLoading(true);
     
     try {
-      // Realiza o login utilizando o Supabase
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password,
@@ -27,7 +26,6 @@ export default function Login() {
 
       if (loginError) throw loginError;
 
-      // Se der tudo certo, redireciona o usuário para a página inicial
       navigate("/");
     } catch (err) {
       console.error("Erro na autenticação:", err);
@@ -43,7 +41,7 @@ export default function Login() {
       const { error: providerError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin, // Redireciona de volta ao seu app após o login
+          redirectTo: window.location.origin, 
         },
       });
 

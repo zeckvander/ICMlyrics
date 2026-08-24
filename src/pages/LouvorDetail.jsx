@@ -21,14 +21,12 @@ export default function LouvorDetail() {
   const [saving, setSaving] = useState(false);
   const [fav, setFav] = useState(false);
   
-  // Estado de admin dinâmico validado pelo Supabase Auth
   const [admin, setAdmin] = useState(false);
   const musico = localStorage.getItem("icmlyrics_user") || "";
 
   useEffect(() => { loadLouvor(); }, [id]);
   useEffect(() => { if (louvor) setFav(isFavorite(musico, louvor.id)); }, [louvor, musico]);
 
-  // Checa a sessão segura do administrador assim que a tela abre
   useEffect(() => {
     const verificarSessao = async () => {
       try {
@@ -74,7 +72,6 @@ export default function LouvorDetail() {
     setSaving(false);
   };
 
-  // FUNÇÃO SEGURA PARA EXCLUSÃO DO LOUVOR DIRETO DA TELA INTERNA
   const handleDelete = async () => {
     const confirmar = window.confirm(`Deseja realmente excluir o louvor "${louvor?.nome}"?`);
     if (!confirmar) return;
@@ -89,22 +86,21 @@ export default function LouvorDetail() {
         alert("Erro ao excluir: " + error.message);
       } else {
         alert("Louvor excluído com sucesso!");
-        handleVoltar(); // Retorna respeitando a origem ou o padrão
+        handleVoltar();
       }
     } catch (err) {
       alert("Erro na conexão com o servidor.");
     }
   };
 
-  // 🛡️ FUNÇÃO DE RETORNO INTELIGENTE VIA STORAGE
   const handleVoltar = () => {
     const rotaRetorno = localStorage.getItem("icmlyrics_retorno_repertorio");
     
     if (rotaRetorno) {
-      localStorage.removeItem("icmlyrics_retorno_repertorio"); // Limpa após o uso
+      localStorage.removeItem("icmlyrics_retorno_repertorio"); 
       navigate(rotaRetorno);
     } else {
-      navigate("/louvor"); // Rota padrão caso não tenha vindo de uma lista específica
+      navigate("/louvor");
     }
   };
 

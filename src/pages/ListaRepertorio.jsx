@@ -171,7 +171,6 @@ export default function ListaRepertorio() {
     }
   };
 
-  // Função para mudar a ordem do louvor para cima ou para baixo
   const handleMudarOrdem = async (index, direcao, e) => {
     e.stopPropagation();
     if (!podeCriar) return;

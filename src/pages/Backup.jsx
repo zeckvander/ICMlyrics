@@ -74,10 +74,8 @@ export default function Backup() {
     setSelectedGroups(updated);
   };
 
-  // Tenta encontrar o nome ou ID do usuário dinamicamente para usar no arquivo
   const obterNomeUsuarioDoStorage = () => {
     try {
-      // 1. Tenta buscar direto na sua string crua do icmlyrics_user
       const userRaw = localStorage.getItem("icmlyrics_user");
       if (userRaw) {
         if (userRaw.startsWith("{")) {
@@ -89,7 +87,6 @@ export default function Backup() {
         return userRaw.replace(/[^a-zA-Z0-9]/g, "_");
       }
 
-      // 2. Se falhar, varre chaves do Supabase em busca do email logado
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith("sb-") && key.includes("-auth-token")) {
@@ -102,7 +99,7 @@ export default function Backup() {
     } catch (e) {
       console.warn("Não foi possível processar o nome do usuário para o arquivo.", e);
     }
-    return ""; // Retorna vazio se não achar nada
+    return ""; 
   };
 
   const exportarBackupAgrupado = () => {
@@ -129,7 +126,6 @@ export default function Backup() {
       const a = document.createElement("a");
       a.href = url;
 
-      // Obtém o nome limpo do usuário e monta a nomenclatura inteligente
       const nomeUsuario = obterNomeUsuarioDoStorage();
       const sufixoNome = nomeUsuario ? `_${nomeUsuario}` : "";
       

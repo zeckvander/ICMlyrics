@@ -50,7 +50,6 @@ export default function LouvorForm({ initial, onSubmit, saving }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pb-6">
-      {/* Cabeçalho */}
       <div className="mb-2 pt-2">
         <h2 className="text-lg font-bold text-slate-900">
           {initial ? "Editar Louvor" : "Novo Louvor"}
@@ -109,7 +108,6 @@ export default function LouvorForm({ initial, onSubmit, saving }) {
         <Input id="input-instrumentos" name="instrumentos" value={form.instrumentos} onChange={(e) => set("instrumentos", e.target.value)} placeholder="Ex: Violão, Teclado, Baixo" />
       </div>
 
-      {/* Inputs das Vozes */}
       <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Links de Áudio das Vozes</p>
         {["soprano", "contralto", "tenor", "baixo"].map((voz) => (

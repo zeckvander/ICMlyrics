@@ -4,7 +4,6 @@ const AuthContext = createContext();
 const STORAGE_KEY = "icmlyrics_user";
 
 export const AuthProvider = ({ children }) => {
-  // Inicializa o estado lendo direto do localStorage
   const [user, setUser] = useState(() => {
     const nomeSalvo = localStorage.getItem(STORAGE_KEY);
     return nomeSalvo ? { name: nomeSalvo } : null;
@@ -17,14 +16,12 @@ export const AuthProvider = ({ children }) => {
   const [authChecked, setAuthChecked] = useState(true);
   const [appPublicSettings, setAppPublicSettings] = useState({}); 
 
-  // Função adaptada caso alguma outra tela do seu app tente chamá-la
   const checkAppState = async () => {
     setIsLoadingPublicSettings(false);
     setIsLoadingAuth(false);
     setAuthChecked(true);
   };
 
-  // Função adaptada para manter a compatibilidade com o resto do código
   const checkUserAuth = async () => {
     const nomeSalvo = localStorage.getItem(STORAGE_KEY);
     if (nomeSalvo) {
@@ -35,7 +32,6 @@ export const AuthProvider = ({ children }) => {
     setAuthChecked(true);
   };
 
-  // Logout local limpando o localStorage
   const logout = (shouldRedirect = true) => {
     localStorage.removeItem(STORAGE_KEY);
     setUser(null);

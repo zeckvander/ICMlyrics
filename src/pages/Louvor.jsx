@@ -158,7 +158,6 @@ export default function Louvor() {
     carregarLouvores();
   }, []);
 
-  // 7. RESTAURA A POSIÇÃO DE ROLAGEM
   useEffect(() => {
     if (!loading && louvores.length > 0) {
       const pos = sessionStorage.getItem("louvor_scroll_position");

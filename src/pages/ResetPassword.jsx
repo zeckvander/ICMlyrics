@@ -26,7 +26,6 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      // O Supabase atualiza o usuário logado atualmente (pelo link de recuperação de senha)
       const { error: resetError } = await supabase.auth.updateUser({
         password: password
       });
@@ -35,7 +34,6 @@ export default function ResetPassword() {
 
       setSucesso(true);
       
-      // Pequeno delay para o usuário ler a mensagem de sucesso antes de ir ao login
       setTimeout(() => {
         navigate("/login");
       }, 2500);

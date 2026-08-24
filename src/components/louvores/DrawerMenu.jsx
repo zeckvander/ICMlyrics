@@ -1,7 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-// Ícone ListMusic importado para o botão de Repertório
 import { Home, ListPlus, Music2, FolderOpen, LogOut, History, Bell, ListMusic } from "lucide-react";
 import { logoutAdmin } from "@/lib/adminAuth";
 

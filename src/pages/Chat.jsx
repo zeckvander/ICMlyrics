@@ -18,7 +18,6 @@ export default function Chat() {
   useEffect(() => {
     loadMessages();
 
-    // Sincroniza o chat em tempo real se o app estiver aberto em mais de uma aba
     const handleStorageChange = (e) => {
       if (e.key === "icmlyrics_chat_messages") {
         loadMessages();

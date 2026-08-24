@@ -7,7 +7,6 @@ export default function ExportImportModel({ onImported }) {
   const [importing, setImporting] = useState(false);
   const [status, setStatus] = useState(null);
   
-  // CORREÇÃO: Referência mecânica para disparar o clique no input oculto
   const fileInputRef = useRef(null);
 
   const handleButtonClick = () => {
@@ -20,7 +19,6 @@ export default function ExportImportModel({ onImported }) {
     setExporting(true);
     setStatus(null);
     try {
-      // CORREÇÃO: Agora busca os dados locais do localStorage (padrão do seu app)
       const data = JSON.parse(localStorage.getItem("icm_louvores") || "[]");
       
       const model = data.map((l) => ({
@@ -91,10 +89,8 @@ export default function ExportImportModel({ onImported }) {
         created_date: r.created_date || new Date().toISOString()
       }));
 
-      // CORREÇÃO: Agora salva diretamente no localStorage unificando com o banco atual
       const currentLouvores = JSON.parse(localStorage.getItem("icm_louvores") || "[]");
       
-      // Evita duplicar hinos que já tenham o mesmo ID ou número/nome idênticos
       const filtradosNovos = cleaned.filter(
         (novo) => !currentLouvores.some((atual) => atual.numero === novo.numero && atual.nome === novo.nome)
       );
@@ -120,7 +116,6 @@ export default function ExportImportModel({ onImported }) {
           Exportar JSON
         </Button>
         
-        {/* CORREÇÃO: Eliminada a tag <label> conflituosa. O botão gerencia o clique via Ref */}
         <div className="flex-1">
           <input 
             type="file" 

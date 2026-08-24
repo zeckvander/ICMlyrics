@@ -45,7 +45,6 @@ export function AppSidebar() {
         
         <SidebarContent className="px-2">
           <SidebarMenu>
-            {/* INÍCIO APONTANDO PARA O DASHBOARD (EVITA O ERRO 404) */}
             <SidebarMenuItem>
               <SidebarMenuButton onClick={() => handleNavegar("/dashboard")}>
                 <Home className="size-4" />
@@ -81,7 +80,6 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            {/* NOVAS ROTAS ADICIONADAS BASEADAS NO SEU APP.JSX */}
             <SidebarMenuItem>
               <SidebarMenuButton onClick={() => handleNavegar("/avisos")}>
                 <Bell className="size-4" />

@@ -83,7 +83,6 @@ export default function PreviewModal({
         const obs = row.observacao ? ` (${row.observacao})` : "";
         
         if (num || nome) {
-          // Alinha todos os identificadores considerando o espaço de 4 caracteres ("CIAS")
           const numFormatado = num ? num.padEnd(4, ' ') : '';
           texto += `${numFormatado}${num ? ' - ' : ''}${nome}${obs}\n`;
         }

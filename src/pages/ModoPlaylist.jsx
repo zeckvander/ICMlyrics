@@ -111,7 +111,6 @@ export default function ModoPlaylist() {
     return item ? item.tema : null;
   };
 
-  // Função auxiliar para capitalizar corretamente cada palavra do dia da semana (ex: "Sexta-Feira")
   const formatarDiaSemana = (texto) => {
     if (!texto) return "";
     return texto

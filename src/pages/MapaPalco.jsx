@@ -60,8 +60,6 @@ export default function TempleMap() {
 
         const grid = new THREE.GridHelper(36, 18, 0xcbd5e1, 0xe2e8f0);
         scene.add(grid);
-
-        // --- PÚLPITO CILÍNDRICO ---
         const pulpitGroup = new THREE.Group();
         const woodMat = new THREE.MeshLambertMaterial({ color: 0x6e472e });
         const darkWoodMat = new THREE.MeshLambertMaterial({ color: 0x4a2e18 });
@@ -81,7 +79,6 @@ export default function TempleMap() {
         pulpitGroup.position.set(0, 0, -12);
         scene.add(pulpitGroup);
 
-        // --- BANCO COMPLETO COM RIPAS FINAS DE SUSTENTAÇÃO ---
         const newObjects = [];
         const createBench = (x, z) => {
             const group = new THREE.Group();
@@ -91,12 +88,10 @@ export default function TempleMap() {
             const detailMat = new THREE.MeshLambertMaterial({ color: 0x3d2412 });
             const supportMat = new THREE.MeshLambertMaterial({ color: 0x5c3a21 });
 
-            // 1. Assento Principal
             const seat = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.2, 1.1), benchWoodMat);
             seat.position.y = 0.6;
             group.add(seat);
 
-            // 2. Madeiras de Sustentação Finas
             const supportLeft = new THREE.Mesh(new THREE.BoxGeometry(supportThickness, 0.12, 1.0), supportMat);
             supportLeft.position.set(-1.2, 0.48, 0);
             group.add(supportLeft);
@@ -105,7 +100,6 @@ export default function TempleMap() {
             supportRight.position.set(1.2, 0.48, 0);
             group.add(supportRight);
 
-            // 3. Encosto
             const back = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.9, 0.2), benchWoodMat);
             back.position.set(0, 1.15, 0.45);
             back.rotation.x = 0.15;
@@ -121,7 +115,6 @@ export default function TempleMap() {
             notchRight.rotation.z = Math.PI / 4;
             group.add(notchRight);
 
-            // Laterais com furos circulares
             const createDetailedLeg = (posX) => {
                 const legGroup = new THREE.Group();
                 const mainLeg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.1, 1.3), sidePanelMat);

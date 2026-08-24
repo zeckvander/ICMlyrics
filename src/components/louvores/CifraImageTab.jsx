@@ -13,27 +13,22 @@ export default function CifraImageTab({ louvorId, field, imageUrl, onUploaded })
 
     setUploading(true);
     try {
-      // 1. Define um caminho único para o arquivo dentro do Bucket do Supabase (ex: louvor_id/timestamp_nome)
       const fileExt = file.name.split(".").pop();
       const fileName = `${louvorId}/${Date.now()}.${fileExt}`;
-      const bucketName = "cifras"; // Nome do seu bucket criado no Supabase
-
-      // 2. Faz o upload da imagem no Supabase Storage
+      const bucketName = "cifras";
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(fileName, file, {
           cacheControl: "3600",
-          upsert: true, // Substitui se já houver um arquivo idêntico
+          upsert: true, 
         });
 
       if (uploadError) throw uploadError;
 
-      // 3. Recupera a URL pública do arquivo enviado
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(fileName);
 
-      // 4. Atualiza a coluna do louvor no banco de dados com a nova URL pública
       const { error: updateError } = await supabase
         .from("louvores")
         .update({ [field]: publicUrl })
@@ -41,7 +36,6 @@ export default function CifraImageTab({ louvorId, field, imageUrl, onUploaded })
 
       if (updateError) throw updateError;
 
-      // Executa o callback de sucesso para atualizar o estado no componente pai
       onUploaded?.();
     } catch (err) {
       console.error("Erro no upload da cifra:", err);

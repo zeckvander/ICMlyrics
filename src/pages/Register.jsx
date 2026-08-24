@@ -26,7 +26,6 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      // Registra o usuário diretamente no serviço de autenticação do Supabase
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -34,7 +33,6 @@ export default function Register() {
 
       if (signUpError) throw signUpError;
 
-      // Avança para a etapa de verificação do código OTP enviado por e-mail
       setStep("otp");
     } catch (err) {
       setError(err.message || "Falha ao registrar.");
@@ -48,7 +46,6 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      // Verifica o código OTP utilizando o Supabase
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
         email,
         token: otp,
@@ -57,7 +54,6 @@ export default function Register() {
 
       if (verifyError) throw verifyError;
 
-      // Com o e-mail verificado, direciona o usuário ao painel inicial
       navigate("/");
     } catch (err) {
       setError(err.message || "Código inválido.");

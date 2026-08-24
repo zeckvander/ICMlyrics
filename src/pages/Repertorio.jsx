@@ -122,7 +122,6 @@ export default function ListaRepertorio() {
     } finally { setLoading(false); }
   };
 
-  // VERIFICAÇÃO DE LIMITE (MÁXIMO 10 LISTAS POR NUVEM)
   const verificarLimiteListas = async () => {
     const nuvemAlvo = isSuper ? "todos" : userNuvem;
     const { count, error } = await supabase
