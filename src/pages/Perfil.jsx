@@ -11,8 +11,13 @@ import {
   LogOut,
   User,
   ChevronRight,
-  ArrowLeft
+  ArrowLeft,
+  AlertTriangle
 } from 'lucide-react';
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function ConfigScreen() {
   const navigate = useNavigate();
@@ -20,6 +25,10 @@ export default function ConfigScreen() {
   const [perfil, setPerfil] = useState(() => localStorage.getItem('icmlyrics_perfil') || 'instrumento');
   const [tema, setTema] = useState(() => localStorage.getItem('icmlyrics_tema') || 'escuro');
   const [sincronizacao, setSincronizacao] = useState(() => localStorage.getItem('icmlyrics_sync') !== 'false');
+  
+  // Estados para o Modal de Logout
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [limparFavoritos, setLimparFavoritos] = useState(false);
   
   const usuarioLocal = localStorage.getItem('icmlyrics_user') || 'Ezequiel Ferreira';
 
@@ -37,13 +46,27 @@ export default function ConfigScreen() {
 
   const eEscuro = tema === 'escuro';
 
-  const handleLogout = () => {
-    if (window.confirm('Deseja realmente sair da conta?')) {
-      localStorage.removeItem('icmlyrics_user');
-      localStorage.removeItem('icmlyrics_user_nuvem');
-      localStorage.removeItem('icmlyrics_role');
-      navigate('/');
+  const handleLogoutCompleto = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Erro ao registrar encerramento no Supabase:", err);
     }
+
+    if (limparFavoritos) {
+      localStorage.clear();
+      sessionStorage.clear();
+    } else {
+      localStorage.removeItem("icmlyrics_user");
+      localStorage.removeItem("icmlyrics_user_nuvem");
+      localStorage.removeItem("icmlyrics_role");
+      sessionStorage.removeItem("icmlyrics_modal_novidades_visto");
+    }
+
+    setLogoutOpen(false);
+    setLimparFavoritos(false);
+
+    navigate("/");
   };
 
   return (
@@ -176,12 +199,57 @@ export default function ConfigScreen() {
 
       {/* Rodapé / Sair */}
       <button 
-        onClick={handleLogout}
+        onClick={() => setLogoutOpen(true)}
         className={`w-full flex items-center justify-center gap-2 p-4 text-red-400 rounded-xl transition-colors font-medium border ${eEscuro ? 'bg-gray-800/50 border-gray-700/50 hover:bg-gray-800' : 'bg-white border-red-100 hover:bg-red-500/5'}`}
       >
         <LogOut className="w-5 h-5" />
         Sair da Conta
       </button>
+
+      {/* Modal de Logout Identico ao Dashboard */}
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent className="max-w-xs rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-slate-900 text-base font-bold">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Deseja realmente sair?
+            </DialogTitle>
+          </DialogHeader>
+          
+          <p className="text-xs text-slate-500 leading-relaxed mt-1">
+            Sua sessão atual e a sincronização com as listas da nuvem serão encerradas neste dispositivo.
+          </p>
+
+          <div className="flex items-start gap-2.5 py-3 mt-2 border-t border-b border-slate-100 select-none">
+            <input 
+              type="checkbox" 
+              id="limpar_favoritos_logout" 
+              checked={limparFavoritos}
+              onChange={(e) => setLimparFavoritos(e.target.checked)}
+              className="w-4 h-4 mt-0.5 text-red-600 border-slate-300 rounded focus:ring-red-500 cursor-pointer"
+            />
+            <label htmlFor="limpar_favoritos_logout" className="text-xs font-medium text-slate-600 cursor-pointer leading-tight">
+              Apagar favoritos salvos neste aparelho.
+            </label>
+          </div>
+
+          <DialogFooter className="grid grid-cols-2 gap-2 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setLogoutOpen(false)} 
+              className="h-9 text-xs border-slate-200 hover:bg-slate-50 text-slate-700"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleLogoutCompleto} 
+              className="h-9 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs"
+            >
+              Confirmar e Sair
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

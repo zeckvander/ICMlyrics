@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Music2, ListPlus, Radio, Gauge, Mic, History, LogOut, 
   BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, 
-  AlertTriangle, Database, Megaphone, ListMusic, Sparkles, Settings, Users 
+  AlertTriangle, Database, Megaphone, ListMusic, Sparkles, Settings, Users, User 
 } from "lucide-react";
 import { useTools } from "@/components/tools/ToolsProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -334,10 +334,9 @@ export default function Dashboard() {
 
   const ferramentas = [
     { label: "Metrônomo", icon: Gauge, color: "bg-purple-500", onClick: openMetronomo },
-    { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfinador },
-    { label: "Rádio e Tv Online", icon: Radio, path: "/radios-online", color: "bg-red-600" },
-    { label: "Perfil", icon: Settings, color: "bg-slate-700", onClick: () => navigate("/perfil") } 
+    { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfinador }
   ];
+
   return (
     <div className="min-h-screen bg-slate-50 pb-28 relative flex flex-col justify-between">
       <div>
@@ -363,11 +362,12 @@ export default function Dashboard() {
               </button>
               
               <button 
-                onClick={() => setLogoutOpen(true)} 
-                className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md transition-colors" 
-                aria-label="Sair do Aplicativo"
+                onClick={() => navigate("/perfil")} 
+                className="p-2 bg-slate-800/80 hover:bg-slate-700 text-white rounded-full shadow-md transition-all backdrop-blur-sm" 
+                aria-label="Perfil do Usuário"
+                title="Perfil"
               >
-                <LogOut className="h-5 w-5" />
+                <User className="h-5 w-5 text-slate-200" />
               </button>
             </div>
           </div>
@@ -669,7 +669,7 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Logout */}
+      {/* Modal de Logout mantido para uso caso necessário */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <DialogContent className="max-w-xs rounded-2xl p-6">
           <DialogHeader>
