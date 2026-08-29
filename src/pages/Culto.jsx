@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
-  Menu, 
   Feather, 
   Church, 
   Heart, 
   FileText,
-  Cloud
+  Cloud,
+  Radio
 } from "lucide-react";
 import DrawerMenu from "@/components/louvores/DrawerMenu";
 import { supabase } from "@/lib/supabaseClient";
@@ -22,6 +22,15 @@ export default function Culto({ onNavigate }) {
   const usuarioNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
   const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
   const temNuvem = usuarioNuvem.trim() !== "";
+
+  useEffect(() => {
+    const tema = localStorage.getItem("icmlyrics_tema");
+    if (tema === "escuro") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
 
   const carregarNomeIgreja = async () => {
     setCarregandoIgreja(true);
@@ -55,6 +64,9 @@ export default function Culto({ onNavigate }) {
     carregarNomeIgreja();
   }, [temNuvem, usuarioNuvem, usuarioLocal]);
 
+  const cardColor = 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80';
+  const iconBaseColor = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
+
   const menuItems = [
     {
       id: 'dados',
@@ -62,8 +74,8 @@ export default function Culto({ onNavigate }) {
       title: 'Dados do Culto',
       description: 'Horários, dirigentes, obreiros presentes e informações gerais.',
       icon: Church,
-      color: 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100',
-      iconBg: 'bg-slate-200 text-slate-700'
+      color: cardColor,
+      iconBg: iconBaseColor
     },
     {
       id: 'dons',
@@ -71,8 +83,8 @@ export default function Culto({ onNavigate }) {
       title: 'Registro de Dons',
       description: 'Registre sonhos, visões, revelações e gere cartazes.',
       icon: Feather,
-      color: 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100',
-      iconBg: 'bg-slate-200 text-slate-700'
+      color: cardColor,
+      iconBg: iconBaseColor
     },
     {
       id: 'pedidos',
@@ -80,8 +92,8 @@ export default function Culto({ onNavigate }) {
       title: 'Pedidos de Oração',
       description: 'Espaço para registrar e acompanhar os pedidos de oração.',
       icon: Heart,
-      color: 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100',
-      iconBg: 'bg-slate-200 text-slate-700'
+      color: cardColor,
+      iconBg: iconBaseColor
     },
     {
       id: 'relatorio',
@@ -89,26 +101,29 @@ export default function Culto({ onNavigate }) {
       title: 'Relatório Geral',
       description: 'Resumo consolidado do culto pronto para envio.',
       icon: FileText,
-      color: 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100',
-      iconBg: 'bg-slate-200 text-slate-700'
+      color: cardColor,
+      iconBg: iconBaseColor
+    },
+    {
+      id: 'radios',
+      path: '/radios-online', 
+      title: 'Rádios Online',
+      description: 'Acesse a Rádio Maanaim e outras transmissões web.',
+      icon: Radio,
+      color: cardColor,
+      iconBg: iconBaseColor
     }
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 relative font-['Inter',sans-serif] text-[#1e293b]">
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between sticky top-0 z-30 shadow-md">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24 relative font-['Inter',sans-serif] text-[#1e293b] dark:text-slate-100 transition-colors duration-200">
+      <div className="bg-slate-900 dark:bg-slate-950 text-white px-4 pt-12 pb-6 flex items-center justify-between sticky top-0 z-30 shadow-md border-b border-transparent dark:border-slate-800">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/dashboard")}
             className="text-slate-300 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />
-          </button>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="text-slate-300 hover:text-white transition-colors p-1 mr-1"
-          >
-            <Menu className="w-6 h-6" />
           </button>
           <div>
             <h1 className="text-xl font-bold tracking-tight flex items-center gap-1.5">
@@ -139,8 +154,6 @@ export default function Culto({ onNavigate }) {
         </div>
       </div>
 
-      <DrawerMenu open={drawerOpen} onOpenChange={setDrawerOpen} />
-
       <div className="max-w-3xl mx-auto px-4 pt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {menuItems.map((item) => {
@@ -159,8 +172,8 @@ export default function Culto({ onNavigate }) {
                   <IconComponent className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base mb-1">{item.title}</h3>
-                  <p className="text-xs opacity-80 leading-relaxed">{item.description}</p>
+                  <h3 className="font-bold text-base mb-1 text-slate-900 dark:text-slate-100">{item.title}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{item.description}</p>
                 </div>
               </button>
             );

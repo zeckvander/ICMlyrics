@@ -49,6 +49,15 @@ export default function Dashboard() {
   const SEU_TELEGRAM_LINK = "https://t.me/Ezequielvander"; 
 
   useEffect(() => {
+    const tema = localStorage.getItem("icmlyrics_tema");
+    if (tema === "escuro") {
+      document.documentElement.classList.add("dark");
+    } else if (tema === "claro") {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const chaveRecebida = queryParams.get("master");
 
@@ -338,36 +347,37 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28 relative flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 pb-28 relative flex flex-col justify-between">
       <div>
         <div className="bg-slate-900 text-white relative overflow-hidden min-h-[180px] flex flex-col justify-end">
           <img src={bannerImg} alt="ICMlyrics Banner" className="absolute inset-0 w-full h-full object-cover opacity-80" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent z-0" />
+          
           <div className="px-4 pb-8 pt-20 relative z-10 flex justify-between items-end">
             <div>
-              <h2 className="font-bold text-3xl opacity-90 drop-shadow-md text-[hsl(var(--background))]">
+              <h2 className="font-bold text-3xl text-white drop-shadow-md">
                 Olá, {musico.split(" ")[0]}!
               </h2>
-              <p className="text-slate-200 text-sm mt-0.5 drop-shadow">
+              <p className="text-slate-200 text-sm mt-0.5 drop-shadow-sm font-medium">
                 Boas-vindas ao ICM<span className="text-amber-400 font-semibold">lyrics</span>
               </p>
             </div>
             <div className="flex gap-2">
               <button 
                 onClick={() => setConfigOpen(true)} 
-                className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-full shadow-md transition-all backdrop-blur-sm"
+                className="p-2 bg-slate-900/60 hover:bg-slate-800 rounded-full shadow-md transition-all backdrop-blur-md border border-white/10"
                 title="Configurações de Sincronização"
               >
-                <Cloud className={`h-5 w-5 transition-colors ${nuvemAtiva ? "text-emerald-400" : "text-slate-400 hover:text-slate-200"}`} />
+                <Cloud className={`h-5 w-5 transition-colors ${nuvemAtiva ? "text-emerald-400" : "text-slate-300 hover:text-white"}`} />
               </button>
               
               <button 
                 onClick={() => navigate("/perfil")} 
-                className="p-2 bg-slate-800/80 hover:bg-slate-700 text-white rounded-full shadow-md transition-all backdrop-blur-sm" 
+                className="p-2 bg-slate-900/60 hover:bg-slate-800 text-white rounded-full shadow-md transition-all backdrop-blur-md border border-white/10" 
                 aria-label="Perfil do Usuário"
                 title="Perfil"
               >
-                <User className="h-5 w-5 text-slate-200" />
+                <User className="h-5 w-5 text-slate-200 hover:text-white" />
               </button>
             </div>
           </div>
@@ -388,24 +398,25 @@ export default function Dashboard() {
                         handleNavegarComLeitura(a.path, a.key);
                       }
                     }} 
-                    className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow relative overflow-hidden"
+                    className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow relative overflow-hidden"
                   >
                     {temNovidade && (
-                      <span className="absolute top-2 right-2 flex items-center justify-center bg-rose-600 text-white font-extrabold text-[11px] h-5 min-w-[20px] px-1.5 rounded-full border-2 border-white shadow-sm animate-pulse">
+                      <span className="absolute top-2 right-2 flex items-center justify-center bg-rose-600 text-white font-extrabold text-[11px] h-5 min-w-[20px] px-1.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm animate-pulse">
                         {formatarSobrescrito(a.count)}
                       </span>
                     )}
 
-                    <div className={`w-11 h-11 rounded-xl ${a.color} flex items-center justify-center relative`}>
-                      <a.icon className="w-5 h-5 text-white" />
+                    {/* Ícone: colorido no light, cinza escuro/slate no dark */}
+                    <div className={`w-11 h-11 rounded-xl ${a.color} dark:bg-slate-800 flex items-center justify-center relative shadow-sm`}>
+                      <a.icon className="w-5 h-5 text-white dark:text-slate-200" />
                     </div>
                     
                     <div className="flex items-center gap-1">
-                      <span className="text-xs font-medium text-slate-700 text-center leading-tight">
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-100 text-center leading-tight">
                         {a.label}
                       </span>
                       {temNovidade && (
-                        <span className="text-rose-600 font-bold text-xs">
+                        <span className="text-rose-600 dark:text-rose-400 font-bold text-xs">
                           {formatarSobrescrito(a.count)}
                         </span>
                       )}
@@ -417,7 +428,7 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">Ferramentas</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 px-1">Ferramentas</p>
             <div className="grid grid-cols-2 gap-3">
               {ferramentas.map((f) => (
                 <button 
@@ -429,12 +440,13 @@ export default function Dashboard() {
                       navigate(f.path);
                     }
                   }} 
-                  className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow"
                 >
-                  <div className={`w-11 h-11 rounded-xl ${f.color} flex items-center justify-center`}>
-                    <f.icon className="w-5 h-5 text-white" />
+                  {/* Ícone: colorido no light, cinza escuro/slate no dark */}
+                  <div className={`w-11 h-11 rounded-xl ${f.color} dark:bg-slate-800 flex items-center justify-center shadow-sm`}>
+                    <f.icon className="w-5 h-5 text-white dark:text-slate-200" />
                   </div>
-                  <span className="text-sm font-medium text-slate-700">{f.label}</span>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-100">{f.label}</span>
                 </button>
               ))}
             </div>
@@ -443,30 +455,30 @@ export default function Dashboard() {
       </div>
 
       <div className="px-4 mt-8 pb-4">
-        <div className="bg-white rounded-2xl border border-slate-100 p-3 shadow-sm flex items-center justify-between text-xs text-slate-500">
+        {/* Suporte: Mantém cores vibrantes originais (Indigo/Azul) mesmo no modo escuro */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-3 shadow-sm flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <div className="flex flex-col">
-            <span className="font-semibold text-slate-700">Dúvidas, problemas ou sugestão?</span>
-            <span className="text-[10px] text-slate-400">Solicite novos acessos ou suporte técnico</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-200">Dúvidas, problemas ou sugestão?</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">Solicite novos acessos ou suporte técnico</span>
           </div>
-          <a href={SEU_TELEGRAM_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl font-bold transition-colors">
+          <a href={SEU_TELEGRAM_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold transition-colors">
             <MessageSquare className="w-4 h-4" /> Suporte
           </a>
         </div>
       </div>
 
-      {/* Modal de Alerta de Novidades */}
       <Dialog open={modalNovidadesOpen} onOpenChange={setModalNovidadesOpen}>
-        <DialogContent className="max-w-xs sm:max-w-sm rounded-3xl p-6">
+        <DialogContent className="max-w-xs sm:max-w-sm rounded-3xl p-6 dark:bg-slate-900 dark:border-slate-800">
           <DialogHeader className="text-center flex flex-col items-center">
-            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-2">
-              <Sparkles className="w-6 h-6 text-amber-600" />
+            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-2">
+              <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             </div>
-            <DialogTitle className="text-base font-bold text-slate-900">
+            <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
               Você tem novas atualizações!
             </DialogTitle>
           </DialogHeader>
 
-          <p className="text-xs text-slate-500 text-center leading-relaxed">
+          <p className="text-xs text-slate-500 dark:text-slate-400 text-center leading-relaxed">
             Há novos conteúdos postados desde o seu último acesso. Confira o que há de novo:
           </p>
 
@@ -477,20 +489,20 @@ export default function Dashboard() {
                   setModalNovidadesOpen(false);
                   handleNavegarComLeitura("/avisos", "avisos");
                 }}
-                className="bg-orange-50 border border-orange-100 p-3 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-orange-100/80 transition-colors"
+                className="bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/50 p-3 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-orange-100/80 dark:hover:bg-orange-900/40 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 bg-orange-500 text-white rounded-xl">
                     <Megaphone className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-orange-950">Novos Avisos</p>
-                    <p className="text-[10px] text-orange-700">
+                    <p className="text-xs font-bold text-orange-950 dark:text-orange-200">Novos Avisos</p>
+                    <p className="text-[10px] text-orange-700 dark:text-orange-400">
                       {novidades.avisos} {novidades.avisos === 1 ? 'novo aviso publicado' : 'novos avisos publicados'}
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-extrabold text-orange-600 bg-white px-2 py-0.5 rounded-full border border-orange-200">
+                <span className="text-xs font-extrabold text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-orange-200 dark:border-orange-800">
                   {formatarSobrescrito(novidades.avisos)}
                 </span>
               </div>
@@ -502,20 +514,20 @@ export default function Dashboard() {
                   setModalNovidadesOpen(false);
                   handleNavegarComLeitura("/repertorio", "repertorio");
                 }}
-                className="bg-pink-50 border border-pink-100 p-3 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-pink-100/80 transition-colors"
+                className="bg-pink-50 dark:bg-pink-950/30 border border-pink-100 dark:border-pink-900/50 p-3 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-pink-100/80 dark:hover:bg-pink-900/40 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 bg-pink-500 text-white rounded-xl">
                     <ListMusic className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-pink-950">Novo no Repertório</p>
-                    <p className="text-[10px] text-pink-700">
+                    <p className="text-xs font-bold text-pink-950 dark:text-pink-200">Novo no Repertório</p>
+                    <p className="text-[10px] text-pink-700 dark:text-pink-400">
                       {novidades.repertorio} {novidades.repertorio === 1 ? 'nova lista criada' : 'novas listas criadas'}
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-extrabold text-pink-600 bg-white px-2 py-0.5 rounded-full border border-pink-200">
+                <span className="text-xs font-extrabold text-pink-600 dark:text-pink-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-pink-200 dark:border-pink-800">
                   {formatarSobrescrito(novidades.repertorio)}
                 </span>
               </div>
@@ -525,7 +537,7 @@ export default function Dashboard() {
           <DialogFooter>
             <Button 
               onClick={() => setModalNovidadesOpen(false)}
-              className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl"
+              className="w-full h-10 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-semibold rounded-xl"
             >
               Entendido, vou dar uma olhada
             </Button>
@@ -533,27 +545,26 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Sincronização */}
       <Dialog open={configOpen} onOpenChange={setConfigOpen}>
-        <DialogContent className="max-w-xs sm:max-w-md rounded-2xl p-6">
+        <DialogContent className="max-w-xs sm:max-w-md rounded-2xl p-6 dark:bg-slate-900 dark:border-slate-800">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-slate-900">
-              <Cloud className={`w-5 h-5 ${nuvemAtiva ? "text-emerald-500" : "text-indigo-500"}`} />
+            <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+              <Cloud className={`w-5 h-5 ${nuvemAtiva ? "text-emerald-500 dark:text-emerald-400" : "text-indigo-500 dark:text-indigo-400"}`} />
               Sincronização na Nuvem
             </DialogTitle>
           </DialogHeader>
 
           {nuvemAtiva ? (
             <div className="space-y-4 py-2 text-center">
-              <div className="mx-auto w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
-                <Link2 className="w-6 h-6 text-emerald-500" />
+              <div className="mx-auto w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+                <Link2 className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-800">Sincronização Ativa!</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Seu aplicativo está conectado como <span className="font-semibold text-slate-700">@{usuario || ""}</span>.
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Sincronização Ativa!</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Seu aplicativo está conectado como <span className="font-semibold text-slate-700 dark:text-slate-200">@{usuario || ""}</span>.
                 </p>
-                <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
+                <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full text-xs font-semibold">
                   <span>Nível: {obterNomeRole(userRole)}</span>
                 </div>
               </div>
@@ -567,40 +578,40 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 Insira os dados fornecidos para sincronizar e liberar acessos.
               </p>
 
               {erroAuth && (
-                <div className="bg-rose-50 border border-rose-200 text-rose-600 text-xs px-3 py-2 rounded-lg font-medium">
+                <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs px-3 py-2 rounded-lg font-medium">
                   {erroAuth}
                 </div>
               )}
 
               <div className="space-y-3 my-4">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Usuário</label>
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Usuário</label>
                   <Input 
                     placeholder="Ex: ICMPE" 
                     value={usuario || ""} 
                     onChange={(e) => setUsuario(e.target.value)} 
-                    className="h-9 mt-1 text-sm"
+                    className="h-9 mt-1 text-sm dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Senha</label>
+                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Senha</label>
                   <div className="relative mt-1">
                     <Input 
                       type={mostrarSenha ? "text" : "password"} 
                       placeholder="Digite sua senha" 
                       value={senha || ""} 
                       onChange={(e) => setSenha(e.target.value)} 
-                      className="h-9 pr-10 text-sm"
+                      className="h-9 pr-10 text-sm dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100"
                     />
                     <button
                       type="button"
                       onClick={() => setMostrarSenha(!mostrarSenha)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                     >
                       {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -613,40 +624,40 @@ export default function Dashboard() {
                     id="conectar_como_adm" 
                     checked={conectarComoAdmin}
                     onChange={(e) => setConectarComoAdmin(e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                    className="w-4 h-4 text-indigo-600 border-slate-300 dark:border-slate-700 rounded focus:ring-indigo-500 dark:bg-slate-950 cursor-pointer"
                   />
-                  <label htmlFor="conectar_como_adm" className="text-xs font-semibold text-slate-600 cursor-pointer">
+                  <label htmlFor="conectar_como_adm" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
                     Entrar como Administrador Local da Igreja
                   </label>
                 </div>
 
                 {conectarComoAdmin && (
-                  <div className="pt-2 mt-2 border-t border-slate-100 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div>
-                      <label className="text-[10px] font-bold text-amber-600 uppercase">Nome do Responsável</label>
+                      <label className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase">Nome do Responsável</label>
                       <Input 
                         placeholder="Ex: Diácono João" 
                         value={nomeAdmin || ""} 
                         onChange={(e) => setNomeAdmin(e.target.value)} 
-                        className="h-9 mt-1 text-sm"
+                        className="h-9 mt-1 text-sm dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100"
                         disabled={carregandoAuth}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-amber-600 uppercase">Senha de ADM Local</label>
+                      <label className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase">Senha de ADM Local</label>
                       <div className="relative mt-1">
                         <Input 
                           type={mostrarSenhaAdmin ? "text" : "password"} 
                           placeholder="Senha secundária da igreja" 
                           value={senhaAdmin || ""} 
                           onChange={(e) => setSenhaAdmin(e.target.value)} 
-                          className="h-9 pr-10 text-sm"
+                          className="h-9 pr-10 text-sm dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100"
                           disabled={carregandoAuth}
                         />
                         <button
                           type="button"
                           onClick={() => setMostrarSenhaAdmin(!mostrarSenhaAdmin)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                         >
                           {mostrarSenhaAdmin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -659,7 +670,7 @@ export default function Dashboard() {
                 <Button 
                   onClick={handleConectar} 
                   disabled={carregandoAuth}
-                  className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 font-semibold text-xs gap-2"
+                  className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs gap-2"
                 >
                   <Link2 className="w-4 h-4" /> {carregandoAuth ? "Conectando..." : "Conectar à Nuvem"}
                 </Button>
@@ -669,29 +680,28 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Logout mantido para uso caso necessário */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
-        <DialogContent className="max-w-xs rounded-2xl p-6">
+        <DialogContent className="max-w-xs rounded-2xl p-6 dark:bg-slate-900 dark:border-slate-800">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-slate-900 text-base font-bold">
+            <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100 text-base font-bold">
               <AlertTriangle className="w-5 h-5 text-amber-500" />
               Deseja realmente sair?
             </DialogTitle>
           </DialogHeader>
           
-          <p className="text-xs text-slate-500 leading-relaxed mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">
             Sua sessão atual e a sincronização com as listas da nuvem serão encerradas neste dispositivo.
           </p>
 
-          <div className="flex items-start gap-2.5 py-3 mt-2 border-t border-b border-slate-100 select-none">
+          <div className="flex items-start gap-2.5 py-3 mt-2 border-t border-b border-slate-100 dark:border-slate-800 select-none">
             <input 
               type="checkbox" 
               id="limpar_favoritos_logout" 
               checked={limparFavoritos}
               onChange={(e) => setLimparFavoritos(e.target.checked)}
-              className="w-4 h-4 mt-0.5 text-red-600 border-slate-300 rounded focus:ring-red-500 cursor-pointer"
+              className="w-4 h-4 mt-0.5 text-red-600 border-slate-300 dark:border-slate-700 rounded focus:ring-red-500 dark:bg-slate-950 cursor-pointer"
             />
-            <label htmlFor="limpar_favoritos_logout" className="text-xs font-medium text-slate-600 cursor-pointer leading-tight">
+            <label htmlFor="limpar_favoritos_logout" className="text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer leading-tight">
               Apagar favoritos salvos neste aparelho.
             </label>
           </div>
@@ -700,7 +710,7 @@ export default function Dashboard() {
             <Button 
               variant="outline" 
               onClick={() => setLogoutOpen(false)} 
-              className="h-9 text-xs border-slate-200 hover:bg-slate-50 text-slate-700"
+              className="h-9 text-xs border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 dark:bg-slate-900"
             >
               Cancelar
             </Button>

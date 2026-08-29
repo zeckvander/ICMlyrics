@@ -38,6 +38,7 @@ import RegistroDons from '@/pages/RegistroDons';
 import Dados from '@/pages/Dados';
 import Oracao from '@/pages/Oracao';
 import ListaOracao from '@/components/lista/ListaOracao';
+import RedefinirSenha from './pages/RedefinirSenha';
 
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -127,6 +128,7 @@ function App() {
             <Route path="/dados" element={<Dados />} />
             <Route path="/oracao" element={<Oracao />} />
             <Route path="/lista-oracao/:id" element={<ListaOracao />} />
+            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>
