@@ -28,6 +28,15 @@ export default function NovaLista() {
   
   const veioDoHistorico = location.state?.veioDoHistorico;
 
+  useEffect(() => {
+    const tema = localStorage.getItem("icmlyrics_tema");
+    if (tema === "escuro") {
+      document.documentElement.classList.add("dark");
+    } else if (tema === "claro") {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
   const [dataCulto, setDataCulto] = useState(() => {
     const hoje = new Date();
     const ano = hoje.getFullYear();
@@ -330,18 +339,19 @@ export default function NovaLista() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8 transition-colors duration-200">
       {/* Cabeçalho */}
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
+      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between border-b border-transparent dark:border-slate-800/80">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate(veioDoHistorico ? "/historico-listas" : "/dashboard")} 
-            className="text-slate-300 hover:text-white transition-colors"
+            className="text-slate-300 hover:text-white transition-colors p-1"
+            aria-label="Voltar"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Nova Lista</h1>
+            <h1 className="text-xl font-bold tracking-tight text-white">Nova Lista</h1>
             <p className="text-slate-400 text-xs">Crie uma nova lista</p>
           </div>
         </div>
@@ -368,14 +378,19 @@ export default function NovaLista() {
       </div>
 
       <div className="px-4 mt-4 space-y-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 space-y-3">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
           <div>
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Data do Culto</label>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Data do Culto</label>
             <div className="flex flex-row gap-3 mt-1">
-              <Input type="date" value={dataCulto} onChange={(e) => setDataCulto(e.target.value)} className="h-10 flex-1" />
+              <Input 
+                type="date" 
+                value={dataCulto} 
+                onChange={(e) => setDataCulto(e.target.value)} 
+                className="h-10 flex-1 bg-white dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100" 
+              />
               <div className="flex-1 flex items-end pb-0.5">
                 {diaSemana && (
-                  <span className="text-base font-bold text-slate-800 leading-none bg-slate-100 px-2.5 py-2.5 rounded-lg border border-slate-200 w-full text-center">
+                  <span className="text-base font-bold text-slate-800 dark:text-slate-200 leading-none bg-slate-100 dark:bg-slate-800 px-2.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 w-full text-center">
                     {diaSemana}
                   </span>
                 )}
@@ -384,28 +399,28 @@ export default function NovaLista() {
           </div>
 
           {(showTema || showResponsavel) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
               {showTema && (
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Culto</label>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Culto</label>
                   <Input 
                     type="text" 
                     placeholder="Ex: Ceia, Vigília, ESF..." 
                     value={tipoCulto} 
                     onChange={(e) => setTipoCulto(e.target.value)} 
-                    className="h-9 mt-1 text-sm" 
+                    className="h-9 mt-1 text-sm bg-white dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500" 
                   />
                 </div>
               )}
               {showResponsavel && (
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Louvor</label>
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Louvor</label>
                   <Input 
                     type="text" 
                     placeholder="Responsável louvor" 
                     value={responsavel} 
                     onChange={(e) => setResponsavel(e.target.value)} 
-                    className="h-9 mt-1 text-sm" 
+                    className="h-9 mt-1 text-sm bg-white dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500" 
                   />
                 </div>
               )}
@@ -427,17 +442,31 @@ export default function NovaLista() {
         </DragDropContext>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={addRow} className="h-8 text-xs">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={addRow} 
+            className="h-8 text-xs bg-white dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
             <Plus className="w-3.5 h-3.5 mr-1" /> louvor
           </Button>
-          <Button variant="outline" size="sm" onClick={addSection} className="h-8 text-xs">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={addSection} 
+            className="h-8 text-xs bg-white dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
             <Plus className="w-3.5 h-3.5 mr-1" /> Seção
           </Button>
           <Button 
             variant={showTema ? "secondary" : "outline"} 
             size="sm" 
             onClick={() => setShowTema(!showTema)} 
-            className="h-8 text-xs"
+            className={`h-8 text-xs ${
+              showTema 
+                ? "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100" 
+                : "bg-white dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200"
+            }`}
           >
             Tema
           </Button>
@@ -445,17 +474,20 @@ export default function NovaLista() {
             variant={showResponsavel ? "secondary" : "outline"} 
             size="sm" 
             onClick={() => setShowResponsavel(!showResponsavel)} 
-            className="h-8 text-xs"
+            className={`h-8 text-xs ${
+              showResponsavel 
+                ? "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100" 
+                : "bg-white dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200"
+            }`}
           >
             Louvor
           </Button>
         </div>
 
-        {/* Botão Salvar único na cor do cabeçalho (bg-slate-900) */}
         <div className="flex flex-col gap-2 pt-2">
           <Button 
             onClick={handleSalvarClick} 
-            className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl flex items-center justify-center" 
+            className="w-full h-10 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold rounded-xl flex items-center justify-center border border-transparent dark:border-slate-700" 
             disabled={salvando}
           >
             <Save className="w-4 h-4 mr-2" /> {salvando ? "A salvar..." : "Salvar Lista"}
@@ -465,28 +497,28 @@ export default function NovaLista() {
 
       {/* Modal de confirmação e seleção de formato */}
       {modalImprimir.open && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-4 text-center">
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-800 rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-4 text-center">
             {modalImprimir.etapa === "pergunta" ? (
               <>
-                <div className="w-12 h-12 bg-slate-100 text-slate-900 rounded-full flex items-center justify-center mx-auto">
+                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-full flex items-center justify-center mx-auto">
                   <Printer className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-800">Lista Salva com Sucesso!</h3>
-                  <p className="text-xs text-slate-500 mt-1">Deseja imprimir ou gerar imagem da lista agora?</p>
+                  <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Lista Salva com Sucesso!</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Deseja imprimir ou gerar imagem da lista agora?</p>
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button
                     variant="outline"
                     onClick={handleFinalizarSemImprimir}
-                    className="flex-1 h-10 text-xs font-semibold rounded-xl border-slate-200"
+                    className="flex-1 h-10 text-xs font-semibold rounded-xl border-slate-200 dark:border-slate-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     Não
                   </Button>
                   <Button
                     onClick={() => setModalImprimir({ open: true, etapa: "opcoes" })}
-                    className="flex-1 h-10 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white"
+                    className="flex-1 h-10 text-xs font-semibold rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white"
                   >
                     Sim
                   </Button>
@@ -495,26 +527,26 @@ export default function NovaLista() {
             ) : (
               <>
                 <div>
-                  <h3 className="text-base font-bold text-slate-800">Escolha o Formato</h3>
-                  <p className="text-xs text-slate-500 mt-1">Como deseja gerar a imagem da sua lista?</p>
+                  <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Escolha o Formato</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Como deseja gerar a imagem da sua lista?</p>
                 </div>
                 <div className="flex flex-col gap-2 pt-2">
                   <Button
                     onClick={() => handleEscolherFormatoPreview("image")}
-                    className="w-full h-10 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2"
+                    className="w-full h-10 text-xs font-semibold rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2"
                   >
                     <Image className="w-4 h-4" /> Gerar Imagem
                   </Button>
                   <Button
                     onClick={() => handleEscolherFormatoPreview("image-text")}
-                    className="w-full h-10 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2"
+                    className="w-full h-10 text-xs font-semibold rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2"
                   >
                     <FileText className="w-4 h-4" /> Imagem e Texto
                   </Button>
                   <Button
                     variant="ghost"
                     onClick={handleFinalizarSemImprimir}
-                    className="w-full h-8 text-xs text-slate-400 hover:text-slate-600 mt-1"
+                    className="w-full h-8 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 mt-1"
                   >
                     Cancelar
                   </Button>

@@ -1,6 +1,7 @@
 import React, { useState, createContext, useContext } from "react";
 import MetronomoPanel from "./MetronomoPanel";
 import AfinadorPanel from "./AfinadorPanel";
+import PianoModal from "./PianoModal";
 
 const ToolsContext = createContext(null);
 
@@ -11,9 +12,11 @@ export function useTools() {
 export function ToolsProvider({ children }) {
   const [metronomoOpen, setMetronomoOpen] = useState(false);
   const [afinadorOpen, setAfinadorOpen] = useState(false);
+  const [pianoOpen, setPianoOpen] = useState(false);
 
   const [metronomoMin, setMetronomoMin] = useState(false);
   const [afinadorMin, setAfinadorMin] = useState(false);
+  const [pianoMin, setPianoMin] = useState(false);
 
   const afinadorSubiu = afinadorMin && metronomoMin;
 
@@ -21,6 +24,7 @@ export function ToolsProvider({ children }) {
     <ToolsContext.Provider value={{
       openMetronomo: () => { setMetronomoOpen(true); setMetronomoMin(false); },
       openAfinador: () => { setAfinadorOpen(true); setAfinadorMin(false); },
+      openPiano: () => { setPianoOpen(true); setPianoMin(false); },
     }}>
       {children}
       
@@ -41,6 +45,16 @@ export function ToolsProvider({ children }) {
           isStacked={afinadorSubiu}
         />
       )}
+
+      {pianoOpen && (
+        <PianoModal 
+          onClose={() => { setPianoOpen(false); setPianoMin(false); }} 
+          minimized={pianoMin}
+          setMinimized={setPianoMin}
+        />
+      )}
     </ToolsContext.Provider>
   );
 }
+
+export default ToolsProvider;

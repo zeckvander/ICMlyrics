@@ -6,6 +6,7 @@ import {
   Calendar, Users, ArrowRight, Eye
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+
 export default function Avisos() {
   const navigate = useNavigate();
 
@@ -34,10 +35,12 @@ export default function Avisos() {
   const [modalInfoRepertorioOpen, setModalInfoRepertorioOpen] = useState(false);
   const userNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
   const userName = localStorage.getItem("icmlyrics_user") || "Usuário";
+
   const formatarUrl = (url) => {
     if (!url) return "#";
     return url.startsWith("http://") || url.startsWith("https://") ? url : `https://${url}`;
   };
+
   const formatarData = (dataStr) => {
     if (!dataStr) return "";
     const partes = dataStr.split("T")[0].split("-");
@@ -46,6 +49,7 @@ export default function Avisos() {
     }
     return dataStr;
   };
+
   const formatarDataComDiaSemana = (dataRaw) => {
     if (!dataRaw) return "Data não definida";
     const strData = dataRaw.split("T")[0];
@@ -63,6 +67,7 @@ export default function Avisos() {
     const nomeDia = diasSemana[dataObj.getDay()] || "";
     return `${diaFormatado}/${mesFormatado}/${ano}${nomeDia ? ` - ${nomeDia}` : ""}`;
   };
+
   useEffect(() => {
     const validarAcesso = async () => {
       try {
@@ -112,6 +117,7 @@ export default function Avisos() {
     };
     validarAcesso();
   }, [userNuvem]);
+
   useEffect(() => {
     const dadosTemporarios = localStorage.getItem('icmlyrics_aviso_pendente');
 
@@ -145,6 +151,7 @@ export default function Avisos() {
       }
     }
   }, []);
+
   const podeCriar = userRole === "super_admin" || userRole === "church_admin";
   const isSuper = userRole === "super_admin";
 
@@ -158,6 +165,7 @@ export default function Avisos() {
     }
     return false;
   };
+
   const buscarAvisosDoBanco = async () => {
     setCarregandoAvisos(true);
     try {
@@ -179,9 +187,11 @@ export default function Avisos() {
       setCarregandoAvisos(false);
     }
   };
+
   useEffect(() => {
     buscarAvisosDoBanco();
   }, [userNuvem]);
+
   const buscarEscalas = async () => {
     setCarregandoEscalas(true);
     try {
@@ -211,6 +221,7 @@ export default function Avisos() {
       setCarregandoEscalas(false);
     }
   };
+
   const buscarRepertorios = async () => {
     setCarregandoRepertorios(true);
     try {
@@ -228,6 +239,7 @@ export default function Avisos() {
       setCarregandoRepertorios(false);
     }
   };
+
   const handleSalvarAviso = async () => {
     if (!assuntoAviso.trim() || !novoAviso.trim()) {
       return alert("Assunto e texto são obrigatórios.");
@@ -307,6 +319,7 @@ export default function Avisos() {
       setSalvando(false);
     }
   };
+
   const handleDeletarAviso = async (aviso) => {
     if (!podeModificarAviso(aviso)) {
       return alert("Você não tem permissão para excluir avisos do Super Admin.");
@@ -321,6 +334,7 @@ export default function Avisos() {
       alert("Erro ao excluir aviso.");
     }
   };
+
   const handleIniciarEdicao = (aviso) => {
     if (!podeModificarAviso(aviso)) {
       return alert("Você não tem permissão para editar este aviso.");
@@ -345,8 +359,8 @@ export default function Avisos() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-12 transition-colors">
+      <div className="bg-slate-900 dark:bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between border-b border-slate-800">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate("/dashboard")} 
@@ -364,7 +378,7 @@ export default function Avisos() {
             <Cloud className="w-6 h-6 text-slate-400" />
           ) : (
             <>
-              <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
+              <span className="text-[11px] font-bold text-slate-300 dark:text-slate-300 uppercase truncate w-full">
                 {nomeIgreja}
               </span>
               <div className="flex items-center gap-1.5">
@@ -392,12 +406,13 @@ export default function Avisos() {
           )}
         </div>
       </div>
+
       <div className="p-4 space-y-6 max-w-md mx-auto mt-2">
         {podeCriar && (
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex justify-between items-center flex-wrap gap-2">
-              <h3 className="text-xs font-bold text-slate-900 uppercase flex items-center gap-1.5">
-                <Plus className="w-4 h-4 text-slate-900" />
+              <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase flex items-center gap-1.5">
+                <Plus className="w-4 h-4 text-slate-900 dark:text-slate-100" />
                 {avisoEditandoId ? "Editando Aviso" : "Novo Aviso"}
               </h3>
 
@@ -408,9 +423,9 @@ export default function Avisos() {
                     setModalEscalaOpen(true);
                     buscarEscalas();
                   }}
-                  className="text-[10px] font-bold text-slate-900 flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+                  className="text-[10px] font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
-                  <Calendar className="w-3 h-3 text-slate-900" />
+                  <Calendar className="w-3 h-3 text-slate-900 dark:text-slate-100" />
                   Escala
                 </button>
 
@@ -420,16 +435,16 @@ export default function Avisos() {
                     setModalRepertorioOpen(true);
                     buscarRepertorios();
                   }}
-                  className="text-[10px] font-bold text-slate-900 flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+                  className="text-[10px] font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
-                  <Music className="w-3 h-3 text-slate-900" />
+                  <Music className="w-3 h-3 text-slate-900 dark:text-slate-100" />
                   Repertório
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setLinksForm([...linksForm, { texto: "", url: "" }])}
-                  className="text-[10px] font-bold text-slate-900 flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+                  className="text-[10px] font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   + link
                 </button>
@@ -440,29 +455,29 @@ export default function Avisos() {
               value={assuntoAviso}
               onChange={(e) => setAssuntoAviso(e.target.value)}
               placeholder="Assunto do aviso"
-              className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
             />
             <textarea
               value={novoAviso}
               onChange={(e) => setNovoAviso(e.target.value)}
               placeholder="Escreva a mensagem do aviso..."
-              className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl resize-none h-32 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl resize-none h-32 text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
             />
             <div className="space-y-2">
               {linksForm.map((link, idx) => (
-                <div key={idx} className="bg-slate-50 p-2 rounded-xl border border-slate-200 relative">
+                <div key={idx} className="bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl border border-slate-200 dark:border-slate-700 relative">
                   {linksForm.length > 1 && (
                     <button
                       type="button"
                       onClick={() => setLinksForm(linksForm.filter((_, i) => i !== idx))}
-                      className="absolute right-2 top-2 p-1 hover:bg-slate-200 rounded-full cursor-pointer"
+                      className="absolute right-2 top-2 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full cursor-pointer"
                     >
                       <X className="w-3 h-3 text-rose-500" />
                     </button>
                   )}
                   <input
                     placeholder="Título do link (ex: Inscrição)"
-                    className="w-full p-1.5 text-[10px] bg-transparent border-b border-slate-200 outline-none font-medium"
+                    className="w-full p-1.5 text-[10px] bg-transparent border-b border-slate-200 dark:border-slate-700 outline-none font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                     value={link.texto}
                     onChange={(e) => {
                       const novos = [...linksForm];
@@ -472,7 +487,7 @@ export default function Avisos() {
                   />
                   <input
                     placeholder="URL (https://...)"
-                    className="w-full p-1.5 text-[10px] bg-transparent outline-none text-slate-600"
+                    className="w-full p-1.5 text-[10px] bg-transparent outline-none text-slate-600 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500"
                     value={link.url}
                     onChange={(e) => {
                       const novos = [...linksForm];
@@ -488,13 +503,13 @@ export default function Avisos() {
                 {repertorioSelecionado && (
                   <div 
                     onClick={() => setModalInfoRepertorioOpen(true)}
-                    className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium cursor-pointer hover:bg-slate-100 transition-colors"
+                    className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 text-xs font-medium cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/80 transition-colors"
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <Music className="w-4 h-4 text-slate-900 shrink-0" />
+                      <Music className="w-4 h-4 text-slate-900 dark:text-slate-100 shrink-0" />
                       <span className="truncate font-semibold">Repertório: {repertorioSelecionado.nome || "Lista"}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-900 font-bold shrink-0">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-900 dark:text-slate-100 font-bold shrink-0">
                       <Eye className="w-3.5 h-3.5" />
                       Ver
                     </div>
@@ -504,10 +519,10 @@ export default function Avisos() {
                 {escalaSelecionada && (
                   <div 
                     onClick={() => setModalInfoEscalaOpen(true)}
-                    className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium cursor-pointer hover:bg-slate-100 transition-colors"
+                    className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 text-xs font-medium cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/80 transition-colors"
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <Calendar className="w-4 h-4 text-slate-900 shrink-0" />
+                      <Calendar className="w-4 h-4 text-slate-900 dark:text-slate-100 shrink-0" />
                       <span className="truncate font-semibold">
                         Escala: {formatarDataComDiaSemana(escalaSelecionada.data_culto || escalaSelecionada.data || escalaSelecionada.created_at)}
                         {(() => {
@@ -517,7 +532,7 @@ export default function Avisos() {
                         })()}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-900 font-bold shrink-0">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-900 dark:text-slate-100 font-bold shrink-0">
                       <Eye className="w-3.5 h-3.5" />
                       Ver
                     </div>
@@ -539,7 +554,7 @@ export default function Avisos() {
                     setLinksForm([{ texto: "", url: "" }]);
                   }}
                   disabled={salvando}
-                  className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
+                  className="w-1/3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 p-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -548,7 +563,7 @@ export default function Avisos() {
                 type="button"
                 onClick={handleSalvarAviso}
                 disabled={salvando}
-                className="flex-1 bg-slate-900 hover:bg-slate-800 text-white p-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                className="flex-1 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 p-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {salvando && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {avisoEditandoId ? "Salvar Alterações" : "Publicar Aviso"}
@@ -556,34 +571,35 @@ export default function Avisos() {
             </div>
           </div>
         )}
+
         <div className="space-y-4">
           {carregandoAvisos ? (
             <div className="flex justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
             </div>
           ) : avisos.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-xs font-bold uppercase tracking-wider">
+            <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">
               Nenhum aviso no mural
             </div>
           ) : !podeCriar ? (
             <>
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase">
                     {avisos[0].assunto}
                   </h3>
                   {avisos[0].repertorio_id && (
                     <button
                       type="button"
                       onClick={() => navigate(`/repertorio/lista/${avisos[0].repertorio_id}`)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
                     >
                       <Music className="w-3.5 h-3.5" />
                       Repertório
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap mb-3">
+                <p className="text-xs text-slate-800 dark:text-slate-300 leading-relaxed whitespace-pre-wrap mb-3">
                   {avisos[0].texto}
                 </p>
                 {avisos[0].avisos_links?.map((link, i) => (
@@ -592,19 +608,20 @@ export default function Avisos() {
                     href={formatarUrl(link.url)}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-slate-900 font-bold text-xs underline mt-1 mr-3"
+                    className="inline-flex items-center gap-1 text-slate-900 dark:text-slate-100 font-bold text-xs underline mt-1 mr-3"
                   >
                     <ExternalLink className="w-3 h-3" />
                     {link.titulo_link}
                   </a>
                 ))}
               </div>
+
               {avisos.length > 1 && (
                 <div className="space-y-2">
                   <button
                     type="button"
                     onClick={() => setListaExpandida(!listaExpandida)}
-                    className="w-full flex justify-between items-center px-1 py-1 text-slate-500 hover:text-slate-800 cursor-pointer"
+                    className="w-full flex justify-between items-center px-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
                   >
                     <span className="text-xs font-bold uppercase">Mensagens Anteriores</span>
                     {listaExpandida ? (
@@ -618,13 +635,13 @@ export default function Avisos() {
                     avisos.slice(1).map((aviso) => (
                       <div
                         key={aviso.id}
-                        className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm cursor-pointer hover:border-slate-200 transition-all"
+                        className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm cursor-pointer hover:border-slate-200 dark:hover:border-slate-700 transition-all"
                         onClick={() =>
                           setAvisoExpandido(avisoExpandido === aviso.id ? null : aviso.id)
                         }
                       >
                         <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                          <h3 className="text-sm font-bold text-slate-800 uppercase">
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase">
                             {aviso.assunto}
                           </h3>
                           {aviso.repertorio_id && (
@@ -634,14 +651,14 @@ export default function Avisos() {
                                 e.stopPropagation();
                                 navigate(`/repertorio/lista/${aviso.repertorio_id}`);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
                             >
                               <Music className="w-3.5 h-3.5" />
                               Repertório
                             </button>
                           )}
                         </div>
-                        <div className="text-xs text-slate-600">
+                        <div className="text-xs text-slate-600 dark:text-slate-400">
                           <p
                             className={`whitespace-pre-wrap ${
                               avisoExpandido === aviso.id ? "" : "line-clamp-2"
@@ -656,7 +673,7 @@ export default function Avisos() {
                                 href={formatarUrl(link.url)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 text-slate-900 underline mt-2 font-semibold block"
+                                className="inline-flex items-center gap-1 text-slate-900 dark:text-slate-100 underline mt-2 font-semibold block"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <ExternalLink className="w-3 h-3" />
@@ -671,7 +688,7 @@ export default function Avisos() {
             </>
           ) : (
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-400 uppercase px-1 block">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase px-1 block">
                 Gerenciar Avisos ({avisos.length})
               </span>
               {avisos.map((aviso) => {
@@ -679,7 +696,7 @@ export default function Avisos() {
                 return (
                   <div
                     key={aviso.id}
-                    className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm relative cursor-pointer hover:border-slate-200 transition-all"
+                    className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm relative cursor-pointer hover:border-slate-200 dark:hover:border-slate-700 transition-all"
                     onClick={() =>
                       setAvisoExpandido(avisoExpandido === aviso.id ? null : aviso.id)
                     }
@@ -692,7 +709,7 @@ export default function Avisos() {
                             e.stopPropagation();
                             handleIniciarEdicao(aviso);
                           }}
-                          className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg transition-colors cursor-pointer"
                           title="Editar aviso"
                         >
                           <Pencil className="w-3.5 h-3.5" />
@@ -703,21 +720,21 @@ export default function Avisos() {
                             e.stopPropagation();
                             handleDeletarAviso(aviso);
                           }}
-                          className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg transition-colors cursor-pointer"
                           title="Excluir aviso"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ) : (
-                      <div className="absolute top-4 right-4 flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                      <div className="absolute top-4 right-4 flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
                         <Globe className="w-3 h-3" />
                         Global
                       </div>
                     )}
 
                     <div className="flex items-center gap-2 flex-wrap pr-16 mb-1">
-                      <h3 className="text-sm font-bold text-slate-800 uppercase">
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase">
                         {aviso.assunto}
                       </h3>
                       {aviso.repertorio_id && (
@@ -727,7 +744,7 @@ export default function Avisos() {
                             e.stopPropagation();
                             navigate(`/repertorio/lista/${aviso.repertorio_id}`);
                           }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
                         >
                           <Music className="w-3.5 h-3.5" />
                           Repertório
@@ -735,7 +752,7 @@ export default function Avisos() {
                       )}
                     </div>
 
-                    <div className="text-xs text-slate-600 pr-12">
+                    <div className="text-xs text-slate-600 dark:text-slate-400 pr-12">
                       <p
                         className={`whitespace-pre-wrap ${
                           avisoExpandido === aviso.id ? "" : "line-clamp-3"
@@ -750,7 +767,7 @@ export default function Avisos() {
                             href={formatarUrl(link.url)}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-slate-900 underline mt-2 font-semibold block"
+                            className="inline-flex items-center gap-1 text-slate-900 dark:text-slate-100 underline mt-2 font-semibold block"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <ExternalLink className="w-3 h-3" />
@@ -765,29 +782,30 @@ export default function Avisos() {
           )}
         </div>
       </div>
+
       {modalEscalaOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-slate-700" />
-                <h3 className="text-sm font-bold text-slate-800">Selecione uma Escala</h3>
+                <Calendar className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Selecione uma Escala</h3>
               </div>
               <button
                 onClick={() => setModalEscalaOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 max-h-[60vh] overflow-y-auto bg-slate-50">
+            <div className="p-4 max-h-[60vh] overflow-y-auto bg-slate-50 dark:bg-slate-950">
               {carregandoEscalas ? (
                 <div className="flex justify-center py-6">
-                  <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
+                  <Loader2 className="w-5 h-5 text-slate-600 dark:text-slate-400 animate-spin" />
                 </div>
               ) : escalas.length === 0 ? (
-                <p className="text-center text-xs text-slate-500 py-6 bg-white border border-dashed border-slate-200 rounded-xl">
+                <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-6 bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
                   Nenhuma escala cadastrada no momento.
                 </p>
               ) : (
@@ -803,23 +821,23 @@ export default function Avisos() {
                           setEscalaSelecionada(escala);
                           setModalEscalaOpen(false);
                         }}
-                        className="p-4 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-all shadow-sm flex flex-col gap-2 group"
+                        className="p-4 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer transition-all shadow-sm flex flex-col gap-2 group"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-slate-800 capitalize">{dataFormatada}</p>
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 capitalize">{dataFormatada}</p>
                             {ehCeiaOuCasamento && (
-                              <p className="text-[11px] text-slate-900 font-semibold capitalize mt-0.5">
+                              <p className="text-[11px] text-slate-900 dark:text-slate-100 font-semibold capitalize mt-0.5">
                                 {tipoEvento}
                               </p>
                             )}
                           </div>
-                          <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 shrink-0 transition-colors" />
+                          <ArrowRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-600 dark:group-hover:text-slate-300 shrink-0 transition-colors" />
                         </div>
                         
                         <div className="flex flex-wrap gap-1.5 pt-1">
                           {escala.membros.map((m, idx) => (
-                            <span key={idx} className="bg-slate-50 border border-slate-100 text-slate-600 text-[10px] px-1.5 py-0.5 rounded uppercase font-semibold">
+                            <span key={idx} className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] px-1.5 py-0.5 rounded uppercase font-semibold">
                               {m.nome}
                             </span>
                           ))}
@@ -831,10 +849,10 @@ export default function Avisos() {
               )}
             </div>
 
-            <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between">
+            <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <button
                 onClick={() => setModalEscalaOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
               >
                 Fechar
               </button>
@@ -842,29 +860,30 @@ export default function Avisos() {
           </div>
         </div>
       )}
+
       {modalRepertorioOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Music className="w-4 h-4 text-slate-700" />
-                <h3 className="text-sm font-bold text-slate-800">Selecione um Repertório</h3>
+                <Music className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Selecione um Repertório</h3>
               </div>
               <button
                 onClick={() => setModalRepertorioOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 max-h-[60vh] overflow-y-auto bg-slate-50">
+            <div className="p-4 max-h-[60vh] overflow-y-auto bg-slate-50 dark:bg-slate-950">
               {carregandoRepertorios ? (
                 <div className="flex justify-center py-6">
-                  <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
+                  <Loader2 className="w-5 h-5 text-slate-600 dark:text-slate-400 animate-spin" />
                 </div>
               ) : repertorios.length === 0 ? (
-                <p className="text-center text-xs text-slate-500 py-6 bg-white border border-dashed border-slate-200 rounded-xl">
+                <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-6 bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
                   Nenhum repertório cadastrado.
                 </p>
               ) : (
@@ -877,29 +896,29 @@ export default function Avisos() {
                         setRepertorioSelecionado(rep);
                         setModalRepertorioOpen(false);
                       }}
-                      className="p-4 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-all shadow-sm flex items-center justify-between group"
+                      className="p-4 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer transition-all shadow-sm flex items-center justify-between group"
                     >
                       <div>
-                        <p className="text-xs font-bold text-slate-800">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                           {rep.nome || "Lista sem título"}
                         </p>
                         {rep.data_evento && (
-                          <p className="text-[11px] text-slate-500 mt-0.5">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             Data: {formatarDataComDiaSemana(rep.data_evento)}
                           </p>
                         )}
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                      <ArrowRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between">
+            <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <button
                 onClick={() => setModalRepertorioOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
               >
                 Fechar
               </button>
@@ -907,33 +926,34 @@ export default function Avisos() {
           </div>
         </div>
       )}
+
       {modalInfoEscalaOpen && escalaSelecionada && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-slate-900" />
-                <h3 className="text-sm font-bold text-slate-800">Informações da Escala</h3>
+                <Calendar className="w-4 h-4 text-slate-900 dark:text-slate-100" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Informações da Escala</h3>
               </div>
               <button
                 onClick={() => setModalInfoEscalaOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 space-y-3 bg-slate-50">
-              <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm space-y-1">
-                <p className="text-[11px] text-slate-400 uppercase font-bold">Data e Dia</p>
-                <p className="text-xs font-bold text-slate-800 capitalize">
+            <div className="p-5 space-y-3 bg-slate-50 dark:bg-slate-950">
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-bold">Data e Dia</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 capitalize">
                   {formatarDataComDiaSemana(escalaSelecionada.data_culto || escalaSelecionada.data || escalaSelecionada.created_at)}
                 </p>
                 {(() => {
                   const tipoEvento = (escalaSelecionada.tipo_culto || escalaSelecionada.evento || escalaSelecionada.titulo || escalaSelecionada.assunto || "").toLowerCase();
                   const ehCeiaOuCasamento = tipoEvento.includes("ceia") || tipoEvento.includes("casamento");
                   return ehCeiaOuCasamento ? (
-                    <p className="text-xs text-slate-900 font-semibold capitalize pt-1">
+                    <p className="text-xs text-slate-900 dark:text-slate-100 font-semibold capitalize pt-1">
                       Tema: {tipoEvento}
                     </p>
                   ) : null;
@@ -941,11 +961,11 @@ export default function Avisos() {
               </div>
 
               {escalaSelecionada.membros && escalaSelecionada.membros.length > 0 && (
-                <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm space-y-2">
-                  <p className="text-[11px] text-slate-400 uppercase font-bold">Membros na Escala</p>
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-bold">Membros na Escala</p>
                   <div className="flex flex-wrap gap-1.5">
                     {escalaSelecionada.membros.map((m, idx) => (
-                      <span key={idx} className="bg-slate-50 border border-slate-200 text-slate-700 text-[10px] px-2 py-1 rounded-lg uppercase font-semibold">
+                      <span key={idx} className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] px-2 py-1 rounded-lg uppercase font-semibold">
                         {m.nome} {m.funcao ? `(${m.funcao})` : ""}
                       </span>
                     ))}
@@ -954,19 +974,19 @@ export default function Avisos() {
               )}
             </div>
 
-            <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between">
+            <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <button
                 onClick={() => {
                   setEscalaSelecionada(null);
                   setModalInfoEscalaOpen(false);
                 }}
-                className="px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
               >
                 Remover Vínculo
               </button>
               <button
                 onClick={() => setModalInfoEscalaOpen(false)}
-                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer"
+                className="px-5 py-2 bg-slate-800 dark:bg-slate-100 hover:bg-slate-900 dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer"
               >
                 Fechar
               </button>
@@ -974,42 +994,43 @@ export default function Avisos() {
           </div>
         </div>
       )}
+
       {modalInfoRepertorioOpen && repertorioSelecionado && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Music className="w-4 h-4 text-slate-900" />
-                <h3 className="text-sm font-bold text-slate-800">Informações do Repertório</h3>
+                <Music className="w-4 h-4 text-slate-900 dark:text-slate-100" />
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Informações do Repertório</h3>
               </div>
               <button
                 onClick={() => setModalInfoRepertorioOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-5 space-y-3 bg-slate-50">
-              <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm space-y-1">
-                <p className="text-[11px] text-slate-400 uppercase font-bold">Repertório</p>
-                <p className="text-xs font-bold text-slate-800">
+            <div className="p-5 space-y-3 bg-slate-50 dark:bg-slate-950">
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-bold">Repertório</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   {repertorioSelecionado.nome || "Lista sem título"}
                 </p>
                 {repertorioSelecionado.data_evento && (
-                  <p className="text-xs text-slate-600 pt-1">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 pt-1">
                     Data: {formatarDataComDiaSemana(repertorioSelecionado.data_evento)}
                   </p>
                 )}
               </div>
             </div>
-            <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between">
+            <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <button
                 onClick={() => {
                   setRepertorioId(null);
                   setRepertorioSelecionado(null);
                   setModalInfoRepertorioOpen(false);
                 }}
-                className="px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
               >
                 Remover Vínculo
               </button>
@@ -1020,13 +1041,13 @@ export default function Avisos() {
                     setModalInfoRepertorioOpen(false);
                     navigate(`/repertorio/lista/${idRep}`);
                   }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Ver Completo
                 </button>
                 <button
                   onClick={() => setModalInfoRepertorioOpen(false)}
-                  className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer"
+                  className="px-5 py-2 bg-slate-800 dark:bg-slate-100 hover:bg-slate-900 dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer"
                 >
                   Fechar
                 </button>

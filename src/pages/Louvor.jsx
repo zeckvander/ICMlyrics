@@ -12,6 +12,7 @@ import { getFavorites } from "@/lib/favorites";
 import { TEMAS_PADRAO } from "@/data/louvores_coletanea_tema";
 import { supabase } from "@/lib/supabaseClient";
 import imagemFundo from "../assets/Tromb_mundo.jpg";
+
 const normalizarTexto = (texto) =>
   String(texto || "")
     .toLowerCase()
@@ -36,11 +37,22 @@ export default function Louvor() {
   const [showFavsOnly, setShowFavsOnly] = useState(() => sessionStorage.getItem("louvor_favs_only") === "true");
 
   const musico = localStorage.getItem("icmlyrics_user") || localStorage.getItem("icmlyrics_user_nuvem") || "";
+
+  useEffect(() => {
+    const tema = localStorage.getItem("icmlyrics_tema");
+    if (tema === "escuro") {
+      document.documentElement.classList.add("dark");
+    } else if (tema === "claro") {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
   }, []);
+
   useEffect(() => {
     const verificarSessaoAdmin = async () => {
       try {
@@ -57,6 +69,7 @@ export default function Louvor() {
     };
     verificarSessaoAdmin();
   }, []);
+
   const handleVoltar = () => {
     sessionStorage.removeItem("louvor_search");
     sessionStorage.removeItem("louvor_categoria");
@@ -65,6 +78,7 @@ export default function Louvor() {
     sessionStorage.removeItem("louvor_scroll_position");
     navigate("/dashboard", { replace: true });
   };
+
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 400);
@@ -77,6 +91,7 @@ export default function Louvor() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
   useEffect(() => {
     sessionStorage.setItem("louvor_search", search);
     sessionStorage.setItem("louvor_categoria", filterCategoria);
@@ -85,6 +100,7 @@ export default function Louvor() {
 
     setVisibleCount(20);
   }, [search, filterCategoria, filterTema, showFavsOnly]);
+
   useEffect(() => {
     if (filterTema !== "all") {
       const existeNoPadrao = TEMAS_PADRAO.some(t => 
@@ -100,6 +116,7 @@ export default function Louvor() {
       }
     }
   }, [filterCategoria, louvores]);
+
   const temasDisponiveis = useMemo(() => {
     let filtrados = TEMAS_PADRAO;
     if (filterCategoria !== "all") {
@@ -118,6 +135,7 @@ export default function Louvor() {
 
     return [...temasSet];
   }, [filterCategoria, louvores]);
+
   const carregarLouvores = async () => {
     setLoading(true);
 
@@ -178,6 +196,7 @@ export default function Louvor() {
       return false;
     }
   };
+
   const handleCreate = async (form) => {
     if (!(await verificarAcessoAdmin())) return alert("Acesso negado");
     setSaving(true);
@@ -196,6 +215,7 @@ export default function Louvor() {
     }
     setSaving(false);
   };
+
   const dispararDownload = (blob, nome) => { 
     const url = URL.createObjectURL(blob); 
     const a = document.createElement("a"); 
@@ -204,12 +224,14 @@ export default function Louvor() {
     a.click(); 
     URL.revokeObjectURL(url); 
   };
+
   const exportarBackupJson = () => dispararDownload(new Blob([JSON.stringify(louvores, null, 2)], { type: "application/json" }), "backup_louvores.json");
   const exportarBackupCsv = () => {
     const colunas = ["numero", "nome", "categoria", "ritmo", "tema"];
     const csv = "\uFEFF" + [colunas.join(";"), ...louvores.map(l => colunas.map(c => `"${String(l[c] || "").replace(/"/g, '""')}"`).join(";"))].join("\n");
     dispararDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "backup_louvores.csv");
   };
+
   const exportarBackupXlsx = () => {
     const colunas = ["numero", "nome", "categoria", "ritmo", "tema"];
     let xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Backup"><Table><Row>`;
@@ -223,6 +245,7 @@ export default function Louvor() {
     xml += `</Table></Worksheet></Workbook>`;
     dispararDownload(new Blob([xml], { type: "application/vnd.ms-excel" }), "backup_louvores.xls");
   };
+
   const handleImportJson = async (e) => {
     if (!(await verificarAcessoAdmin())) return alert("Acesso negado");
     const file = e.target.files[0];
@@ -238,9 +261,11 @@ export default function Louvor() {
     };
     reader.readAsText(file);
   };
+
   const termoBruto = (search || "").trim();
   const termoNormalizado = normalizarTexto(search);
   const buscaNum = termoBruto.toLowerCase();
+
   const filtered = louvores.filter((l) => {
     const temNumero = l.numero !== null && l.numero !== undefined && String(l.numero).trim() !== "";
     let temaDoLouvor = "Sem Tema";
@@ -286,26 +311,43 @@ export default function Louvor() {
     }
     return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
   });
+
   return (
-    <div className="min-h-screen bg-slate-50 relative">
-      <div className="fixed inset-0 -z-10 bg-cover bg-center" style={{ backgroundImage: `url('${imagemFundo}')`, filter: "blur(6px) brightness(1.8)", opacity: 0.25 }} />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 relative">
+      <div 
+        className="fixed inset-0 -z-10 bg-cover bg-center opacity-25 dark:opacity-10 filter blur-[6px] brightness-[1.8] dark:brightness-50" 
+        style={{ backgroundImage: `url('${imagemFundo}')` }} 
+      />
+
       {showScrollTop && (
-        <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="fixed bottom-6 right-6 z-50 p-3 bg-slate-900 text-white rounded-full shadow-lg">
+        <button 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+          className="fixed bottom-6 right-6 z-50 p-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-full shadow-lg transition-colors border border-transparent dark:border-slate-700"
+          aria-label="Voltar ao topo"
+        >
           <ArrowUp className="w-6 h-6" />
         </button>
       )}
-<div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
+
+      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between border-b border-transparent dark:border-slate-800/80">
         <div className="flex items-center gap-3">
-          <button onClick={handleVoltar}><ArrowLeft className="w-6 h-6" /></button>
+          <button 
+            onClick={handleVoltar}
+            className="p-1 rounded-lg hover:bg-slate-800 text-slate-200 hover:text-white transition-colors"
+            aria-label="Voltar"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold">Louvores</h1>
+            <h1 className="text-xl font-bold text-white">Louvores</h1>
             <p className="text-slate-400 text-xs">Lista de Louvores</p>
           </div>
         </div>
       </div>
+
       <div className="px-4 -mt-3 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
           <Input 
             id="busca-louvor" 
             name="q" 
@@ -313,102 +355,116 @@ export default function Louvor() {
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             placeholder="Buscar por nome, número ou letra..." 
-            className="pl-9 pr-9 bg-white border-0 shadow-sm rounded-xl h-11" 
+            className="pl-9 pr-9 bg-white dark:bg-slate-900 border-0 dark:border dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm rounded-xl h-11" 
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
+
         <div className="flex gap-2">
           <Select value={filterCategoria} onValueChange={setFilterCategoria}>
-            <SelectTrigger id="categoria-select" className="w-full bg-white border-0 shadow-sm rounded-xl h-10">
-              <Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+            <SelectTrigger id="categoria-select" className="w-full bg-white dark:bg-slate-900 border-0 dark:border dark:border-slate-800 text-slate-700 dark:text-slate-200 shadow-sm rounded-xl h-10">
+              <Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400 dark:text-slate-500" />
               <SelectValue placeholder="Categoria" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200">
               <SelectItem value="all">Categoria</SelectItem>
               <SelectItem value="Avulsos">Avulsos</SelectItem>
               <SelectItem value="Cias">Cias</SelectItem>
               <SelectItem value="Coletânea">Coletânea</SelectItem>
             </SelectContent>
           </Select>
+
           <Select value={filterTema} onValueChange={setFilterTema}>
-            <SelectTrigger id="tema-select" className="w-full bg-white border-0 shadow-sm rounded-xl h-10">
-              <Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+            <SelectTrigger id="tema-select" className="w-full bg-white dark:bg-slate-900 border-0 dark:border dark:border-slate-800 text-slate-700 dark:text-slate-200 shadow-sm rounded-xl h-10">
+              <Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400 dark:text-slate-500" />
               <SelectValue placeholder="Tema" />
             </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
+            <SelectContent className="max-h-[300px] dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200">
               <SelectItem value="all">Tema</SelectItem>
               {temasDisponiveis.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
+
           {(getFavorites(musico).length > 0 || showFavsOnly) && (
-            <Button size="icon" variant={showFavsOnly ? "default" : "outline"} className="rounded-xl h-10 w-10 shrink-0 bg-white border-0 shadow-sm relative" onClick={() => setShowFavsOnly(!showFavsOnly)}>
-              <Star className={`w-5 h-5 ${showFavsOnly ? "fill-amber-400 text-amber-400" : "text-slate-400"}`} />
+            <Button 
+              size="icon" 
+              variant={showFavsOnly ? "default" : "outline"} 
+              className="rounded-xl h-10 w-10 shrink-0 bg-white dark:bg-slate-900 border-0 dark:border dark:border-slate-800 shadow-sm relative" 
+              onClick={() => setShowFavsOnly(!showFavsOnly)}
+            >
+              <Star className={`w-5 h-5 ${showFavsOnly ? "fill-amber-400 text-amber-400" : "text-slate-400 dark:text-slate-500"}`} />
               {getFavorites(musico).length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white shadow-sm">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white dark:border-slate-900 shadow-sm">
                   {getFavorites(musico).length}
                 </span>
               )}
             </Button>
           )}
         </div>
+
         {!loading && louvores.length > 0 && !admin && (
-          <div className="flex items-center justify-start px-1 text-xs text-slate-500 font-medium">
+          <div className="flex items-center justify-start px-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
             <span>{filtered.length} {filtered.length === 1 ? "louvor" : "louvores"}</span>
           </div>
         )}
+
         {admin && (
           <div className="flex items-center justify-between gap-2">
             <div className="flex gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="rounded-xl shadow-sm">
+                  <Button variant="outline" className="rounded-xl shadow-sm bg-white dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
                     Exportar <ChevronDown className="w-4 h-4 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="rounded-xl">
-                  <DropdownMenuItem onClick={exportarBackupJson}>JSON</DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarBackupCsv}>CSV</DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportarBackupXlsx}>XLS</DropdownMenuItem>
+                <DropdownMenuContent className="rounded-xl dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200">
+                  <DropdownMenuItem className="dark:focus:bg-slate-800" onClick={exportarBackupJson}>JSON</DropdownMenuItem>
+                  <DropdownMenuItem className="dark:focus:bg-slate-800" onClick={exportarBackupCsv}>CSV</DropdownMenuItem>
+                  <DropdownMenuItem className="dark:focus:bg-slate-800" onClick={exportarBackupXlsx}>XLS</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <label className="cursor-pointer bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                <Upload className="w-5 h-5 text-slate-500"/>
+
+              <label className="cursor-pointer bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <Upload className="w-5 h-5 text-slate-500 dark:text-slate-400"/>
                 <input type="file" id="import-json" name="file-import" className="hidden" onChange={handleImportJson}/>
               </label>
+
               <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetTrigger asChild>
-                  <Button className="rounded-xl"><Plus /></Button>
+                  <Button className="rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white"><Plus /></Button>
                 </SheetTrigger>
                 <SheetContent 
                   side="bottom" 
-                  className="rounded-t-2xl max-h-[92vh] overflow-y-auto"
+                  className="rounded-t-2xl max-h-[92vh] overflow-y-auto dark:bg-slate-900 dark:border-slate-800"
                   onOpenAutoFocus={(e) => e.preventDefault()}
                 >
                   <LouvorForm onSubmit={handleCreate} saving={saving}/>
                 </SheetContent>
               </Sheet>
             </div>
+
             {!loading && louvores.length > 0 && (
-              <div className="text-xs text-slate-500 font-medium pr-1">
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium pr-1">
                 <span>{filtered.length} {filtered.length === 1 ? "louvor" : "louvores"}</span>
               </div>
             )}
           </div>
         )}
+
         {loading ? (
-          <Loader2 className="animate-spin mx-auto mt-10" />
+          <Loader2 className="animate-spin mx-auto mt-10 text-slate-600 dark:text-slate-400" />
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-            <p className="text-slate-500 font-medium">Nenhum louvor encontrado</p>
-            <Button variant="outline" onClick={() => { setSearch(""); setShowFavsOnly(false); }} className="rounded-xl">Voltar</Button>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum louvor encontrado</p>
+            <Button variant="outline" onClick={() => { setSearch(""); setShowFavsOnly(false); }} className="rounded-xl bg-white dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200">Voltar</Button>
           </div>
         ) : (
           <div className="space-y-2 pb-8">
@@ -425,7 +481,7 @@ export default function Louvor() {
               <div className="text-center py-4">
                 <Button 
                   variant="ghost" 
-                  className="text-slate-500 font-normal text-xs rounded-xl"
+                  className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-normal text-xs rounded-xl"
                   onClick={() => setVisibleCount((prev) => prev + 20)}
                 >
                   Exibindo {visibleCount} de {filtered.length} (Toque para carregar mais)

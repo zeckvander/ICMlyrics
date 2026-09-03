@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { 
   Music2, ListPlus, Radio, Gauge, Mic, History, LogOut, 
   BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, 
-  AlertTriangle, Database, Megaphone, ListMusic, Sparkles, Settings, Users, User 
+  AlertTriangle, Database, Megaphone, ListMusic, Sparkles, Settings, Users, User,
+  Piano
 } from "lucide-react";
 import { useTools } from "@/components/tools/ToolsProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -19,7 +20,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { openMetronomo, openAfinador } = useTools();
+  const { openMetronomo, openAfinador, openPiano } = useTools();
   const musico = localStorage.getItem("icmlyrics_user") || "Usuário";
 
   const [configOpen, setConfigOpen] = useState(false);
@@ -343,7 +344,8 @@ export default function Dashboard() {
 
   const ferramentas = [
     { label: "Metrônomo", icon: Gauge, color: "bg-purple-500", onClick: openMetronomo },
-    { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfinador }
+    { label: "Afinador", icon: Mic, color: "bg-rose-500", onClick: openAfinador },
+    { label: "Piano", icon: Piano, color: "bg-cyan-600", onClick: openPiano }
   ];
 
   return (
@@ -406,7 +408,6 @@ export default function Dashboard() {
                       </span>
                     )}
 
-                    {/* Ícone: colorido no light, cinza escuro/slate no dark */}
                     <div className={`w-11 h-11 rounded-xl ${a.color} dark:bg-slate-800 flex items-center justify-center relative shadow-sm`}>
                       <a.icon className="w-5 h-5 text-white dark:text-slate-200" />
                     </div>
@@ -429,7 +430,7 @@ export default function Dashboard() {
 
           <div>
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 px-1">Ferramentas</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {ferramentas.map((f) => (
                 <button 
                   key={f.label} 
@@ -442,11 +443,10 @@ export default function Dashboard() {
                   }} 
                   className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow"
                 >
-                  {/* Ícone: colorido no light, cinza escuro/slate no dark */}
                   <div className={`w-11 h-11 rounded-xl ${f.color} dark:bg-slate-800 flex items-center justify-center shadow-sm`}>
                     <f.icon className="w-5 h-5 text-white dark:text-slate-200" />
                   </div>
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-100">{f.label}</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-100">{f.label}</span>
                 </button>
               ))}
             </div>
@@ -455,7 +455,6 @@ export default function Dashboard() {
       </div>
 
       <div className="px-4 mt-8 pb-4">
-        {/* Suporte: Mantém cores vibrantes originais (Indigo/Azul) mesmo no modo escuro */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-3 shadow-sm flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <div className="flex flex-col">
             <span className="font-semibold text-slate-700 dark:text-slate-200">Dúvidas, problemas ou sugestão?</span>
