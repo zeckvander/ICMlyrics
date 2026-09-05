@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { DragDropContext, Droppable } from "@hello-pangea/dnd";
-import { ArrowLeft, Plus, Image, FileText, Cloud, Save, Printer } from "lucide-react";
+import { ArrowLeft, Plus, Image, FileText, Cloud, Save, Printer, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ListaRow from "@/components/lista/ListaRow";
@@ -10,6 +10,7 @@ import PreviewModal from "@/components/lista/PreviewModal";
 import { supabase } from "@/lib/supabaseClient"; 
 
 const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const genId = () => Math.random().toString(36).slice(2, 9);
 
 const emptyRow = (categoriaPadrao = "--") => ({ 
@@ -44,6 +45,20 @@ export default function NovaLista() {
     const d = String(hoje.getDate()).padStart(2, "0");
     return `${ano}-${mes}-${d}`;
   });
+
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [viewDate, setViewDate] = useState(() => new Date());
+  const calendarRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const [tipoCulto, setTipoCulto] = useState("");
   const [responsavel, setResponsavel] = useState("");
@@ -338,9 +353,22 @@ export default function NovaLista() {
     resetForm();
   };
 
+  const [yStr, mStr, dStr] = dataCulto.split("-");
+  const selYear = parseInt(yStr, 10);
+  const selMonth = parseInt(mStr, 10) - 1;
+  const selDay = parseInt(dStr, 10);
+
+  const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+  const firstDayIndex = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
+
+  const formatDisplayDate = (iso) => {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8 transition-colors duration-200">
-      {/* Cabeçalho */}
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between border-b border-transparent dark:border-slate-800/80">
         <div className="flex items-center gap-3">
           <button 
@@ -382,12 +410,82 @@ export default function NovaLista() {
           <div>
             <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Data do Culto</label>
             <div className="flex flex-row gap-3 mt-1">
-              <Input 
-                type="date" 
-                value={dataCulto} 
-                onChange={(e) => setDataCulto(e.target.value)} 
-                className="h-10 flex-1 bg-white dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100" 
-              />
+              <div className="relative flex-1" ref={calendarRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewDate(new Date(selYear, selMonth, 1));
+                    setShowCalendar(!showCalendar);
+                  }}
+                  className="w-full h-10 px-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-left text-sm font-medium text-slate-900 dark:text-slate-100 flex items-center justify-between shadow-sm"
+                >
+                  <span>{formatDisplayDate(dataCulto)}</span>
+                  <CalendarIcon className="w-4 h-4 text-slate-400" />
+                </button>
+
+                {showCalendar && (
+                  <div className="absolute top-12 left-0 z-50 w-64 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl space-y-3 select-none">
+                    <div className="flex items-center justify-between px-1">
+                      <button
+                        type="button"
+                        onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
+                        className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 capitalize">
+                        {MESES[viewDate.getMonth()]} de {viewDate.getFullYear()}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
+                        className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400">
+                      <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1 text-center">
+                      {Array.from({ length: firstDayIndex }).map((_, i) => (
+                        <div key={`empty-${i}`} className="h-7" />
+                      ))}
+                      {Array.from({ length: daysInMonth }).map((_, i) => {
+                        const dayNum = i + 1;
+                        const isSelected =
+                          viewDate.getFullYear() === selYear &&
+                          viewDate.getMonth() === selMonth &&
+                          dayNum === selDay;
+
+                        return (
+                          <button
+                            key={dayNum}
+                            type="button"
+                            onClick={() => {
+                              const y = viewDate.getFullYear();
+                              const m = String(viewDate.getMonth() + 1).padStart(2, "0");
+                              const d = String(dayNum).padStart(2, "0");
+                              setDataCulto(`${y}-${m}-${d}`);
+                              setShowCalendar(false);
+                            }}
+                            className={`h-7 w-7 rounded-lg text-xs font-medium flex items-center justify-center transition-colors mx-auto ${
+                              isSelected
+                                ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 font-bold shadow"
+                                : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            {dayNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex-1 flex items-end pb-0.5">
                 {diaSemana && (
                   <span className="text-base font-bold text-slate-800 dark:text-slate-200 leading-none bg-slate-100 dark:bg-slate-800 px-2.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 w-full text-center">
@@ -495,7 +593,6 @@ export default function NovaLista() {
         </div>
       </div>
 
-      {/* Modal de confirmação e seleção de formato */}
       {modalImprimir.open && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-800 rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-4 text-center">
