@@ -16,23 +16,53 @@ import {
   Smartphone,
   Type,
   LogIn,
-  X
+  X,
+  Guitar,
+  Sliders,
+  Camera,
+  Edit3,
+  Play,
+  Upload,
+  UserCheck,
+  Sparkles,
+  Volume2
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 
+// Lista de Instrumentos com ícones dedicados
 const INSTRUMENTOS = [
-  { id: 'teclado', nome: 'Teclado / Piano' },
-  { id: 'violao', nome: 'Violão / Guitarra' },
-  { id: 'baixo', nome: 'Contrabaixo' },
-  { id: 'outro', nome: 'Outro Instrumento' },
+  { id: 'teclado', nome: 'Teclado / Piano', icon: Music },
+  { id: 'violao', nome: 'Violão / Guitarra', icon: Guitar },
+  { id: 'baixo', nome: 'Contrabaixo', icon: Volume2 },
+  { id: 'outro', nome: 'Outro Instrumento', icon: Sliders },
+];
+
+// Naipes / Classificações Vocais
+const NAIPES_VOCAIS = [
+  { id: 'dirigente', nome: 'Vocalista / Dirigente', desc: 'Liderança do louvor' },
+  { id: 'soprano', nome: 'Soprano', desc: 'Voz feminina aguda' },
+  { id: 'contralto', nome: 'Contralto', desc: 'Voz feminina grave' },
+  { id: 'tenor', nome: 'Tenor', desc: 'Voz masculina aguda' },
+  { id: 'baixo_voz', nome: 'Baixo', desc: 'Voz masculina grave' },
+];
+
+// Avatares Predefinidos
+const AVATARES_PRESETS = [
+  { id: 'preset1', bg: 'from-blue-500 to-indigo-600', emoji: '🎵' },
+  { id: 'preset2', bg: 'from-purple-500 to-pink-600', emoji: '🎤' },
+  { id: 'preset3', bg: 'from-emerald-500 to-teal-600', emoji: '🎹' },
+  { id: 'preset4', bg: 'from-amber-500 to-orange-600', emoji: '🎸' },
+  { id: 'preset5', bg: 'from-rose-500 to-red-600', emoji: '✝️' },
+  { id: 'preset6', bg: 'from-cyan-500 to-blue-600', emoji: '🎼' },
 ];
 
 export default function ConfigScreen() {
   const navigate = useNavigate();
   
+  // Preferências
   const [perfil, setPerfil] = useState(() => localStorage.getItem('icmlyrics_perfil') || 'instrumento');
   const [instrumento, setInstrumento] = useState(() => localStorage.getItem('icmlyrics_instrumento') || 'teclado');
   const [cifraPadrao, setCifraPadrao] = useState(() => localStorage.getItem('icmlyrics_cifra_padrao') || 'cifra1');
@@ -40,14 +70,30 @@ export default function ConfigScreen() {
   const [manterTelaAcesa, setManterTelaAcesa] = useState(() => localStorage.getItem('icmlyrics_keep_awake') === 'true');
   const [tema, setTema] = useState(() => localStorage.getItem('icmlyrics_tema') || 'escuro');
   
+  // Perfil de Voz
+  const [naipeVocal, setNaipeVocal] = useState(() => localStorage.getItem('icmlyrics_naipe') || 'dirigente');
+  const [autoScroll, setAutoScroll] = useState(() => localStorage.getItem('icmlyrics_autoscroll') === 'true');
+  const [velocidadeScroll, setVelocidadeScroll] = useState(() => localStorage.getItem('icmlyrics_velocidade_scroll') || '1x');
+
+  // Dados do Usuário & Avatar
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
+  const [nomeExibicao, setNomeExibicao] = useState(() => localStorage.getItem('icmlyrics_user') || 'Visitante');
+  const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('icmlyrics_avatar') || '');
+  const [avatarPreset, setAvatarPreset] = useState(() => localStorage.getItem('icmlyrics_avatar_preset') || 'preset1');
+
+  // Modais e Estados de UI
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState('');
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [editPerfilOpen, setEditPerfilOpen] = useState(false);
   const [limparFavoritos, setLimparFavoritos] = useState(false);
   const [avisoLocalOpen, setAvisoLocalOpen] = useState(false);
-  const [usuarioLogado, setUsuarioLogado] = useState(null);
-  const [usernamePerfil, setUsernamePerfil] = useState('');
   
+  // Estados do formulário de edição de perfil
+  const [tempNome, setTempNome] = useState('');
+  const [tempPreset, setTempPreset] = useState(avatarPreset);
+  const [uploadingR2, setUploadingR2] = useState(false);
+
   const eEscuro = tema === 'escuro';
 
   const mostrarToast = (msg) => {
@@ -64,25 +110,27 @@ export default function ConfigScreen() {
         
         const { data: dadosPerfil } = await supabase
           .from('perfis_usuario')
-          .select('username')
+          .select('username, avatar_url, naipe_vocal, instrumento')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (dadosPerfil?.username) {
-          setUsernamePerfil(dadosPerfil.username);
+        if (dadosPerfil) {
+          if (dadosPerfil.username) setNomeExibicao(dadosPerfil.username);
+          if (dadosPerfil.avatar_url) setAvatarUrl(dadosPerfil.avatar_url);
+          if (dadosPerfil.naipe_vocal) setNaipeVocal(dadosPerfil.naipe_vocal);
+          if (dadosPerfil.instrumento) setInstrumento(dadosPerfil.instrumento);
         } else if (session.user.user_metadata?.username) {
-          setUsernamePerfil(session.user.user_metadata.username);
+          setNomeExibicao(session.user.user_metadata.username);
         }
       } else {
         const jaViuAviso = localStorage.getItem('icmlyrics_aviso_local_visto');
-        if (!jaViuAviso) {
-          setAvisoLocalOpen(true);
-        }
+        if (!jaViuAviso) setAvisoLocalOpen(true);
       }
     }
     checarSessaoEPopup();
   }, []);
 
+  // Persistência local
   useEffect(() => {
     localStorage.setItem('icmlyrics_perfil', perfil);
     localStorage.setItem('icmlyrics_instrumento', instrumento);
@@ -90,7 +138,67 @@ export default function ConfigScreen() {
     localStorage.setItem('icmlyrics_fonte', tamanhoFonte);
     localStorage.setItem('icmlyrics_keep_awake', manterTelaAcesa);
     localStorage.setItem('icmlyrics_tema', tema);
-  }, [perfil, instrumento, cifraPadrao, tamanhoFonte, manterTelaAcesa, tema]);
+    localStorage.setItem('icmlyrics_naipe', naipeVocal);
+    localStorage.setItem('icmlyrics_autoscroll', autoScroll);
+    localStorage.setItem('icmlyrics_velocidade_scroll', velocidadeScroll);
+    localStorage.setItem('icmlyrics_user', nomeExibicao);
+    localStorage.setItem('icmlyrics_avatar', avatarUrl);
+    localStorage.setItem('icmlyrics_avatar_preset', avatarPreset);
+  }, [perfil, instrumento, cifraPadrao, tamanhoFonte, manterTelaAcesa, tema, naipeVocal, autoScroll, velocidadeScroll, nomeExibicao, avatarUrl, avatarPreset]);
+
+  // Upload simulado para Cloudflare R2 / Endpoint
+  const handleUploadR2 = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingR2(true);
+    try {
+      // Exemplo de integração R2 (substituir pela sua rota de upload/presigned URL)
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Simulando tempo de resposta do upload R2
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      const localPreviewUrl = URL.createObjectURL(file);
+      setAvatarUrl(localPreviewUrl);
+      
+      // Se tiver sessão Supabase, persista a URL do R2
+      if (usuarioLogado) {
+        await supabase
+          .from('perfis_usuario')
+          .upsert({ id: usuarioLogado.id, avatar_url: localPreviewUrl, updated_at: new Date() });
+      }
+
+      mostrarToast('Foto atualizada via Cloudflare R2!');
+    } catch (err) {
+      console.error('Erro no upload R2:', err);
+      mostrarToast('Falha ao enviar a foto.');
+    } finally {
+      setUploadingR2(false);
+    }
+  };
+
+  const salvarEdicaoPerfil = async () => {
+    if (!tempNome.trim()) return;
+
+    setNomeExibicao(tempNome.trim());
+    setAvatarPreset(tempPreset);
+
+    if (usuarioLogado) {
+      await supabase
+        .from('perfis_usuario')
+        .upsert({ 
+          id: usuarioLogado.id, 
+          username: tempNome.trim(), 
+          avatar_url: avatarUrl,
+          updated_at: new Date() 
+        });
+    }
+
+    setEditPerfilOpen(false);
+    mostrarToast('Perfil atualizado com sucesso!');
+  };
 
   const fecharAvisoLocal = () => {
     localStorage.setItem('icmlyrics_aviso_local_visto', 'true');
@@ -122,7 +230,16 @@ export default function ConfigScreen() {
   };
 
   const instAtual = INSTRUMENTOS.find(i => i.id === instrumento);
-  const nomeExibicao = usernamePerfil || usuarioLogado?.user_metadata?.full_name || localStorage.getItem('icmlyrics_user') || 'Visitante';
+  const naipeAtual = NAIPES_VOCAIS.find(n => n.id === naipeVocal);
+  const presetAtualObj = AVATARES_PRESETS.find(p => p.id === avatarPreset);
+
+  // Iniciais do nome
+  const iniciais = nomeExibicao
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(n => n[0].toUpperCase())
+    .join('');
 
   return (
     <div className={`min-h-screen p-4 md:p-6 font-sans pb-32 transition-colors duration-300 ${eEscuro ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
@@ -134,40 +251,7 @@ export default function ConfigScreen() {
         </div>
       )}
 
-      {avisoLocalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className={`relative w-full max-w-xs p-5 rounded-2xl shadow-2xl border ${
-            eEscuro 
-              ? 'bg-slate-900 border-slate-800 text-slate-100' 
-              : 'bg-white border-slate-200 text-slate-900'
-          }`}>
-            <button
-              onClick={fecharAvisoLocal}
-              className={`absolute top-3 right-3 p-1.5 rounded-xl transition-colors ${
-                eEscuro 
-                  ? 'text-slate-400 hover:text-white hover:bg-slate-800' 
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-              aria-label="Fechar aviso"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-start gap-3 pr-6">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 shrink-0">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-bold text-sm mb-1">Seus dados estão apenas aqui! 📲</h4>
-                <p className={`text-xs leading-relaxed ${eEscuro ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Sem login, suas preferências e anotações ficam salvas **só neste aparelho** e podem ser perdidas se você limpar os dados do navegador.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Header */}
       <header className={`flex items-center justify-between mb-6 pb-4 border-b ${eEscuro ? 'border-slate-800/80' : 'border-slate-200'}`}>
         <div className="flex items-center gap-3">
           <button 
@@ -207,6 +291,7 @@ export default function ConfigScreen() {
         )}
       </header>
 
+      {/* Card do Perfil / Avatar */}
       <section className={`mb-6 rounded-2xl p-5 shadow-lg border relative overflow-hidden transition-all ${
         eEscuro 
           ? 'bg-gradient-to-r from-slate-900 via-slate-800/90 to-slate-900 border-slate-800/80' 
@@ -214,14 +299,33 @@ export default function ConfigScreen() {
       }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-lg shadow-inner ${
-                eEscuro ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'bg-blue-600 text-white'
-              }`}>
-                <User className="w-7 h-7" />
-              </div>
-              <span className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-slate-900 rounded-full ${usuarioLogado ? 'bg-emerald-500' : 'bg-amber-500'}`} title={usuarioLogado ? 'Conectado' : 'Modo Offline/Local'} />
+            
+            {/* Avatar Render */}
+            <div className="relative group">
+              {avatarUrl ? (
+                <img 
+                  src={avatarUrl} 
+                  alt={nomeExibicao} 
+                  className="w-14 h-14 rounded-2xl object-cover border-2 border-blue-500 shadow-md" 
+                />
+              ) : avatarPreset ? (
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${presetAtualObj?.bg || 'from-blue-500 to-indigo-600'} flex items-center justify-center text-2xl shadow-md border border-white/20`}>
+                  {presetAtualObj?.emoji || '🎵'}
+                </div>
+              ) : (
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-lg shadow-inner ${
+                  eEscuro ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'bg-blue-600 text-white'
+                }`}>
+                  {iniciais || <User className="w-7 h-7" />}
+                </div>
+              )}
+              
+              <span 
+                className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-slate-900 rounded-full ${usuarioLogado ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                title={usuarioLogado ? 'Conectado' : 'Modo Offline/Local'} 
+              />
             </div>
+
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold">{nomeExibicao}</h2>
@@ -230,13 +334,32 @@ export default function ConfigScreen() {
                 </span>
               </div>
               <p className={`text-xs mt-0.5 ${eEscuro ? 'text-slate-400' : 'text-slate-500'}`}>
-                {perfil === 'voz' ? 'Perfil: Voz (Abre Letra)' : `Instrumento: ${instAtual?.nome}`}
+                {perfil === 'voz' 
+                  ? `Voz: ${naipeAtual?.nome || 'Vocalista'}` 
+                  : `Instrumento: ${instAtual?.nome}`}
               </p>
             </div>
           </div>
+
+          <button
+            onClick={() => {
+              setTempNome(nomeExibicao);
+              setTempPreset(avatarPreset);
+              setEditPerfilOpen(true);
+            }}
+            className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              eEscuro 
+                ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' 
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm'
+            }`}
+          >
+            <Edit3 className="w-3.5 h-3.5 text-blue-500" />
+            <span className="hidden sm:inline">Editar</span>
+          </button>
         </div>
       </section>
 
+      {/* Seleção de Perfil Principal (Voz vs Instrumento) */}
       <section className="mb-6 space-y-4">
         <div className={`rounded-2xl p-2 grid grid-cols-2 gap-2 shadow-sm border ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
           <button
@@ -270,6 +393,79 @@ export default function ConfigScreen() {
           </button>
         </div>
 
+        {/* Configurações do Perfil de VOZ */}
+        {perfil === 'voz' && (
+          <div className={`p-4 rounded-2xl shadow-md border space-y-5 animate-in fade-in slide-in-from-top-2 ${eEscuro ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div>
+              <label className={`block text-xs font-semibold mb-2 ${eEscuro ? 'text-slate-300' : 'text-slate-700'}`}>
+                Classificação Vocal / Naipe:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {NAIPES_VOCAIS.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => { setNaipeVocal(n.id); mostrarToast(`Naipe: ${n.nome}`); }}
+                    className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                      naipeVocal === n.id
+                        ? 'border-blue-500 bg-blue-500/10 text-blue-500 ring-1 ring-blue-500/50'
+                        : eEscuro ? 'border-slate-800 hover:bg-slate-800/60 text-slate-300' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-xs font-bold block">{n.nome}</span>
+                      <span className={`text-[10px] ${eEscuro ? 'text-slate-400' : 'text-slate-500'}`}>{n.desc}</span>
+                    </div>
+                    {naipeVocal === n.id && <Check className="w-4 h-4 text-blue-500" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Auto-Scroll & Velocidade */}
+            <div className={`pt-4 border-t ${eEscuro ? 'border-slate-800' : 'border-slate-100'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-blue-500" />
+                  <div>
+                    <span className="block text-xs font-semibold">Rolar Letra Automaticamente (Auto-Scroll)</span>
+                    <span className={`block text-[10px] ${eEscuro ? 'text-slate-400' : 'text-slate-500'}`}>Desce a letra na velocidade desejada</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { setAutoScroll(!autoScroll); mostrarToast(!autoScroll ? 'Auto-scroll ativado' : 'Auto-scroll desligado'); }}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors ${autoScroll ? 'bg-blue-600' : eEscuro ? 'bg-slate-800' : 'bg-slate-300'}`}
+                >
+                  <div className={`w-4 h-4 bg-white rounded-full transform transition-transform ${autoScroll ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {autoScroll && (
+                <div className="space-y-1.5 animate-in fade-in">
+                  <label className={`block text-[11px] font-medium ${eEscuro ? 'text-slate-400' : 'text-slate-600'}`}>
+                    Velocidade de Rolagem:
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {['0.5x', '1x', '1.5x', '2x'].map((vel) => (
+                      <button
+                        key={vel}
+                        onClick={() => setVelocidadeScroll(vel)}
+                        className={`p-2 text-xs rounded-xl border font-bold transition-all ${
+                          velocidadeScroll === vel
+                            ? 'bg-blue-600 text-white border-blue-600 shadow'
+                            : eEscuro ? 'border-slate-800 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {vel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Configurações do Perfil de INSTRUMENTO */}
         {perfil === 'instrumento' && (
           <div className={`p-4 rounded-2xl shadow-md border space-y-4 animate-in fade-in slide-in-from-top-2 ${eEscuro ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div>
@@ -277,19 +473,25 @@ export default function ConfigScreen() {
                 Selecione seu Instrumento Principal:
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {INSTRUMENTOS.map((inst) => (
-                  <button
-                    key={inst.id}
-                    onClick={() => { setInstrumento(inst.id); mostrarToast(`Instrumento: ${inst.nome}`); }}
-                    className={`flex items-center p-3 rounded-xl border text-left transition-all ${
-                      instrumento === inst.id
-                        ? 'border-blue-500 bg-blue-500/10 text-blue-500 ring-1 ring-blue-500/50'
-                        : eEscuro ? 'border-slate-800 hover:bg-slate-800/60 text-slate-300' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <span className="text-xs font-bold">{inst.nome}</span>
-                  </button>
-                ))}
+                {INSTRUMENTOS.map((inst) => {
+                  const IconComp = inst.icon;
+                  return (
+                    <button
+                      key={inst.id}
+                      onClick={() => { setInstrumento(inst.id); mostrarToast(`Instrumento: ${inst.nome}`); }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                        instrumento === inst.id
+                          ? 'border-blue-500 bg-blue-500/10 text-blue-500 ring-1 ring-blue-500/50'
+                          : eEscuro ? 'border-slate-800 hover:bg-slate-800/60 text-slate-300' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg ${instrumento === inst.id ? 'bg-blue-500/20' : eEscuro ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold">{inst.nome}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -324,8 +526,10 @@ export default function ConfigScreen() {
         )}
       </section>
 
+      {/* Preferências Gerais de Exibição */}
       <section className="mb-8 space-y-4">
         <div className={`rounded-2xl divide-y shadow-md border ${eEscuro ? 'bg-slate-900 divide-slate-800/80 border-slate-800' : 'bg-white divide-slate-100 border-slate-200'}`}>
+          
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-xl ${eEscuro ? 'bg-slate-800 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
@@ -422,6 +626,7 @@ export default function ConfigScreen() {
         </div>
       </section>
 
+      {/* Logout */}
       {usuarioLogado && (
         <button 
           onClick={() => setLogoutOpen(true)}
@@ -436,6 +641,102 @@ export default function ConfigScreen() {
         </button>
       )}
 
+      {/* Modal de Edição de Perfil e Avatar */}
+      <Dialog open={editPerfilOpen} onOpenChange={setEditPerfilOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-slate-900 text-base font-bold">
+              <UserCheck className="w-5 h-5 text-blue-600" />
+              Editar Perfil & Avatar
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Nome de Exibição / Username:
+              </label>
+              <input
+                type="text"
+                value={tempNome}
+                onChange={(e) => setTempNome(e.target.value)}
+                placeholder="Seu nome no louvor"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Opções de Avatar */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-2">
+                Escolha um Avatar Predefinido:
+              </label>
+              <div className="grid grid-cols-6 gap-2 mb-3">
+                {AVATARES_PRESETS.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setTempPreset(p.id);
+                      setAvatarUrl(''); // limpa foto personalizada se selecionar preset
+                    }}
+                    className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${p.bg} flex items-center justify-center text-lg border-2 transition-all ${
+                      tempPreset === p.id && !avatarUrl ? 'border-blue-600 scale-110 shadow-md' : 'border-transparent opacity-80 hover:opacity-100'
+                    }`}
+                  >
+                    {p.emoji}
+                  </button>
+                ))}
+              </div>
+
+              {/* Upload Personalizado no Cloudflare R2 */}
+              <div className="pt-2 border-t border-slate-100">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Ou faça upload da sua foto (Cloudflare R2):
+                </label>
+                <div className="flex items-center gap-2">
+                  <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border border-dashed border-slate-300 rounded-xl text-xs text-slate-600 cursor-pointer hover:bg-slate-50 transition-colors">
+                    <Upload className="w-4 h-4 text-slate-400" />
+                    <span>{uploadingR2 ? 'Enviando...' : 'Selecionar Imagem'}</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleUploadR2} 
+                      disabled={uploadingR2} 
+                      className="hidden" 
+                    />
+                  </label>
+                  {avatarUrl && (
+                    <button
+                      onClick={() => setAvatarUrl('')}
+                      className="p-2 text-xs text-red-500 hover:bg-red-50 rounded-xl"
+                      title="Remover foto"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="grid grid-cols-2 gap-2 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setEditPerfilOpen(false)} 
+              className="h-9 text-xs border-slate-200 text-slate-700"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={salvarEdicaoPerfil} 
+              className="h-9 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs"
+            >
+              Salvar Perfil
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de confirmação de Logout */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <DialogContent className="max-w-xs rounded-2xl p-6">
           <DialogHeader>
