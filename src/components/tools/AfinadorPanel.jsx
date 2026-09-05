@@ -98,7 +98,7 @@ function autoCorrelate(buf, sampleRate, rmsThreshold) {
   return sampleRate / T0;
 }
 
-export default function AfinadorPanel({ onClose, minimized, setMinimized, isStacked }) {
+export default function AfinadorPanel({ onClose, minimized, setMinimized, stackLevel = 0 }) {
   const [instrumento, setInstrumento] = useState("guitarra");
   const [cordaSelecionada, setCordaSelecionada] = useState(null);
   const [sensibilidade, setSensibilidade] = useState("normal");
@@ -208,8 +208,12 @@ export default function AfinadorPanel({ onClose, minimized, setMinimized, isStac
   }, [minimized]);
 
   if (minimized) {
+    const bottomPos = 12 + (stackLevel >= 0 ? stackLevel : 0) * 44;
     return (
-      <div className={`fixed ${isStacked ? "bottom-20" : "bottom-5"} left-5 z-50 bg-slate-900 text-white rounded-full shadow-lg flex items-center gap-2 pr-4 pl-3 py-2.5 border border-slate-800 transition-all duration-200`}>
+      <div 
+        style={{ bottom: `${bottomPos}px` }}
+        className="fixed left-5 z-50 bg-slate-900 text-white rounded-full shadow-lg flex items-center gap-2 pr-4 pl-3 py-2 border border-slate-800 transition-all duration-200 select-none"
+      >
         <button onClick={() => setMinimized(false)} className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
           <Mic className="w-4 h-4 text-rose-400" />
           <span className="text-sm font-medium whitespace-nowrap">Afinador</span>

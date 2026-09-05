@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { Piano, Minus, X, Maximize2, ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Piano, Minus, X, ChevronLeft, ChevronRight, Maximize, Minimize, RotateCcw } from "lucide-react";
 
 const buildKeyboardData = () => {
   const whiteNotes = [
@@ -24,10 +24,11 @@ const buildKeyboardData = () => {
   const allBlack = [];
   let whiteIndex = 0;
 
-  for (let oct = 1; oct <= 6; oct++) {
+  for (let oct = 3; oct <= 7; oct++) {
     const startWhiteForOct = whiteIndex;
+    const notesToUse = oct === 7 ? [{ note: "C", label: "Dó" }] : whiteNotes;
 
-    whiteNotes.forEach((w) => {
+    notesToUse.forEach((w) => {
       allWhite.push({
         id: `${w.note}${oct}`,
         note: w.note,
@@ -38,15 +39,17 @@ const buildKeyboardData = () => {
       whiteIndex++;
     });
 
-    blackNotesTemplate.forEach((b) => {
-      allBlack.push({
-        id: `${b.note}${oct}`,
-        note: b.note,
-        octave: oct,
-        label: b.label,
-        afterGlobalIndex: startWhiteForOct + b.afterOffset,
+    if (oct < 7) {
+      blackNotesTemplate.forEach((b) => {
+        allBlack.push({
+          id: `${b.note}${oct}`,
+          note: b.note,
+          octave: oct,
+          label: b.label,
+          afterGlobalIndex: startWhiteForOct + b.afterOffset,
+        });
       });
-    });
+    }
   }
 
   return { allWhite, allBlack };
@@ -122,16 +125,32 @@ const playSynthesizerNote = (noteName, octave) => {
   }
 };
 
-export default function PianoModal({ onClose, minimized, setMinimized }) {
-  const [startIndex, setStartIndex] = useState(21);
-  const [activeNote, setActiveNote] = useState(null);
+export default function PianoModal({ 
+  onClose, 
+  minimized, 
+  setMinimized, 
+  externalActiveNote, 
+  isFloating = false,
+  hideClose = false,
+  onReset,
+  visibleKeysCount,
+  stackLevel = 0
+}) {
+  const [startIndex, setStartIndex] = useState(7);
+  const [internalActiveNote, setInternalActiveNote] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const miniMapRef = useRef(null);
 
-  // Modo normal = 8 teclas brancas (1 oitava completa: ex. Dó a Dó)
-  // Tela cheia = 15 teclas brancas (2 oitavas completas: ex. Dó a Dó)
-  const visibleCount = isFullscreen ? 15 : 8;
+  const activeNote = externalActiveNote !== undefined ? externalActiveNote : internalActiveNote;
+
+  const isMobileDevice = () => {
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+  };
+
+  const defaultKeysCount = visibleKeysCount || (isMobileDevice() ? 9 : (hideClose ? 9 : 22));
+  const visibleCount = isFullscreen ? 22 : defaultKeysCount;
+
   const whiteWidthPercent = 100 / visibleCount;
   const blackWidthPercent = whiteWidthPercent * 0.64;
 
@@ -143,11 +162,41 @@ export default function PianoModal({ onClose, minimized, setMinimized }) {
   const firstKey = visibleWhiteKeys[0] || allWhite[0];
   const lastKey = visibleWhiteKeys[visibleWhiteKeys.length - 1] || allWhite[allWhite.length - 1];
 
-  const handleKeyPress = (item) => {
-    setActiveNote(item.id);
-    playSynthesizerNote(item.note, item.octave);
-    setTimeout(() => setActiveNote(null), 150);
+  const handleResetPosition = () => {
+    setStartIndex(7); 
+    if (onReset) onReset();
   };
+
+  const handleKeyPress = (item) => {
+    setInternalActiveNote(item.id);
+    playSynthesizerNote(item.note, item.octave);
+    setTimeout(() => setInternalActiveNote(null), 150);
+  };
+
+  const pcWhiteKeyMap = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ç', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', ';', '1', '2'];
+  const pcBlackKeyMap = ['w', 'e', 't', 'y', 'u', 'o', 'p', '`', '´', '[', ']', '9', '0'];
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (minimized || e.repeat || isMobileDevice()) return;
+      
+      const pressedChar = e.key.toLowerCase();
+      
+      const whiteIdx = pcWhiteKeyMap.indexOf(pressedChar);
+      if (whiteIdx !== -1 && visibleWhiteKeys[whiteIdx]) {
+        handleKeyPress(visibleWhiteKeys[whiteIdx]);
+        return;
+      }
+
+      const blackIdx = pcBlackKeyMap.indexOf(pressedChar);
+      if (blackIdx !== -1 && visibleBlackKeys[blackIdx]) {
+        handleKeyPress(visibleBlackKeys[blackIdx]);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [visibleWhiteKeys, visibleBlackKeys, minimized]);
 
   const exitFullscreenAndUnlock = async () => {
     try {
@@ -158,7 +207,7 @@ export default function PianoModal({ onClose, minimized, setMinimized }) {
         window.screen.orientation.unlock();
       }
     } catch (err) {
-      console.log("Saindo da tela cheia / desbloqueando orientação.");
+      console.log(err);
     }
     setIsFullscreen(false);
   };
@@ -167,21 +216,23 @@ export default function PianoModal({ onClose, minimized, setMinimized }) {
     if (isFullscreen || document.fullscreenElement) {
       await exitFullscreenAndUnlock();
     }
-    onClose();
+    if (onClose) onClose();
   };
 
   const toggleFullscreen = async () => {
     if (!isFullscreen) {
       setIsFullscreen(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
+      if (isMobileDevice()) {
+        try {
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+          }
+          if (window.screen?.orientation?.lock) {
+            await window.screen.orientation.lock("landscape");
+          }
+        } catch (err) {
+          console.log(err);
         }
-        if (window.screen?.orientation?.lock) {
-          await window.screen.orientation.lock("landscape");
-        }
-      } catch (err) {
-        console.log("Tela cheia ativada em modo CSS.");
       }
     } else {
       await exitFullscreenAndUnlock();
@@ -216,57 +267,64 @@ export default function PianoModal({ onClose, minimized, setMinimized }) {
   };
 
   if (minimized) {
+    const bottomPos = 12 + (stackLevel >= 0 ? stackLevel : 0) * 44;
     return (
-      <div className="fixed bottom-4 left-4 z-50 bg-slate-900 border border-slate-700 text-white rounded-2xl shadow-xl px-4 py-2.5 flex items-center gap-3">
-        <div 
-          className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" 
-          onClick={() => setMinimized(false)}
+      <div 
+        style={{ bottom: `${bottomPos}px` }}
+        className="fixed left-5 z-50 bg-slate-900 text-white rounded-full shadow-lg flex items-center gap-2 pr-4 pl-3 py-2 border border-slate-800 transition-all duration-200 select-none"
+      >
+        <button 
+          onClick={() => setMinimized(false)} 
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none"
         >
-          <Piano className="w-4 h-4 text-cyan-400" />
-          <span className="text-xs font-bold">Piano Virtual</span>
-        </div>
+          <Piano className="w-4 h-4 text-cyan-400 shrink-0" />
+          <span className="text-sm font-medium whitespace-nowrap">Piano Virtual</span>
+        </button>
 
-        <div className="flex items-center gap-1 border-l border-slate-700 pl-2">
-          <button 
-            onClick={() => setMinimized(false)}
-            className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
-            title="Expandir"
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-          </button>
-          <button 
-            onClick={handleCloseModal}
-            className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-rose-400 transition-colors"
-            title="Fechar"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <button 
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCloseModal();
+          }}
+          className="ml-1 text-slate-400 hover:text-white focus:outline-none"
+          aria-label="Fechar Piano Virtual"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
     );
   }
 
+  const containerClasses = isFloating && !isFullscreen
+    ? "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
+    : "";
+
+  const innerClasses = isFloating && !isFullscreen
+    ? "rounded-3xl w-full max-w-6xl p-4 sm:p-5 shadow-2xl"
+    : "w-full p-2 sm:p-3";
+
   return (
-    <div className={`fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center ${isFullscreen ? "p-0" : "p-2 sm:p-4"}`}>
-      <div className={`bg-[#0c1322] border border-slate-800 text-white overflow-hidden shadow-2xl flex flex-col justify-between transition-all ${
+    <div className={containerClasses}>
+      <div className={`bg-[#0c1322] border border-slate-800 text-white overflow-hidden flex flex-col justify-between transition-all ${
         isFullscreen
-          ? "w-screen h-screen rounded-none border-none p-3"
-          : "rounded-3xl w-full max-w-xl p-4 sm:p-5"
+          ? "fixed inset-0 z-50 w-screen h-screen rounded-none p-3 border-none"
+          : innerClasses
       }`}>
-        
-        <div className="flex items-center justify-between mb-2">
+        <div className="bg-slate-900 border-b border-slate-800 -mx-4 -mt-4 px-4 py-3 mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Piano className="w-5 h-5 text-cyan-400 shrink-0" />
-            <h3 className="font-bold text-sm sm:text-base text-slate-100 flex items-center gap-1.5">
+            <Piano className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase flex items-center gap-1.5">
               Piano Virtual
-              <span className="text-cyan-400 font-semibold text-xs sm:text-sm">
+              <span className="text-cyan-400 font-semibold text-xs">
                 ({firstKey.label}{firstKey.octave} - {lastKey.label}{lastKey.octave})
               </span>
-            </h3>
+            </span>
           </div>
 
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={() => setStartIndex((prev) => Math.max(0, prev - 1))}
               className="p-1 hover:bg-slate-800 text-slate-300 rounded-lg transition-colors"
               title="Mover para esquerda"
@@ -274,36 +332,54 @@ export default function PianoModal({ onClose, minimized, setMinimized }) {
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => setStartIndex((prev) => Math.min(allWhite.length - visibleCount, prev + 1))}
               className="p-1 hover:bg-slate-800 text-slate-300 rounded-lg transition-colors"
               title="Mover para direita"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-            <button
-              onClick={() => setMinimized(true)}
-              className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors ml-1"
-              title="Minimizar"
-            >
-              <Minus className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleCloseModal}
-              className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded-lg transition-colors"
-              title="Fechar"
-            >
-              <X className="w-4 h-4" />
-            </button>
+
+            {setMinimized && (
+              <button
+                type="button"
+                onClick={() => setMinimized(true)}
+                className="p-1 text-slate-400 hover:text-white transition-colors"
+                title="Minimizar"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+            )}
+
+            {hideClose ? (
+              <button
+                type="button"
+                onClick={handleResetPosition}
+                className="p-1 text-slate-400 hover:text-cyan-400 transition-colors"
+                title="Resetar Posição (Dó4)"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="p-1 text-slate-400 hover:text-white transition-colors"
+                title="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 mb-2 px-1">
+        <div className="flex flex-col gap-1 mb-1.5 px-1">
           <div 
             ref={miniMapRef}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            className="relative w-full h-8 sm:h-9 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden cursor-pointer touch-none select-none my-0.5"
+            className="relative w-full h-6 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden cursor-pointer touch-none select-none"
           >
             <div className="absolute inset-0 flex">
               {allWhite.map((w) => (
@@ -338,38 +414,49 @@ export default function PianoModal({ onClose, minimized, setMinimized }) {
                 left: `${(startIndex / allWhite.length) * 100}%`,
                 width: `${(visibleCount / allWhite.length) * 100}%`
               }}
-              className="absolute top-0 bottom-0 bg-cyan-500/35 border-2 border-cyan-400 rounded-md shadow-[0_0_12px_rgba(34,211,238,0.5)] transition-all duration-75 pointer-events-none"
+              className="absolute top-0 bottom-0 bg-cyan-500/35 border-2 border-cyan-400 rounded-md shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-all duration-75 pointer-events-none"
             />
           </div>
         </div>
 
-        <div className={`relative bg-slate-950/90 p-2 sm:p-3 rounded-2xl border border-slate-800 select-none my-1 shadow-inner w-full overflow-hidden ${
-          isFullscreen ? "flex-1 my-2 flex items-center" : ""
+        <div className={`relative bg-slate-950/90 p-2 rounded-xl border border-slate-800 select-none shadow-inner w-full overflow-hidden ${
+          isFullscreen ? "flex-1 my-2 flex items-center justify-center" : ""
         }`}>
-          <div className={`relative w-full flex ${isFullscreen ? "h-full" : "h-44 sm:h-48"}`}>
+          <div className={`relative w-full flex ${isFullscreen ? "h-full max-h-64" : "h-36 sm:h-44"}`}>
             
-            {visibleWhiteKeys.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleKeyPress(item)}
-                style={{ width: `${whiteWidthPercent}%` }}
-                className={`h-full bg-slate-100 hover:bg-white text-slate-900 rounded-b-lg border-[0.5px] border-slate-300 flex flex-col justify-end items-center pb-2 transition-all active:translate-y-1 shadow-md ${
-                  activeNote === item.id ? "bg-cyan-200 translate-y-1" : ""
-                }`}
-              >
-                <span className="text-[9px] sm:text-xs font-bold leading-none">{item.label}</span>
-                <span className="text-[7px] sm:text-[9px] text-slate-400 font-mono mt-0.5 leading-none">{item.octave}</span>
-              </button>
-            ))}
+            {visibleWhiteKeys.map((item, idx) => {
+              const shortcutKey = !isMobileDevice() && pcWhiteKeyMap[idx] ? pcWhiteKeyMap[idx].toUpperCase() : null;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleKeyPress(item)}
+                  style={{ width: `${whiteWidthPercent}%` }}
+                  className={`relative h-full bg-slate-100 hover:bg-white text-slate-900 rounded-b-lg border-[0.5px] border-slate-300 flex flex-col justify-end items-center pb-2 transition-all active:translate-y-1 shadow-md ${
+                    activeNote === item.id ? "bg-cyan-200 translate-y-1" : ""
+                  }`}
+                >
+                  {shortcutKey && (
+                    <span className="absolute top-2 bg-slate-800 text-cyan-400 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shadow-sm border border-slate-700">
+                      {shortcutKey}
+                    </span>
+                  )}
+                  <span className="text-[9px] sm:text-xs font-bold leading-none">{item.label}</span>
+                  <span className="text-[7px] sm:text-[9px] text-slate-400 font-mono mt-0.5 leading-none">{item.octave}</span>
+                </button>
+              );
+            })}
 
             <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-              {visibleBlackKeys.map((item) => {
+              {visibleBlackKeys.map((item, idx) => {
                 const relIdx = item.afterGlobalIndex - startIndex;
                 const leftPos = ((relIdx + 1) * whiteWidthPercent) - (blackWidthPercent / 2);
+                const shortcutKey = !isMobileDevice() && pcBlackKeyMap[idx] ? pcBlackKeyMap[idx].toUpperCase() : null;
                 
                 return (
                   <button
                     key={item.id}
+                    type="button"
                     onClick={() => handleKeyPress(item)}
                     style={{
                       left: `${leftPos}%`,
@@ -379,7 +466,12 @@ export default function PianoModal({ onClose, minimized, setMinimized }) {
                       activeNote === item.id ? "bg-cyan-600 border-cyan-400 translate-y-0.5" : ""
                     }`}
                   >
-                    <span className="text-[6px] sm:text-[8px] font-bold leading-none whitespace-nowrap">
+                    {shortcutKey && (
+                      <span className="absolute top-1 bg-slate-950 text-amber-400 text-[9px] font-mono font-bold px-1 py-0.5 rounded shadow-sm border border-slate-800">
+                        {shortcutKey}
+                      </span>
+                    )}
+                    <span className="text-[6px] sm:text-[8px] font-bold leading-none whitespace-nowrap mt-3">
                       {item.label}
                     </span>
                   </button>
@@ -390,13 +482,16 @@ export default function PianoModal({ onClose, minimized, setMinimized }) {
           </div>
         </div>
 
-        <button
-          onClick={toggleFullscreen}
-          className="w-full mt-2 py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition-colors border border-slate-700/80 flex items-center justify-center gap-2"
-        >
-          {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-          {isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
-        </button>
+        {isFloating && (
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="w-full mt-2 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl text-xs font-bold transition-colors border border-slate-700/80 flex items-center justify-center gap-2"
+          >
+            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            {isFullscreen ? "Restaurar Janela" : "Expandir Janela"}
+          </button>
+        )}
 
       </div>
     </div>

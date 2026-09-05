@@ -5,7 +5,26 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function MetronomoPanel({ onClose, minimized, setMinimized, isStacked }) {
+function MetronomeIcon({ className }) {
+  return (
+    <svg 
+      className={className} 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="M8 22l3-17a1 1 0 0 1 2 0l3 17" />
+      <path d="M7 18h10" />
+      <path d="M12 18L15 8" />
+      <circle cx="15" cy="8" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+export default function MetronomoPanel({ onClose, minimized, setMinimized, stackLevel = 0 }) {
   const [bpm, setBpm] = useState(80);
   const [beatsPerCompasso, setBeatsPerCompasso] = useState(4); 
   const [notaValor, setNotaValor] = useState(4); 
@@ -186,14 +205,18 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
   };
 
   if (minimized) {
+    const bottomPos = 12 + (stackLevel >= 0 ? stackLevel : 0) * 44;
     return (
-      <div className={`fixed ${isStacked ? "bottom-20" : "bottom-5"} left-5 z-50 bg-slate-900 text-white rounded-full shadow-lg flex items-center gap-2 pr-4 pl-3 py-2.5 border border-slate-800`}>
-        <button onClick={() => setMinimized(false)} className="flex items-center gap-2">
-          <Square className={`w-4 h-4 ${playing ? "text-emerald-400 animate-pulse" : "text-slate-400"}`} />
-          <span className="text-sm font-medium">Metrônomo</span>
-          {playing && <span className="text-xs text-slate-400">{bpm} BPM ({beatsPerCompasso}/{notaValor})</span>}
+      <div 
+        style={{ bottom: `${bottomPos}px` }}
+        className="fixed left-5 z-50 bg-slate-900 text-white rounded-full shadow-lg flex items-center gap-2 pr-4 pl-3 py-2 border border-slate-800 transition-all duration-200 select-none"
+      >
+        <button onClick={() => setMinimized(false)} className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
+          <MetronomeIcon className={`w-4 h-4 ${playing ? "text-emerald-400 animate-pulse" : "text-amber-400"}`} />
+          <span className="text-sm font-medium whitespace-nowrap">Metrônomo</span>
+          {playing && <span className="text-xs text-slate-400">({bpm} BPM)</span>}
         </button>
-        <button onClick={handleClose} className="ml-1 text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+        <button onClick={handleClose} className="ml-1 text-slate-400 hover:text-white focus:outline-none"><X className="w-4 h-4" /></button>
       </div>
     );
   }
@@ -207,9 +230,12 @@ export default function MetronomoPanel({ onClose, minimized, setMinimized, isSta
         onMouseDown={handleMouseDown}
         className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between flex-shrink-0 cursor-move"
       >
-        <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-          Metrônomo
-        </span>
+        <div className="flex items-center gap-2">
+          <MetronomeIcon className="w-4 h-4 text-amber-400" />
+          <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+            Metrônomo
+          </span>
+        </div>
         
         <div className="flex items-center gap-1">
           <button onClick={() => setMinimized(true)} className="text-slate-400 hover:text-white p-1"><Minus className="w-4 h-4" /></button>

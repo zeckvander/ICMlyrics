@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Pencil, Trash2, Music, MapPin, Loader2, Star, Link2, Clock } from "lucide-react";
+import { ArrowLeft, ExternalLink, Pencil, Trash2, Music, MapPin, Loader2, Star, Link2, Clock, Piano } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import CategoriaBadge from "@/components/louvores/CategoriaBadge";
 import LouvorForm from "@/components/louvores/LouvorForm";
 import CifraImageTab from "@/components/louvores/CifraImageTab";
+import PianoPartituraModal from "@/components/tools/PianoPartituraModal";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
 import { TEMAS_PADRAO } from "@/data/louvores_coletanea_tema";
+import { getHinoMedia } from "@/lib/r2Utils";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LouvorDetail() {
@@ -21,6 +23,7 @@ export default function LouvorDetail() {
   const [saving, setSaving] = useState(false);
   const [fav, setFav] = useState(false);
   const [admin, setAdmin] = useState(false);
+  const [modalPianoAberto, setModalPianoAberto] = useState(false);
   
   const [tamanhoFonte, setTamanhoFonte] = useState(() => localStorage.getItem('icmlyrics_fonte') || 'md');
   const [tema, setTema] = useState(() => localStorage.getItem('icmlyrics_tema') || 'escuro');
@@ -188,6 +191,10 @@ export default function LouvorDetail() {
     { label: "Baixo", url: louvor.baixo }
   ].filter(l => l.url && l.url.trim() !== "");
 
+  const temNumero = louvor.numero !== null && louvor.numero !== undefined && String(louvor.numero).trim() !== "";
+  const nomePasta = temNumero ? `${louvor.numero} - ${louvor.nome}` : louvor.nome;
+  const { pdfUrl, midiUrl } = getHinoMedia(nomePasta, "mid");
+
   return (
     <div className={`min-h-screen pb-8 transition-colors duration-300 ${eEscuro ? 'bg-slate-950' : 'bg-slate-50'}`}>
       <div className="bg-slate-900 text-white px-4 pt-12 pb-6">
@@ -206,17 +213,32 @@ export default function LouvorDetail() {
               {temaReal && <span className="flex items-center gap-1"><span className="text-blue-400">•</span> {temaReal}</span>}
             </div>
           </div>
-          <div className="flex gap-1.5 shrink-0 items-center">
-            <Button size="icon" variant="ghost" className="text-white/60 hover:text-amber-400" onClick={() => setFav(toggleFavorite(musico, louvor.id))}>
+          <div className="flex gap-0.5 shrink-0 items-center">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="w-8 h-8 p-0 bg-transparent hover:bg-transparent focus:bg-transparent active:bg-transparent"
+              onClick={() => setModalPianoAberto((prev) => !prev)}
+              title="Piano Virtual"
+            >
+              <Piano className={`w-5 h-5 transition-colors ${modalPianoAberto ? 'text-sky-300' : 'text-white/60 hover:text-sky-300'}`} />
+            </Button>
+
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="w-8 h-8 p-0 text-white/60 hover:text-amber-400" 
+              onClick={() => setFav(toggleFavorite(musico, louvor.id))}
+            >
               <Star className={`w-5 h-5 ${fav ? "fill-amber-400 text-amber-400" : ""}`} />
             </Button>
             
             {admin && (
               <>
-                <Button size="icon" variant="ghost" className="text-white/60 hover:text-amber-400" onClick={() => setEditOpen(true)}>
+                <Button size="icon" variant="ghost" className="w-8 h-8 p-0 text-white/60 hover:text-amber-400" onClick={() => setEditOpen(true)}>
                   <Pencil className="w-4 h-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="text-white/60 hover:text-red-500" onClick={handleDelete}>
+                <Button size="icon" variant="ghost" className="w-8 h-8 p-0 text-white/60 hover:text-red-500" onClick={handleDelete}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </>
@@ -275,11 +297,20 @@ export default function LouvorDetail() {
               <TabsTrigger value="cifra1" className={`flex-1 text-xs ${eEscuro ? 'data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400' : ''}`}>Cifra 1</TabsTrigger>
               <TabsTrigger value="cifra2" className={`flex-1 text-xs ${eEscuro ? 'data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400' : ''}`}>Cifra 2</TabsTrigger>
             </TabsList>
-            <TabsContent value="letra" className="p-4 m-0">
-              <p className={`${getTamanhoFonteClass()} whitespace-pre-wrap leading-relaxed ${eEscuro ? 'text-slate-200' : 'text-slate-700'}`}>{louvor.letra_musica || "Nenhuma letra."}</p>
+
+            <TabsContent value="letra" className={`p-4 m-0 transition-all duration-300 ${modalPianoAberto ? 'pb-64' : 'pb-6'}`}>
+              <p className={`${getTamanhoFonteClass()} whitespace-pre-wrap leading-relaxed ${eEscuro ? 'text-slate-200' : 'text-slate-700'}`}>
+                {louvor.letra_musica || "Nenhuma letra."}
+              </p>
             </TabsContent>
-            <TabsContent value="cifra1" className="p-4 m-0"><CifraImageTab louvorId={louvor.id} field="cifra1_imagem" imageUrl={louvor.cifra1_imagem} onUploaded={loadLouvor} /></TabsContent>
-            <TabsContent value="cifra2" className="p-4 m-0"><CifraImageTab louvorId={louvor.id} field="cifra2_imagem" imageUrl={louvor.cifra2_imagem} onUploaded={loadLouvor} /></TabsContent>
+
+            <TabsContent value="cifra1" className={`p-4 m-0 transition-all duration-300 ${modalPianoAberto ? 'pb-64' : 'pb-6'}`}>
+              <CifraImageTab louvorId={louvor.id} field="cifra1_imagem" imageUrl={louvor.cifra1_imagem} onUploaded={loadLouvor} />
+            </TabsContent>
+
+            <TabsContent value="cifra2" className={`p-4 m-0 transition-all duration-300 ${modalPianoAberto ? 'pb-64' : 'pb-6'}`}>
+              <CifraImageTab louvorId={louvor.id} field="cifra2_imagem" imageUrl={louvor.cifra2_imagem} onUploaded={loadLouvor} />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
@@ -293,6 +324,19 @@ export default function LouvorDetail() {
           <LouvorForm initial={louvor} onSubmit={handleUpdate} onCancel={() => setEditOpen(false)} saving={saving} />
         </SheetContent>
       </Sheet>
+
+      {modalPianoAberto && (
+        <PianoPartituraModal
+          isOpen={modalPianoAberto}
+          open={modalPianoAberto}
+          tituloHino={louvor.nome}
+          pdfUrl={pdfUrl}
+          midiUrl={midiUrl}
+          showClose={false}
+          showCloseButton={false}
+          onClose={() => setModalPianoAberto(false)}
+        />
+      )}
     </div>
   );
 }

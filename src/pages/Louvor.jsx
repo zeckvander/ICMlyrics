@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import SongCard from "@/components/louvores/SongCard";
 import LouvorForm from "@/components/louvores/LouvorForm";
+import PianoPartituraModal from "@/components/tools/PianoPartituraModal";
 import { getFavorites } from "@/lib/favorites";
+import { getHinoMedia } from "@/lib/r2Utils";
 import { TEMAS_PADRAO } from "@/data/louvores_coletanea_tema";
 import { supabase } from "@/lib/supabaseClient";
 import imagemFundo from "../assets/Tromb_mundo.jpg";
@@ -35,6 +37,10 @@ export default function Louvor() {
   const [filterCategoria, setFilterCategoria] = useState(() => sessionStorage.getItem("louvor_categoria") || "all");
   const [filterTema, setFilterTema] = useState(() => sessionStorage.getItem("louvor_tema") || "all");
   const [showFavsOnly, setShowFavsOnly] = useState(() => sessionStorage.getItem("louvor_favs_only") === "true");
+
+  // Estados para controlar o modal do Piano/Partitura
+  const [modalPianoAberto, setModalPianoAberto] = useState(false);
+  const [hinoSelecionado, setHinoSelecionado] = useState(null);
 
   const musico = localStorage.getItem("icmlyrics_user") || localStorage.getItem("icmlyrics_user_nuvem") || "";
 
@@ -77,6 +83,17 @@ export default function Louvor() {
     sessionStorage.removeItem("louvor_favs_only");
     sessionStorage.removeItem("louvor_scroll_position");
     navigate("/dashboard", { replace: true });
+  };
+
+  const handleAbrirPartitura = (louvor) => {
+    const temNumero = louvor.numero !== null && louvor.numero !== undefined && String(louvor.numero).trim() !== "";
+    const nomePasta = temNumero ? `${louvor.numero} - ${louvor.nome}` : louvor.nome;
+
+    setHinoSelecionado({
+      titulo: louvor.nome,
+      pasta: nomePasta
+    });
+    setModalPianoAberto(true);
   };
 
   useEffect(() => {
@@ -475,6 +492,7 @@ export default function Louvor() {
                 isAdmin={admin} 
                 isFavorited={getFavorites(musico).includes(String(l.id))} 
                 onToggleFav={() => setFavTrigger(prev => prev + 1)} 
+                onOpenPiano={() => handleAbrirPartitura(l)}
               />
             ))}
             {visibleCount < filtered.length && (
@@ -491,6 +509,22 @@ export default function Louvor() {
           </div>
         )}
       </div>
+
+      {/* MODAL DE PARTITURA E PIANO */}
+      {modalPianoAberto && hinoSelecionado && (() => {
+        const { pdfUrl, midiUrl } = getHinoMedia(hinoSelecionado.pasta, "mid");
+        return (
+          <PianoPartituraModal
+            tituloHino={hinoSelecionado.titulo}
+            pdfUrl={pdfUrl}
+            midiUrl={midiUrl}
+            onClose={() => {
+              setModalPianoAberto(false);
+              setHinoSelecionado(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

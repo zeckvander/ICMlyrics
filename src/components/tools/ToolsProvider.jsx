@@ -18,39 +18,68 @@ export function ToolsProvider({ children }) {
   const [afinadorMin, setAfinadorMin] = useState(false);
   const [pianoMin, setPianoMin] = useState(false);
 
-  const afinadorSubiu = afinadorMin && metronomoMin;
+  const minimizedStack = [
+    metronomoOpen && metronomoMin && "metronomo",
+    afinadorOpen && afinadorMin && "afinador",
+    pianoOpen && pianoMin && "piano",
+  ].filter(Boolean);
 
   return (
-    <ToolsContext.Provider value={{
-      openMetronomo: () => { setMetronomoOpen(true); setMetronomoMin(false); },
-      openAfinador: () => { setAfinadorOpen(true); setAfinadorMin(false); },
-      openPiano: () => { setPianoOpen(true); setPianoMin(false); },
-    }}>
+    <ToolsContext.Provider
+      value={{
+        openMetronomo: () => {
+          setMetronomoOpen(true);
+          setMetronomoMin(false);
+        },
+        openAfinador: () => {
+          setAfinadorOpen(true);
+          setAfinadorMin(false);
+        },
+        openPiano: () => {
+          setPianoOpen(true);
+          setPianoMin(false);
+        },
+      }}
+    >
       {children}
-      
+
       {metronomoOpen && (
-        <MetronomoPanel 
-          onClose={() => { setMetronomoOpen(false); setMetronomoMin(false); }} 
+        <MetronomoPanel
+          onClose={() => {
+            setMetronomoOpen(false);
+            setMetronomoMin(false);
+          }}
           minimized={metronomoMin}
           setMinimized={setMetronomoMin}
-          isStacked={false} 
+          stackLevel={minimizedStack.indexOf("metronomo")}
+          isStacked={minimizedStack.indexOf("metronomo") > 0}
         />
       )}
-      
+
       {afinadorOpen && (
-        <AfinadorPanel 
-          onClose={() => { setAfinadorOpen(false); setAfinadorMin(false); }} 
+        <AfinadorPanel
+          onClose={() => {
+            setAfinadorOpen(false);
+            setAfinadorMin(false);
+          }}
           minimized={afinadorMin}
           setMinimized={setAfinadorMin}
-          isStacked={afinadorSubiu}
+          stackLevel={minimizedStack.indexOf("afinador")}
+          isStacked={minimizedStack.indexOf("afinador") > 0}
         />
       )}
 
       {pianoOpen && (
-        <PianoModal 
-          onClose={() => { setPianoOpen(false); setPianoMin(false); }} 
+        <PianoModal
+          onClose={() => {
+            setPianoOpen(false);
+            setPianoMin(false);
+          }}
           minimized={pianoMin}
           setMinimized={setPianoMin}
+          isFloating={true}
+          stackLevel={minimizedStack.indexOf("piano")}
+          isStacked={minimizedStack.indexOf("piano") > 0}
         />
       )}
     </ToolsContext.Provider>
