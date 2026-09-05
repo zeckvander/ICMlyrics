@@ -24,12 +24,10 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 
 const INSTRUMENTOS = [
-  { id: 'teclado', nome: 'Teclado / Piano', desc: 'Tom Padrão (Sem transposição)', tag: 'Cifra 1/2' },
-  { id: 'violao', nome: 'Violão / Guitarra', desc: 'Afinação Padrão / Capo', tag: 'Cifra + Acordes' },
-  { id: 'baixo', nome: 'Contrabaixo', desc: 'Marcação e Tônica', tag: 'Apenas Notas' },
-  { id: 'sopro_bb', nome: 'Sopro em Bb', desc: 'Sax Tenor, Clarinet, Trompete', tag: '+2 Semitons' },
-  { id: 'sopro_eb', nome: 'Sopro em Eb', desc: 'Sax Alto, Sax Barítono', tag: '+9 Semitons' },
-  { id: 'outro', nome: 'Outro Instrumento', desc: 'Ajuste personalizado', tag: 'Livre' },
+  { id: 'teclado', nome: 'Teclado / Piano' },
+  { id: 'violao', nome: 'Violão / Guitarra' },
+  { id: 'baixo', nome: 'Contrabaixo' },
+  { id: 'outro', nome: 'Outro Instrumento' },
 ];
 
 export default function ConfigScreen() {
@@ -64,7 +62,6 @@ export default function ConfigScreen() {
       if (session?.user) {
         setUsuarioLogado(session.user);
         
-        // Puxa o username (@) da tabela perfis_usuario ou dos metadados
         const { data: dadosPerfil } = await supabase
           .from('perfis_usuario')
           .select('username')
@@ -210,7 +207,6 @@ export default function ConfigScreen() {
         )}
       </header>
 
-      {/* Card de Perfil */}
       <section className={`mb-6 rounded-2xl p-5 shadow-lg border relative overflow-hidden transition-all ${
         eEscuro 
           ? 'bg-gradient-to-r from-slate-900 via-slate-800/90 to-slate-900 border-slate-800/80' 
@@ -241,7 +237,6 @@ export default function ConfigScreen() {
         </div>
       </section>
 
-      {/* Bloco de Preferências de Execução */}
       <section className="mb-6 space-y-4">
         <div className={`rounded-2xl p-2 grid grid-cols-2 gap-2 shadow-sm border ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
           <button
@@ -286,19 +281,13 @@ export default function ConfigScreen() {
                   <button
                     key={inst.id}
                     onClick={() => { setInstrumento(inst.id); mostrarToast(`Instrumento: ${inst.nome}`); }}
-                    className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                    className={`flex items-center p-3 rounded-xl border text-left transition-all ${
                       instrumento === inst.id
                         ? 'border-blue-500 bg-blue-500/10 text-blue-500 ring-1 ring-blue-500/50'
                         : eEscuro ? 'border-slate-800 hover:bg-slate-800/60 text-slate-300' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <div>
-                      <span className="block text-xs font-bold">{inst.nome}</span>
-                      <span className={`block text-[10px] ${eEscuro ? 'text-slate-400' : 'text-slate-500'}`}>{inst.desc}</span>
-                    </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800/40 text-slate-400 border border-slate-700/50">
-                      {inst.tag}
-                    </span>
+                    <span className="text-xs font-bold">{inst.nome}</span>
                   </button>
                 ))}
               </div>
@@ -335,7 +324,6 @@ export default function ConfigScreen() {
         )}
       </section>
 
-      {/* Bloco de Leitura & Experiência */}
       <section className="mb-8 space-y-4">
         <div className={`rounded-2xl divide-y shadow-md border ${eEscuro ? 'bg-slate-900 divide-slate-800/80 border-slate-800' : 'bg-white divide-slate-100 border-slate-200'}`}>
           <div className="flex items-center justify-between p-4">
@@ -415,7 +403,6 @@ export default function ConfigScreen() {
           </div>
         </div>
 
-        {/* Gerenciamento de Backups Local (Mantido fora da sincronização) */}
         <div className={`rounded-2xl shadow-md border ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
           <button 
             onClick={() => navigate('/backup')} 
@@ -449,7 +436,6 @@ export default function ConfigScreen() {
         </button>
       )}
 
-      {/* Modal Logout */}
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <DialogContent className="max-w-xs rounded-2xl p-6">
           <DialogHeader>

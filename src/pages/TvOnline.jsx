@@ -163,8 +163,8 @@ export default function TvOnline() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28 flex flex-col">
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 sticky top-0 z-30 shadow-md">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-28 flex flex-col transition-colors duration-200">
+      <div className="bg-slate-900 dark:bg-slate-950 text-white px-4 pt-12 pb-6 sticky top-0 z-30 shadow-md border-b border-transparent dark:border-slate-800">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <button 
@@ -190,7 +190,7 @@ export default function TvOnline() {
           {/* Player de Vídeo */}
           <div 
             ref={containerRef}
-            className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-slate-200 shadow-sm group"
+            className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm group"
           >
             <video
               ref={videoRef}
@@ -255,15 +255,15 @@ export default function TvOnline() {
             )}
           </div>
 
-          {/* Lista de Canais (Padronizada com RadiosOnline) */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Transmissão</p>
+          {/* Lista de Canais */}
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-2">
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Transmissão</p>
 
             {carregando ? (
-              <p className="text-center text-slate-400 text-xs py-6">Carregando canais...</p>
+              <p className="text-center text-slate-400 dark:text-slate-500 text-xs py-6">Carregando canais...</p>
             ) : tvs.length === 0 ? (
-              <p className="text-center text-slate-400 text-xs py-6 uppercase font-bold tracking-wider">
-                Nenhum canal cadastrado
+              <p className="text-center text-slate-400 dark:text-slate-500 text-xs py-6 uppercase font-bold tracking-wider">
+                Nenum canal cadastrado
               </p>
             ) : (
               tvs.map((tv) => {
@@ -274,20 +274,20 @@ export default function TvOnline() {
                     key={tv.id}
                     className={`w-full p-3 rounded-xl border text-xs font-medium flex items-center justify-between transition-colors ${
                       estaAtiva
-                        ? "bg-red-50 border-red-200 text-red-900 font-bold" 
-                        : "bg-slate-50 border-slate-100 text-slate-700"
+                        ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/50 text-red-900 dark:text-red-200 font-bold" 
+                        : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300"
                     }`}
                   >
                     <button
                       onClick={() => handleSelecionarEReproduzir(tv)}
                       className="flex-1 text-left flex items-center gap-2.5 truncate pr-2"
                     >
-                      <span className="p-1.5 bg-red-100 text-red-600 rounded-lg">
+                      <span className="p-1.5 bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 rounded-lg">
                         <Tv className="w-3.5 h-3.5" />
                       </span>
                       <div className="truncate">
-                        <p className="truncate text-slate-900 font-bold">{tv.nome}</p>
-                        <p className="text-[10px] text-slate-400 font-normal">{tv.categoria || "Ao Vivo"}</p>
+                        <p className="truncate text-slate-900 dark:text-slate-100 font-bold">{tv.nome}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">{tv.categoria || "Ao Vivo"}</p>
                       </div>
                     </button>
 
@@ -297,7 +297,7 @@ export default function TvOnline() {
                         className={`p-2 rounded-lg transition-colors ${
                           tocandoEsta
                             ? "bg-red-600 text-white"
-                            : "bg-red-100 text-red-700 hover:bg-red-200"
+                            : "bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/80"
                         }`}
                         title={tocandoEsta ? "Pausar Canal" : "Assistir Canal"}
                       >

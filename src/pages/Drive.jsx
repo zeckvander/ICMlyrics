@@ -233,29 +233,29 @@ export default function Drive() {
   const CardLink = ({ item }) => {
     const podeEditar = podeModificarLink(item);
     return (
-      <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex items-center justify-between gap-2 hover:border-slate-200 transition-all">
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 hover:border-slate-200 dark:hover:border-slate-700 transition-all">
         <a 
           href={formatarUrl(item.link)} 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="flex items-center gap-2.5 text-blue-600 hover:underline flex-1 min-w-0"
+          className="flex items-center gap-2.5 text-blue-600 dark:text-blue-400 hover:underline flex-1 min-w-0"
         >
-          <ExternalLink className="w-4 h-4 shrink-0 text-slate-400" />
-          <span className="truncate font-medium text-slate-800 text-xs">{item.nome_link}</span>
+          <ExternalLink className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" />
+          <span className="truncate font-medium text-slate-800 dark:text-slate-200 text-xs">{item.nome_link}</span>
         </a>
 
         {podeEditar && (
           <div className="flex items-center gap-1 shrink-0">
             <button 
               onClick={() => handleIniciarEdicao(item)} 
-              className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors"
+              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
               title="Editar link"
             >
               <Pencil className="w-3.5 h-3.5" />
             </button>
             <button 
               onClick={() => handleDeletarLink(item)} 
-              className="p-1 hover:bg-rose-50 rounded text-slate-300 hover:text-rose-500 transition-colors"
+              className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
               title="Excluir link"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -267,8 +267,8 @@ export default function Drive() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-12 transition-colors">
+      <div className="bg-slate-900 dark:bg-slate-900/90 text-white px-4 pt-12 pb-6 flex items-center justify-between sticky top-0 z-30 shadow-md border-b border-slate-800">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate("/dashboard")} 
@@ -320,42 +320,42 @@ export default function Drive() {
         </div>
       </div>
 
-      <div className="px-4 -mt-3 space-y-5 max-w-md mx-auto">
+      <div className="px-4 mt-4 space-y-5 max-w-md mx-auto">
         <div className="relative shadow-sm">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             placeholder="Buscar link..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-slate-900 transition-all"
+            className="w-full pl-9 pr-3 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-xl outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400 transition-all"
           />
         </div>
 
         {podeCriar && (
-          <form onSubmit={handleSalvarLink} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 space-y-3">
-            <h3 className="text-xs font-bold text-slate-900 uppercase flex items-center gap-1.5">
-              <Plus className="w-4 h-4 text-slate-900" />
+          <form onSubmit={handleSalvarLink} className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase flex items-center gap-1.5">
+              <Plus className="w-4 h-4 text-slate-900 dark:text-slate-100" />
               {linkEditandoId ? "Editando Link" : "Novo Link"}
             </h3>
 
             <div>
-              <Label className="text-xs">Título do Link</Label>
+              <Label className="text-xs text-slate-700 dark:text-slate-300">Título do Link</Label>
               <Input 
                 value={nomeLink} 
                 onChange={(e) => setNomeLink(e.target.value)} 
                 placeholder="Ex: Partitura Geral" 
-                className="text-xs mt-1"
+                className="text-xs mt-1 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
             <div>
-              <Label className="text-xs">URL</Label>
+              <Label className="text-xs text-slate-700 dark:text-slate-300">URL</Label>
               <Input 
                 value={urlLink} 
                 onChange={(e) => setUrlLink(e.target.value)} 
                 placeholder="https://drive.google.com/..." 
                 type="url" 
-                className="text-xs mt-1"
+                className="text-xs mt-1 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
 
@@ -370,12 +370,12 @@ export default function Drive() {
                     setNomeLink("");
                     setUrlLink("");
                   }}
-                  className="w-1/3 text-xs"
+                  className="w-1/3 text-xs border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   Cancelar
                 </Button>
               )}
-              <Button type="submit" size="sm" disabled={salvando} className="flex-1 bg-slate-900 hover:bg-slate-800 text-xs font-bold">
+              <Button type="submit" size="sm" disabled={salvando} className="flex-1 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-bold transition-colors">
                 {salvando && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />}
                 {linkEditandoId ? "Salvar Alterações" : "Adicionar Link"}
               </Button>
@@ -388,7 +388,7 @@ export default function Drive() {
             <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
           </div>
         ) : linksFiltrados.length === 0 ? (
-          <p className="text-center text-slate-400 text-xs py-8 uppercase font-bold tracking-wider">
+          <p className="text-center text-slate-400 dark:text-slate-500 text-xs py-8 uppercase font-bold tracking-wider">
             {busca ? "Nenhum link encontrado" : "Nenhum link cadastrado"}
           </p>
         ) : (
@@ -396,11 +396,11 @@ export default function Drive() {
             {linksNuvem.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <Cloud className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Cloud className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                     {nomeIgreja}
                   </span>
-                  <span className="text-[10px] bg-indigo-50 text-indigo-600 font-bold px-2 py-0.5 rounded-full border border-indigo-100">
+                  <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-800/50">
                     {linksNuvem.length}
                   </span>
                 </div>
@@ -415,11 +415,11 @@ export default function Drive() {
             {linksGerais.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <Globe className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                     Drives sugeridos
                   </span>
-                  <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-100">
+                  <span className="text-[10px] bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-800/50">
                     {linksGerais.length}
                   </span>
                 </div>

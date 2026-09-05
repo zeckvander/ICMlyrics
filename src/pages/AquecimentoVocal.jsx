@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Mic, Play, Pause, Square,
-  Volume2, VolumeX, Headphones, Trash2, Link as LinkIcon, Plus, Wind 
+  Volume2, VolumeX, Headphones, Trash2, Link as LinkIcon, Plus, Wind, Globe, Shield, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,28 +70,36 @@ const LISTA_INICIAL_AUDIOS = [
 export default function AquecimentoVocal() {
   const navigate = useNavigate();
 
+  const [nomeIgreja, setNomeIgreja] = useState("Carregando...");
+  const [carregandoValidacao, setCarregandoValidacao] = useState(true);
   const [userRole, setUserRole] = useState("user");
+
   const userNuvem = localStorage.getItem("icmlyrics_user_nuvem") || "";
   const usuarioLocal = localStorage.getItem("icmlyrics_user") || "";
 
   useEffect(() => {
     const validarAcesso = async () => {
       try {
+        setCarregandoValidacao(true);
         const roleSalva = localStorage.getItem("icmlyrics_role") || "user";
 
         if (roleSalva === "super_admin" || userNuvem === "admin_geral") {
           setUserRole("super_admin");
+          setNomeIgreja(userNuvem || "Administração Geral");
+          setCarregandoValidacao(false);
           return;
         }
 
         if (!userNuvem.trim()) {
           setUserRole("user");
+          setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || usuarioLocal || "Modo Local");
+          setCarregandoValidacao(false);
           return;
         }
 
         const { data, error } = await supabase
           .from("igrejas_autorizadas")
-          .select("role")
+          .select("role, nome_igreja")
           .eq("usuario", userNuvem.trim())
           .maybeSingle();
 
@@ -108,17 +116,22 @@ export default function AquecimentoVocal() {
           } else {
             setUserRole("user");
           }
+          setNomeIgreja(data.nome_igreja || userNuvem);
         } else {
           setUserRole(roleSalva);
+          setNomeIgreja(localStorage.getItem("icmlyrics_nome_igreja") || userNuvem);
         }
       } catch (err) {
         setUserRole(localStorage.getItem("icmlyrics_role") || "user");
+      } finally {
+        setCarregandoValidacao(false);
       }
     };
 
     validarAcesso();
   }, [userNuvem, usuarioLocal]);
 
+  const isSuper = userRole === "super_admin";
   const podeCriar = userRole === "super_admin" || userRole === "church_admin";
 
   const audioRef = useRef(null);
@@ -267,28 +280,48 @@ export default function AquecimentoVocal() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28 flex flex-col">
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 sticky top-0 z-30 shadow-md">
-        <div className="flex items-center mb-2">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate("/painel-equipe")} 
-              className="text-slate-300 hover:text-white transition-colors"
-              aria-label="Voltar ao Painel da Equipe"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                <Mic className="w-5 h-5 text-purple-400" /> Preparação Vocal
-              </h1>
-              <p className="text-slate-400 text-xs">Aquecimento de voz e exercícios R2</p>
-            </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-28 flex flex-col transition-colors">
+      {/* Cabeçalho */}
+      <div className="bg-slate-900 dark:bg-slate-900/90 text-white px-4 pt-12 pb-6 sticky top-0 z-30 shadow-md flex items-center justify-between border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate("/painel-equipe")} 
+            className="text-slate-300 hover:text-white transition-colors p-1"
+            aria-label="Voltar ao Painel da Equipe"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <Mic className="w-5 h-5 text-purple-400" /> Preparação Vocal
+            </h1>
+            <p className="text-slate-400 text-xs">Aquecimento de voz e exercícios R2</p>
           </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-1 text-right max-w-[180px]">
+          {carregandoValidacao ? (
+            <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+          ) : (
+            <>
+              <span className="text-[11px] font-bold text-slate-300 uppercase truncate w-full">
+                {nomeIgreja}
+              </span>
+              <span className="text-[9px] uppercase font-bold px-2.5 py-0.5 bg-slate-800 rounded-full border border-slate-700 flex items-center gap-1 text-slate-300">
+                {isSuper ? (
+                  <Globe className="w-2.5 h-2.5 text-amber-400" />
+                ) : (
+                  <Shield className="w-2.5 h-2.5 text-indigo-400" />
+                )}
+                {isSuper ? "Super Adm" : userRole === "church_admin" ? "Adm Local" : "Membro"}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="px-4 mt-4 space-y-4 flex-1">
+      {/* Conteúdo */}
+      <div className="px-4 mt-4 space-y-4 flex-1 max-w-md mx-auto w-full">
         <div className="space-y-3 animate-in fade-in duration-200">
           <audio
             ref={audioRef}
@@ -298,26 +331,27 @@ export default function AquecimentoVocal() {
             onEnded={() => setReproduzindo(false)}
           />
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm text-center">
-            <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+          {/* Player Principal */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center">
+            <div className="w-16 h-16 bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
               <Headphones className="w-8 h-8" />
             </div>
 
-            <h3 className="text-sm font-bold text-slate-900">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
               {exercicioSelecionado ? exercicioSelecionado.nome : "Nenhum áudio selecionado"}
             </h3>
-            <p className="text-xs text-slate-400 mt-1">Siga as orientações e vocalize junto com o áudio.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Siga as orientações e vocalize junto com o áudio.</p>
 
-            <div className="bg-slate-900 text-white p-4 rounded-2xl mt-4 flex items-center justify-between shadow-md relative">
+            <div className="bg-slate-900 dark:bg-slate-950 text-white p-4 rounded-2xl mt-4 flex items-center justify-between shadow-md relative border border-slate-800">
               <button 
                 onClick={togglePlayPrincipal}
                 disabled={!audioAtual?.url}
-                className="w-12 h-12 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 text-white rounded-full flex items-center justify-center transition-transform active:scale-95 shadow-lg"
+                className="w-12 h-12 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 text-white rounded-full flex items-center justify-center transition-transform active:scale-95 shadow-lg shrink-0"
               >
                 {reproduzindo ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
               </button>
 
-              <div className="flex-1 mx-4">
+              <div className="flex-1 mx-4 min-w-0">
                 <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden relative">
                   <div 
                     className="h-full bg-purple-500 transition-all duration-200"
@@ -332,7 +366,7 @@ export default function AquecimentoVocal() {
                 </div>
               </div>
 
-              <div className="relative flex items-center">
+              <div className="relative flex items-center shrink-0">
                 {!mostrarVolume ? (
                   <button 
                     onClick={() => setMostrarVolume(true)}
@@ -346,7 +380,7 @@ export default function AquecimentoVocal() {
                     )}
                   </button>
                 ) : (
-                  <div className="absolute bottom-0 right-0 bg-slate-800 border border-slate-700 p-2.5 rounded-2xl shadow-2xl flex flex-col items-center gap-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute bottom-0 right-0 bg-slate-800 dark:bg-slate-900 border border-slate-700 p-2.5 rounded-2xl shadow-2xl flex flex-col items-center gap-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <span className="text-[10px] text-purple-400 font-bold">
                       {Math.round((isMuted ? 0 : volume) * 100)}%
                     </span>
@@ -380,24 +414,25 @@ export default function AquecimentoVocal() {
             </div>
           </div>
 
+          {/* Form para adicionar áudio */}
           {podeCriar && (
-            <form onSubmit={handleAdicionarRotina} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Adicionar Novo Exercício</p>
+            <form onSubmit={handleAdicionarRotina} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Adicionar Novo Exercício</p>
               <div className="space-y-2">
                 <Input 
                   placeholder="Nome do Exercício"
                   value={novaRotina.nome}
                   onChange={(e) => setNovaRotina({ ...novaRotina, nome: e.target.value })}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
                 <div className="relative">
                   <Input 
                     placeholder="URL Pública do Áudio (R2)"
                     value={novaRotina.url}
                     onChange={(e) => setNovaRotina({ ...novaRotina, url: e.target.value })}
-                    className="h-9 text-xs pl-8"
+                    className="h-9 text-xs pl-8 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
-                  <LinkIcon className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  <LinkIcon className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-2.5 top-2.5" />
                 </div>
                 
                 <div className="flex gap-2 pt-1">
@@ -407,7 +442,7 @@ export default function AquecimentoVocal() {
                     className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium border transition-colors ${
                       novaRotina.categoria === "aquecimento"
                         ? "bg-purple-600 text-white border-purple-600"
-                        : "bg-slate-50 text-slate-600 border-slate-200"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                     }`}
                   >
                     Aquecimento
@@ -418,7 +453,7 @@ export default function AquecimentoVocal() {
                     className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium border transition-colors ${
                       novaRotina.categoria === "respiracao"
                         ? "bg-purple-600 text-white border-purple-600"
-                        : "bg-slate-50 text-slate-600 border-slate-200"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                     }`}
                   >
                     Respiração
@@ -427,7 +462,7 @@ export default function AquecimentoVocal() {
               </div>
               <Button 
                 type="submit" 
-                className="w-full h-9 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold gap-1.5 rounded-xl"
+                className="w-full h-9 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold gap-1.5 rounded-xl transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Cadastrar Áudio
@@ -435,13 +470,14 @@ export default function AquecimentoVocal() {
             </form>
           )}
 
-          <div className="flex bg-slate-200/70 p-1 rounded-xl gap-1">
+          {/* Abas de Categoria */}
+          <div className="flex bg-slate-200/70 dark:bg-slate-800/80 p-1 rounded-xl gap-1">
             <button
               onClick={() => setCategoriaFiltro("aquecimento")}
               className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 categoriaFiltro === "aquecimento"
-                  ? "bg-white text-purple-700 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               }`}
             >
               <Mic className="w-3.5 h-3.5" /> Aquecimento ({qtdAquecimento})
@@ -450,52 +486,53 @@ export default function AquecimentoVocal() {
               onClick={() => setCategoriaFiltro("respiracao")}
               className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 categoriaFiltro === "respiracao"
-                  ? "bg-white text-cyan-700 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               }`}
             >
               <Wind className="w-3.5 h-3.5" /> Respiração ({qtdRespiracao})
             </button>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Exercícios Disponíveis</p>
+          {/* Lista de Exercícios */}
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-2">
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Exercícios Disponíveis</p>
 
             {exerciciosExibidos.length === 0 ? (
-              <p className="text-center text-slate-400 text-xs py-6 uppercase font-bold tracking-wider">
+              <p className="text-center text-slate-400 dark:text-slate-500 text-xs py-6 uppercase font-bold tracking-wider">
                 Nenhum exercício nesta categoria
               </p>
             ) : (
               exerciciosExibidos.map((rotina) => (
                 <div
                   key={rotina.id}
-                  className={`w-full p-3 rounded-xl border text-xs font-medium flex items-center justify-between transition-colors ${
+                  className={`w-full p-3 rounded-xl border text-xs font-medium flex items-center justify-between transition-colors gap-2 ${
                     exercicioSelecionado?.id === rotina.id
-                      ? "bg-purple-50 border-purple-200 text-purple-900 font-bold" 
-                      : "bg-slate-50 border-slate-100 text-slate-700"
+                      ? "bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800/60 text-purple-900 dark:text-purple-200 font-bold" 
+                      : "bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300"
                   }`}
                 >
                   <button
                     onClick={() => setExercicioSelecionado(rotina)}
                     className="flex-1 text-left flex items-center gap-2 truncate pr-2"
                   >
-                    <span className={`px-1.5 py-0.5 text-[9px] rounded uppercase font-bold ${
+                    <span className={`px-1.5 py-0.5 text-[9px] rounded uppercase font-bold shrink-0 ${
                       (rotina.categoria || "aquecimento") === "respiracao" 
-                        ? "bg-cyan-100 text-cyan-800" 
-                        : "bg-purple-100 text-purple-800"
+                        ? "bg-cyan-100 dark:bg-cyan-950/80 text-cyan-800 dark:text-cyan-300" 
+                        : "bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300"
                     }`}>
                       {(rotina.categoria || "aquecimento") === "respiracao" ? "Resp" : "Vocal"}
                     </span>
                     <span className="truncate">{rotina.nome}</span>
                   </button>
 
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => handlePlayExercicio(rotina)}
                       className={`p-1.5 rounded-lg transition-colors ${
                         audioAtual?.id === rotina.id && reproduzindo
                           ? "bg-purple-600 text-white"
-                          : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                          : "bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/60"
                       }`}
                       title="Tocar / Pausar"
                     >
@@ -508,7 +545,7 @@ export default function AquecimentoVocal() {
 
                     <button
                       onClick={() => handleStopExercicio(rotina)}
-                      className="p-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
+                      className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                       title="Parar"
                     >
                       <Square className="w-3.5 h-3.5 fill-current" />
@@ -517,7 +554,7 @@ export default function AquecimentoVocal() {
                     {podeCriar && (
                       <button
                         onClick={() => handleDeletarRotina(rotina.id)}
-                        className="ml-1 p-1.5 text-rose-500 hover:text-rose-700 transition-colors"
+                        className="ml-1 p-1.5 text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 transition-colors"
                         title="Excluir exercício"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

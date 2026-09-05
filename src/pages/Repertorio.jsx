@@ -47,6 +47,15 @@ export default function ListaRepertorio() {
   const estaNaNuvem = Boolean(userNuvem.trim());
 
   useEffect(() => {
+    const tema = localStorage.getItem("icmlyrics_tema");
+    if (tema === "escuro") {
+      document.documentElement.classList.add("dark");
+    } else if (tema === "claro") {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  useEffect(() => {
     if (!estaNaNuvem) { setCarregandoValidacao(false); setLoading(false); setListas([]); return; }
     const validarAcesso = async () => {
       try {
@@ -291,17 +300,17 @@ export default function ListaRepertorio() {
 
   if (!estaNaNuvem) {
     return (
-      <div className="min-h-screen bg-white pb-28 flex flex-col">
-        <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-28 flex flex-col transition-colors duration-200">
+        <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between border-b border-transparent dark:border-slate-800/80">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate("/dashboard")} className="text-white hover:text-slate-300 transition-colors"><ArrowLeft className="w-6 h-6" /></button>
             <h1 className="text-xl font-bold tracking-wide">Listas de Repertório</h1>
           </div>
         </div>
         <div className="text-center py-24 px-4 flex-1 flex flex-col items-center justify-center">
-          <CloudOff className="w-12 h-12 text-slate-300 mb-3" />
-          <p className="text-sm font-semibold text-slate-700">Desconectado da nuvem</p>
-          <p className="text-xs text-slate-400 mt-1 max-w-xs">É necessário estar conectado a uma nuvem para visualizar e gerenciar as listas de repertório.</p>
+          <CloudOff className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Desconectado da nuvem</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-xs">É necessário estar conectado a uma nuvem para visualizar e gerenciar as listas de repertório.</p>
         </div>
       </div>
     );
@@ -316,8 +325,8 @@ export default function ListaRepertorio() {
     });
     const categorias = [{ id: "todos", label: "Todos" }, { id: "Cias", label: "Cias" }, { id: "Coletânea", label: "Coletânea" }, { id: "Avulsos", label: "Avulsos" }];
     return (
-      <div className="min-h-screen bg-white pb-28 flex flex-col">
-        <div className="bg-slate-900 text-white px-4 pt-12 pb-6 relative">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-28 flex flex-col transition-colors duration-200">
+        <div className="bg-slate-900 text-white px-4 pt-12 pb-6 relative border-b border-transparent dark:border-slate-800/80">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button onClick={() => navigate("/repertorio")} className="text-white hover:text-slate-300 transition-colors" aria-label="Voltar"><ArrowLeft className="w-6 h-6" /></button>
@@ -351,42 +360,42 @@ export default function ListaRepertorio() {
         <div className="px-4 -mt-3 relative z-10">
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Search className="w-4 h-4" /></span>
-            <input type="text" placeholder="Buscar por nome, número ou tom..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white text-slate-900 placeholder-slate-400 text-sm rounded-xl shadow-md border border-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-all"/>
+            <input type="text" placeholder="Buscar por nome, número ou tom..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm rounded-xl shadow-md border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-all"/>
           </div>
         </div>
-        <div className="px-4 mt-5 overflow-x-auto no-scrollbar border-b border-slate-100 pb-3">
-          <div className="flex gap-1.5">{categorias.map((cat) => (<button key={cat.id} onClick={() => setCategoriaSelecionada(cat.id)} className={`px-3 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors ${categoriaSelecionada === cat.id ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100"}`}>{cat.label}</button>))}</div>
+        <div className="px-4 mt-5 overflow-x-auto no-scrollbar border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="flex gap-1.5">{categorias.map((cat) => (<button key={cat.id} onClick={() => setCategoriaSelecionada(cat.id)} className={`px-3 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors ${categoriaSelecionada === cat.id ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"}`}>{cat.label}</button>))}</div>
         </div>
-        <div className="px-4 mt-2 divide-y divide-slate-100 flex-1">
+        <div className="px-4 mt-2 divide-y divide-slate-100 dark:divide-slate-800/60 flex-1">
           {loading ? <div className="flex justify-center items-center py-20"><Loader2 className="animate-spin w-8 h-8 text-slate-400" /></div> : louvoresFiltrados.length > 0 ? (
             louvoresFiltrados.map((item) => {
               const isFavorito = favoritos.includes(item.id);
               return (
-                <div key={item.id} onClick={() => navigate(`/louvor/${item.id}`)} className="py-3 flex items-center justify-between cursor-pointer group hover:bg-slate-50/50 px-2 rounded-lg transition-colors">
+                <div key={item.id} onClick={() => navigate(`/louvor/${item.id}`)} className="py-3 flex items-center justify-between cursor-pointer group hover:bg-slate-100/50 dark:hover:bg-slate-800/50 px-2 rounded-lg transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-slate-100 text-slate-900 flex items-center justify-center font-bold text-xs">{item.cifra_tom_original || "-"}</div>
+                    <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 flex items-center justify-center font-bold text-xs">{item.cifra_tom_original || "-"}</div>
                     <div>
-                      <h3 className="text-xs font-semibold text-slate-900">{item.numero ? `${item.numero} - ` : ""}{item.nome}</h3>
-                      <div className="flex items-center gap-1.5 mt-0.5"><span className="text-[10px] text-slate-500">{item.categoria}</span>{item.ritmo && <><span className="text-slate-300">•</span><span className="text-[10px] text-slate-400">{item.ritmo}</span></>}</div>
+                      <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">{item.numero ? `${item.numero} - ` : ""}{item.nome}</h3>
+                      <div className="flex items-center gap-1.5 mt-0.5"><span className="text-[10px] text-slate-500 dark:text-slate-400">{item.categoria}</span>{item.ritmo && <><span className="text-slate-300 dark:text-slate-600">•</span><span className="text-[10px] text-slate-400 dark:text-slate-500">{item.ritmo}</span></>}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                    {podeCriar && <button onClick={(e) => handleRemoverDaLista(item.item_lista_id, e)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors" title="Remover desta lista"><Trash2 className="w-4 h-4" /></button>}
-                    <button onClick={(e) => toggleFavorito(item.id, e)} className="p-1.5 text-slate-300 hover:text-amber-500 transition-colors"><Star className={`w-4 h-4 ${isFavorito ? "text-amber-400 fill-amber-400" : ""}`} /></button>
-                    <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-slate-400 transition-colors ml-1" />
+                    {podeCriar && <button onClick={(e) => handleRemoverDaLista(item.item_lista_id, e)} className="p-1.5 text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400 transition-colors" title="Remover desta lista"><Trash2 className="w-4 h-4" /></button>}
+                    <button onClick={(e) => toggleFavorito(item.id, e)} className="p-1.5 text-slate-300 hover:text-amber-500 dark:text-slate-600 transition-colors"><Star className={`w-4 h-4 ${isFavorito ? "text-amber-400 fill-amber-400" : ""}`} /></button>
+                    <ChevronRight className="w-4 h-4 text-slate-200 dark:text-slate-700 group-hover:text-slate-400 dark:group-hover:text-slate-500 transition-colors ml-1" />
                   </div>
                 </div>
               );
             })
-          ) : <div className="text-center py-16 px-4"><Music className="w-5 h-5 text-slate-300 mx-auto mb-2" /><p className="text-xs font-medium text-slate-600">Nenhum louvor nesta lista</p></div>}
+          ) : <div className="text-center py-16 px-4"><Music className="w-5 h-5 text-slate-300 dark:text-slate-600 mx-auto mb-2" /><p className="text-xs font-medium text-slate-600 dark:text-slate-400">Nenhum louvor nesta lista</p></div>}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white pb-28 flex flex-col">
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-28 flex flex-col transition-colors duration-200">
+      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between border-b border-transparent dark:border-slate-800/80">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/dashboard")} className="text-white hover:text-slate-300 transition-colors"><ArrowLeft className="w-6 h-6" /></button>
           <h1 className="text-xl font-bold tracking-wide">Listas de Repertório</h1>
@@ -406,78 +415,78 @@ export default function ListaRepertorio() {
       
       <div className="px-4 mt-6 flex-1">
         {loading ? <div className="flex justify-center items-center py-20"><Loader2 className="animate-spin w-8 h-8 text-slate-400" /></div> : listas.length > 0 ? (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
             {listas.map((lista) => {
               const temPermissao = podeModificarLista(lista);
               return (
-                <div key={lista.id} onClick={(e) => abrirModalVisualiza(lista, e)} className="py-4 flex items-center justify-between cursor-pointer group hover:bg-slate-50/50 px-2 rounded-lg transition-colors">
+                <div key={lista.id} onClick={(e) => abrirModalVisualiza(lista, e)} className="py-4 flex items-center justify-between cursor-pointer group hover:bg-slate-100/50 dark:hover:bg-slate-800/50 px-2 rounded-lg transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center"><FolderPlus className="w-5 h-5" /></div>
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center"><FolderPlus className="w-5 h-5" /></div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold text-slate-900">{lista.nome}</h3>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{lista.nome}</h3>
                         {lista.links && lista.links.length > 0 && (
-                          <span className="text-indigo-500 flex items-center gap-0.5 text-xs bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100" title={`${lista.links.length} link(s) anexo(s)`}>
+                          <span className="text-indigo-500 flex items-center gap-0.5 text-xs bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50" title={`${lista.links.length} link(s) anexo(s)`}>
                             <LinkIcon className="w-3 h-3" />
                             <span className="text-[10px] font-medium">{lista.links.length}</span>
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        {lista.data_evento && <span className="text-[11px] text-slate-500 flex items-center gap-1"><Calendar className="w-3 h-3 text-slate-400" />{new Date(lista.data_evento + 'T00:00:00').toLocaleDateString('pt-BR')}</span>}
-                        {lista.autor && <span className="text-[11px] text-slate-400 flex items-center gap-1"><User className="w-3 h-3 text-slate-400" />{lista.autor}</span>}
-                        {!lista.data_evento && !lista.autor && (!lista.links || lista.links.length === 0) && <span className="text-[11px] text-slate-400">Toque para ver detalhes</span>}
+                        {lista.data_evento && <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><Calendar className="w-3 h-3 text-slate-400 dark:text-slate-500" />{new Date(lista.data_evento + 'T00:00:00').toLocaleDateString('pt-BR')}</span>}
+                        {lista.autor && <span className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1"><User className="w-3 h-3 text-slate-400 dark:text-slate-500" />{lista.autor}</span>}
+                        {!lista.data_evento && !lista.autor && (!lista.links || lista.links.length === 0) && <span className="text-[11px] text-slate-400 dark:text-slate-500">Toque para ver detalhes</span>}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    {temPermissao && <><button onClick={(e) => abrirModalEdita(lista, e)} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors" title="Editar Lista"><Pencil className="w-4 h-4" /></button><button onClick={(e) => handleExcluirLista(lista, e)} className="p-2 text-slate-300 hover:text-red-500 transition-colors" title="Excluir Lista"><Trash2 className="w-4 h-4" /></button></>}
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors ml-1" />
+                    {temPermissao && <><button onClick={(e) => abrirModalEdita(lista, e)} className="p-2 text-slate-300 hover:text-indigo-600 dark:text-slate-600 dark:hover:text-indigo-400 transition-colors" title="Editar Lista"><Pencil className="w-4 h-4" /></button><button onClick={(e) => handleExcluirLista(lista, e)} className="p-2 text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400 transition-colors" title="Excluir Lista"><Trash2 className="w-4 h-4" /></button></>}
+                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-700 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors ml-1" />
                   </div>
                 </div>
               );
             })}
           </div>
-        ) : <div className="text-center py-20 px-4"><Music className="w-8 h-8 text-slate-300 mx-auto mb-2" /><p className="text-xs font-medium text-slate-600">Nenhuma lista de repertório criada</p>{podeCriar && <p className="text-[11px] text-slate-400 mt-1">Crie sua primeira lista usando o botão de mais abaixo (máx. 10 listas).</p>}</div>}
+        ) : <div className="text-center py-20 px-4"><Music className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" /><p className="text-xs font-medium text-slate-600 dark:text-slate-400">Nenhuma lista de repertório criada</p>{podeCriar && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Crie sua primeira lista usando o botão de mais abaixo (máx. 10 listas).</p>}</div>}
       </div>
 
       {podeCriar && (
         <div className="fixed bottom-6 right-6 z-30">
-          <button onClick={handleAbrirModalCriar} className="w-12 h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-105 active:scale-95"><Plus className="w-5 h-5" /></button>
+          <button onClick={handleAbrirModalCriar} className="w-12 h-12 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-105 active:scale-95 border border-transparent dark:border-slate-700"><Plus className="w-5 h-5" /></button>
         </div>
       )}
 
       {/* MODAL NOVA LISTA */}
       <Dialog open={modalNovaListaOpen} onOpenChange={setModalNovaListaOpen}>
-        <DialogContent className="max-w-[92vw] sm:max-w-lg w-full max-h-[90vh] rounded-2xl p-6 border-slate-100 flex flex-col">
-          <DialogHeader><DialogTitle className="text-slate-900 font-semibold text-base">Nova Lista de Repertório</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-[92vw] sm:max-w-lg w-full max-h-[90vh] rounded-2xl p-6 bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 flex flex-col">
+          <DialogHeader><DialogTitle className="text-slate-900 dark:text-slate-100 font-semibold text-base">Nova Lista de Repertório</DialogTitle></DialogHeader>
           <div className="my-4 flex flex-col gap-4 flex-1 overflow-y-auto no-scrollbar">
             
             <div className="flex gap-3 w-full">
               <div className="w-[65%]">
-                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Nome da Lista *</label>
-                <Input placeholder="Ex: Culto de Domingo..." value={nomeNovaLista} onChange={(e) => setNomeNovaLista(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 border-slate-200" />
+                <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nome da Lista *</label>
+                <Input placeholder="Ex: Culto de Domingo..." value={nomeNovaLista} onChange={(e) => setNomeNovaLista(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" />
               </div>
               <div className="w-[35%]">
-                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Data</label>
-                <Input type="date" value={dataNovaLista} onChange={(e) => setDataNovaLista(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 border-slate-200 px-2" />
+                <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Data</label>
+                <Input type="date" value={dataNovaLista} onChange={(e) => setDataNovaLista(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 px-2 dark:[color-scheme:dark]" />
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+            <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Links Anexos</label>
-                <button type="button" onClick={() => setLinksNovaLista([...linksNovaLista, { titulo: "", url: "" }])} className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Links Anexos</label>
+                <button type="button" onClick={() => setLinksNovaLista([...linksNovaLista, { titulo: "", url: "" }])} className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
                   <Plus className="w-3 h-3" /> Adicionar Link
                 </button>
               </div>
               {linksNovaLista.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-slate-50/80 p-2 rounded-lg border border-slate-100">
+                <div key={idx} className="flex gap-2 items-center bg-slate-50/80 dark:bg-slate-950/80 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <Input placeholder="Título do link (ex: Cifra Club)" value={link.titulo} onChange={(e) => { const novos = [...linksNovaLista]; novos[idx].titulo = e.target.value; setLinksNovaLista(novos); }} className="h-7 text-xs bg-white border-slate-200" />
-                    <Input placeholder="URL (https://...)" value={link.url} onChange={(e) => { const novos = [...linksNovaLista]; novos[idx].url = e.target.value; setLinksNovaLista(novos); }} className="h-7 text-xs bg-white border-slate-200" />
+                    <Input placeholder="Título do link (ex: Cifra Club)" value={link.titulo} onChange={(e) => { const novos = [...linksNovaLista]; novos[idx].titulo = e.target.value; setLinksNovaLista(novos); }} className="h-7 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" />
+                    <Input placeholder="URL (https://...)" value={link.url} onChange={(e) => { const novos = [...linksNovaLista]; novos[idx].url = e.target.value; setLinksNovaLista(novos); }} className="h-7 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" />
                   </div>
-                  <button type="button" onClick={() => setLinksNovaLista(linksNovaLista.filter((_, i) => i !== idx))} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors">
+                  <button type="button" onClick={() => setLinksNovaLista(linksNovaLista.filter((_, i) => i !== idx))} className="p-1.5 text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -485,49 +494,49 @@ export default function ListaRepertorio() {
             </div>
 
           </div>
-          <DialogFooter className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+          <DialogFooter className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="grid grid-cols-2 gap-2 w-full">
-              <Button variant="outline" onClick={() => setModalNovaListaOpen(false)} className="h-9 text-xs border-slate-200">Cancelar</Button>
+              <Button variant="outline" onClick={() => setModalNovaListaOpen(false)} className="h-9 text-xs border-slate-200 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800">Cancelar</Button>
               <Button onClick={handleCriarListaEAviso} className="h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs flex items-center justify-center gap-1.5">
                 <Bell className="w-3.5 h-3.5" /> Criar Aviso
               </Button>
             </div>
-            <Button onClick={handleCriarLista} className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs">Criar Lista</Button>
+            <Button onClick={handleCriarLista} className="w-full h-9 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-medium text-xs border border-transparent dark:border-slate-700">Criar Lista</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* MODAL EDITAR LISTA */}
       <Dialog open={modalEditarListaOpen} onOpenChange={setModalEditarListaOpen}>
-        <DialogContent className="max-w-[92vw] sm:max-w-lg w-full max-h-[90vh] rounded-2xl p-6 border-slate-100 flex flex-col">
-          <DialogHeader><DialogTitle className="text-slate-900 font-semibold text-base">Editar Lista</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-[92vw] sm:max-w-lg w-full max-h-[90vh] rounded-2xl p-6 bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 flex flex-col">
+          <DialogHeader><DialogTitle className="text-slate-900 dark:text-slate-100 font-semibold text-base">Editar Lista</DialogTitle></DialogHeader>
           <div className="my-4 flex flex-col gap-4 flex-1 overflow-y-auto no-scrollbar">
             
             <div className="flex gap-3 w-full">
               <div className="w-[65%]">
-                <label className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Nome da Lista *</label>
-                <Input placeholder="Ex: Culto de Domingo..." value={nomeEdicao} onChange={(e) => setNomeEdicao(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 border-slate-200" />
+                <label className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nome da Lista *</label>
+                <Input placeholder="Ex: Culto de Domingo..." value={nomeEdicao} onChange={(e) => setNomeEdicao(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" />
               </div>
               <div className="w-[35%]">
-                <label className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Data do Evento</label>
-                <Input type="date" value={dataEdicao} onChange={(e) => setDataEdicao(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 border-slate-200 px-2" />
+                <label className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Data do Evento</label>
+                <Input type="date" value={dataEdicao} onChange={(e) => setDataEdicao(e.target.value)} className="h-10 mt-1 text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 px-2 dark:[color-scheme:dark]" />
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+            <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Links Anexos</label>
-                <button type="button" onClick={() => setLinksEdicao([...linksEdicao, { titulo: "", url: "" }])} className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Links Anexos</label>
+                <button type="button" onClick={() => setLinksEdicao([...linksEdicao, { titulo: "", url: "" }])} className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
                   <Plus className="w-3 h-3" /> Adicionar Link
                 </button>
               </div>
               {linksEdicao.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-slate-50/80 p-2 rounded-lg border border-slate-100">
+                <div key={idx} className="flex gap-2 items-center bg-slate-50/80 dark:bg-slate-950/80 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <Input placeholder="Título do link" value={link.titulo} onChange={(e) => { const novos = [...linksEdicao]; novos[idx].titulo = e.target.value; setLinksEdicao(novos); }} className="h-7 text-xs bg-white border-slate-200" />
-                    <Input placeholder="URL (https://...)" value={link.url} onChange={(e) => { const novos = [...linksEdicao]; novos[idx].url = e.target.value; setLinksEdicao(novos); }} className="h-7 text-xs bg-white border-slate-200" />
+                    <Input placeholder="Título do link" value={link.titulo} onChange={(e) => { const novos = [...linksEdicao]; novos[idx].titulo = e.target.value; setLinksEdicao(novos); }} className="h-7 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" />
+                    <Input placeholder="URL (https://...)" value={link.url} onChange={(e) => { const novos = [...linksEdicao]; novos[idx].url = e.target.value; setLinksEdicao(novos); }} className="h-7 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" />
                   </div>
-                  <button type="button" onClick={() => setLinksEdicao(linksEdicao.filter((_, i) => i !== idx))} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors">
+                  <button type="button" onClick={() => setLinksEdicao(linksEdicao.filter((_, i) => i !== idx))} className="p-1.5 text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -535,9 +544,9 @@ export default function ListaRepertorio() {
             </div>
 
           </div>
-          <DialogFooter className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+          <DialogFooter className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="grid grid-cols-2 gap-2 w-full">
-              <Button variant="outline" onClick={() => setModalEditarListaOpen(false)} className="h-9 text-xs border-slate-200">Cancelar</Button>
+              <Button variant="outline" onClick={() => setModalEditarListaOpen(false)} className="h-9 text-xs border-slate-200 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800">Cancelar</Button>
               <Button onClick={() => { 
                 const linksValidos = linksEdicao.filter(l => l.titulo.trim() || l.url.trim());
                 localStorage.setItem("icmlyrics_aviso_pendente", JSON.stringify({
@@ -553,29 +562,29 @@ export default function ListaRepertorio() {
                 <Bell className="w-3.5 h-3.5" /> Criar Aviso
               </Button>
             </div>
-            <Button onClick={handleSalvarEdicao} className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs">Salvar Alterações</Button>
+            <Button onClick={handleSalvarEdicao} className="w-full h-9 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-medium text-xs border border-transparent dark:border-slate-700">Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* MODAL VISUALIZAR LISTA */}
       <Dialog open={modalVisualizarOpen} onOpenChange={setModalVisualizarOpen}>
-        <DialogContent className="max-w-[92vw] sm:max-w-lg w-full max-h-[90vh] rounded-2xl p-6 border-slate-100 flex flex-col">
-          <DialogHeader><DialogTitle className="text-slate-900 font-semibold text-lg">{listaVisualizando?.nome}</DialogTitle></DialogHeader>
-          <div className="my-4 flex flex-col gap-4 text-xs text-slate-600 flex-1 overflow-y-auto">
-            {listaVisualizando?.data_evento && <div className="flex items-center gap-2 text-slate-700 font-medium bg-slate-50 p-2.5 rounded-lg border border-slate-100"><Calendar className="w-4 h-4 text-slate-400" /><span>Data: {new Date(listaVisualizando.data_evento + 'T00:00:00').toLocaleDateString('pt-BR')}</span></div>}
+        <DialogContent className="max-w-[92vw] sm:max-w-lg w-full max-h-[90vh] rounded-2xl p-6 bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 flex flex-col">
+          <DialogHeader><DialogTitle className="text-slate-900 dark:text-slate-100 font-semibold text-lg">{listaVisualizando?.nome}</DialogTitle></DialogHeader>
+          <div className="my-4 flex flex-col gap-4 text-xs text-slate-600 dark:text-slate-300 flex-1 overflow-y-auto">
+            {listaVisualizando?.data_evento && <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-medium bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800"><Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" /><span>Data: {new Date(listaVisualizando.data_evento + 'T00:00:00').toLocaleDateString('pt-BR')}</span></div>}
 
             {listaVisualizando?.links && listaVisualizando.links.length > 0 && (
               <div className="flex flex-col gap-2">
-                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Links Anexos:</p>
+                <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Links Anexos:</p>
                 <div className="flex flex-col gap-1.5">
                   {listaVisualizando.links.map((l, i) => (
-                    <a key={i} href={l.url.startsWith('http') ? l.url : `https://${l.url}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-100 text-slate-700 transition-colors">
+                    <a key={i} href={l.url.startsWith('http') ? l.url : `https://${l.url}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-lg border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-200 transition-colors">
                       <div className="flex items-center gap-2 truncate">
-                        <LinkIcon className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <LinkIcon className="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
                         <span className="font-medium text-xs truncate">{l.titulo || l.url}</span>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-2" />
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 ml-2" />
                     </a>
                   ))}
                 </div>
@@ -583,8 +592,8 @@ export default function ListaRepertorio() {
             )}
           </div>
           
-          <div className="pt-3 border-t border-slate-100">
-            <Button onClick={() => { const idLista = listaVisualizando?.id; setModalVisualizarOpen(false); navigate(`/repertorio/lista/${idLista}`); }} className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs">Repertório</Button>
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Button onClick={() => { const idLista = listaVisualizando?.id; setModalVisualizarOpen(false); navigate(`/repertorio/lista/${idLista}`); }} className="w-full h-9 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-medium text-xs border border-transparent dark:border-slate-700">Repertório</Button>
           </div>
         </DialogContent>
       </Dialog>

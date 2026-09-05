@@ -570,11 +570,11 @@ export default function PainelEquipe() {
   }));
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28 flex flex-col">
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-5 sticky top-0 z-30 shadow-md">
+    <div className="min-h-screen bg-slate-950 text-slate-100 pb-28 flex flex-col">
+      <div className="bg-slate-900 text-white px-4 pt-12 pb-5 sticky top-0 z-30 shadow-md border-b border-slate-800">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white transition-colors" aria-label="Voltar ao Dashboard">
+            <button onClick={() => navigate("/dashboard")} className="text-slate-400 hover:text-white transition-colors" aria-label="Voltar ao Dashboard">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <div>
@@ -623,28 +623,28 @@ export default function PainelEquipe() {
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
             {menuDropdownAberto && (
-              <div className="absolute right-0 mt-2 w-52 bg-slate-800 rounded-2xl shadow-xl border border-slate-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 mt-2 w-52 bg-slate-900 rounded-2xl shadow-xl border border-slate-800 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <button
                   onClick={() => { setMenuDropdownAberto(false); navigate("/mapa-palco"); }}
-                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
+                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2 font-semibold transition-colors"
                 >
                   <Sliders className="w-3.5 h-3.5 text-slate-400" /> Mapa de Palco
                 </button>
                 <button
                   onClick={() => { setMenuDropdownAberto(false); navigate("/Aquecimento-Vocal"); }}
-                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
+                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2 font-semibold transition-colors"
                 >
                   <Mic className="w-3.5 h-3.5 text-slate-400" /> Aquecimento Vocal
                 </button>
                 <button
                   onClick={() => { setMenuDropdownAberto(false); navigate("/sugestoes"); }}
-                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
+                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2 font-semibold transition-colors"
                 >
                   <Music className="w-3.5 h-3.5 text-slate-400" /> Sugestões de Hinos
                 </button>
                 <button
                   onClick={() => { setMenuDropdownAberto(false); navigate("/drive"); }}
-                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-700 flex items-center gap-2 font-semibold transition-colors"
+                  className="w-full px-4 py-2.5 text-left text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2 font-semibold transition-colors"
                 >
                   <HardDrive className="w-3.5 h-3.5 text-slate-400" /> Drive de Arquivos
                 </button>
@@ -655,9 +655,9 @@ export default function PainelEquipe() {
       </div>
       <div className="px-4 mt-4 space-y-4 flex-1 flex flex-col">
         {!temNuvem ? (
-          <div className="bg-white p-8 rounded-2xl border border-slate-100 text-center shadow-sm space-y-3 my-auto mx-auto max-w-md w-full">
-            <Cloud className="w-10 h-10 text-slate-300 mx-auto" />
-            <h3 className="text-sm font-bold text-slate-700">Nenhuma Nuvem Conectada</h3>
+          <div className="bg-slate-900 p-8 rounded-2xl border border-slate-800 text-center shadow-sm space-y-3 my-auto mx-auto max-w-md w-full">
+            <Cloud className="w-10 h-10 text-slate-500 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-200">Nenhuma Nuvem Conectada</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Você precisa estar conectado a uma nuvem para visualizar e gerenciar o Painel da Equipe e suas escalas.
             </p>
@@ -665,12 +665,12 @@ export default function PainelEquipe() {
         ) : (
           <div className="space-y-4 animate-in fade-in duration-200">
             {podeCriar && (
-              <div className="flex w-full gap-2 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+              <div className="flex w-full gap-2 bg-slate-900 p-3 rounded-2xl border border-slate-800 shadow-sm">
                 <Button 
                   onClick={() => setModalMembrosAberto(true)}
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-9 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold gap-1.5 shadow-sm px-2 cursor-pointer border-slate-700"
+                  className="flex-1 h-9 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold gap-1.5 shadow-sm px-2 cursor-pointer border-slate-700"
                 >
                   <UserPlus className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                   <span className="truncate">Membros</span>
@@ -679,9 +679,9 @@ export default function PainelEquipe() {
                   onClick={() => { buscarHistoricoListas(); setMostrarModalHistorico(true); setListaSanfonaExpandida(false); }}
                   size="sm"
                   variant="outline"
-                  className="flex-1 h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold gap-1.5 border-slate-200 px-2 cursor-pointer"
+                  className="flex-1 h-9 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold gap-1.5 border-slate-700 px-2 cursor-pointer"
                 >
-                  <FileText className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                  <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span className="truncate">Cultos</span>
                 </Button>
                 {podeCriar && modoEdicao && cultoSelecionadoInfo.id && (
@@ -689,23 +689,23 @@ export default function PainelEquipe() {
                     onClick={handleCarregarEquipePadrao}
                     size="sm"
                     variant="outline"
-                    className="flex-1 h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold gap-1.5 border-slate-200 px-2 cursor-pointer transition-all animate-in fade-in duration-200"
+                    className="flex-1 h-9 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold gap-1.5 border-slate-700 px-2 cursor-pointer transition-all animate-in fade-in duration-200"
                     title="Puxar todos os integrantes marcados como Padrão"
                   >
-                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
                     <span className="truncate">Padrão</span>
                   </Button>
                 )}
               </div>
             )}
             {mostrarModalHistorico && (
-              <div className="bg-slate-100 border border-slate-200 p-4 rounded-2xl space-y-3 shadow-sm">
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-sm">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase">Selecionar Culto / Evento</h4>
-                  <button onClick={() => setMostrarModalHistorico(false)} className="text-xs text-slate-500 hover:text-slate-800 font-bold">Fechar</button>
+                  <h4 className="text-xs font-bold text-slate-300 uppercase">Selecionar Culto / Evento</h4>
+                  <button onClick={() => setMostrarModalHistorico(false)} className="text-xs text-slate-400 hover:text-slate-200 font-bold">Fechar</button>
                 </div>
                 {carregandoHistorico ? (
-                  <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-600" /></div>
+                  <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
                 ) : historicoListas.length === 0 ? (
                   <p className="text-xs text-slate-500 text-center py-2">Nenhum registro encontrado nesta nuvem.</p>
                 ) : (
@@ -718,15 +718,15 @@ export default function PainelEquipe() {
                         <div 
                           key={item.id}
                           onClick={() => selecionarCulto(item)}
-                          className="bg-white p-2.5 rounded-xl border border-slate-200 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-50 transition-colors"
+                          className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700 flex items-center justify-between text-xs cursor-pointer hover:bg-slate-700/80 transition-colors"
                         >
                           <div>
-                            <p className="font-bold text-slate-800">{dataFormatada}</p>
-                            <p className="text-[10px] text-slate-500">
-                              <span className="font-semibold text-slate-700">{tipoEvento}</span> • Louvor: {louvor}
+                            <p className="font-bold text-slate-100">{dataFormatada}</p>
+                            <p className="text-[10px] text-slate-400">
+                              <span className="font-semibold text-slate-300">{tipoEvento}</span> • Louvor: {louvor}
                             </p>
                           </div>
-                          <span className="text-[10px] bg-slate-800 text-white font-bold px-2 py-1 rounded-lg">Mostrar Escala</span>
+                          <span className="text-[10px] bg-slate-950 text-slate-200 border border-slate-700 font-bold px-2 py-1 rounded-lg">Mostrar Escala</span>
                         </div>
                       );
                     })}
@@ -735,20 +735,20 @@ export default function PainelEquipe() {
               </div>
             )}
             {cultoSelecionadoInfo.id && (
-              <div ref={cardEscalaRef} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                <div className="flex justify-between items-start gap-3 pb-3 border-b border-slate-100">
+              <div ref={cardEscalaRef} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm space-y-4">
+                <div className="flex justify-between items-start gap-3 pb-3 border-b border-slate-800">
                   <div className="flex-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       {cultoSelecionadoInfo.tipo}
                     </span>
-                    <h3 className="text-lg font-bold text-slate-900">{cultoSelecionadoInfo.titulo}</h3>
+                    <h3 className="text-lg font-bold text-slate-100">{cultoSelecionadoInfo.titulo}</h3>
                     {modoEdicao && podeCriar ? (
-                      <div className="mt-2 pt-2 border-t border-slate-100 space-y-2">
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                          <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Data:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.data}</strong></div>
+                      <div className="mt-2 pt-2 border-t border-slate-800 space-y-2">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+                          <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Data:</span> <strong className="text-slate-100">{cultoSelecionadoInfo.data}</strong></div>
                           <Button 
                             onClick={() => navigate("/historico-listas", { state: { listaId: cultoSelecionadoInfo.id } })}
-                            className="h-7 bg-slate-900 hover:bg-slate-800 text-white text-[9px] font-bold uppercase tracking-wider px-2 rounded-lg shadow-sm flex items-center gap-1.5"
+                            className="h-7 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-[9px] font-bold uppercase tracking-wider px-2 rounded-lg shadow-sm flex items-center gap-1.5"
                           >
                             Lista de Louvores <ArrowRight className="w-3 h-3" />
                           </Button>
@@ -759,7 +759,7 @@ export default function PainelEquipe() {
                             <Input 
                               value={cultoSelecionadoInfo.louvor}
                               onChange={(e) => setCultoSelecionadoInfo({ ...cultoSelecionadoInfo, louvor: e.target.value })}
-                              className="h-8 text-xs bg-white"
+                              className="h-8 text-xs bg-slate-950 border-slate-800 text-slate-100"
                               placeholder="Responsável pelo louvor"
                             />
                           </div>
@@ -768,26 +768,26 @@ export default function PainelEquipe() {
                             <Input 
                               value={cultoSelecionadoInfo.palavra}
                               onChange={(e) => setCultoSelecionadoInfo({ ...cultoSelecionadoInfo, palavra: e.target.value })}
-                              className="h-8 text-xs bg-white"
+                              className="h-8 text-xs bg-slate-950 border-slate-800 text-slate-100"
                               placeholder="Responsável pela palavra"
                             />
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 mt-1">
-                        <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Data:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.data}</strong></div>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 mt-1">
+                        <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Data:</span> <strong className="text-slate-100">{cultoSelecionadoInfo.data}</strong></div>
                         {podeCriar && (
                           <Button 
                             onClick={() => navigate("/historico-listas", { state: { listaId: cultoSelecionadoInfo.id } })}
-                            className="h-7 bg-slate-900 hover:bg-slate-800 text-white text-[9px] font-bold uppercase tracking-wider px-2 rounded-lg shadow-sm flex items-center gap-1.5"
+                            className="h-7 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-[9px] font-bold uppercase tracking-wider px-2 rounded-lg shadow-sm flex items-center gap-1.5"
                           >
                             Lista de Louvores <ArrowRight className="w-3 h-3" />
                           </Button>
                         )}
-                        <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Louvor:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.louvor || "Não informado"}</strong></div>
+                        <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Louvor:</span> <strong className="text-slate-100">{cultoSelecionadoInfo.louvor || "Não informado"}</strong></div>
                         {cultoSelecionadoInfo.palavra && (
-                          <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Palavra:</span> <strong className="text-slate-800">{cultoSelecionadoInfo.palavra}</strong></div>
+                          <div className="inline-flex items-center whitespace-nowrap"><span className="text-slate-400 mr-1">Palavra:</span> <strong className="text-slate-100">{cultoSelecionadoInfo.palavra}</strong></div>
                         )}
                       </div>
                     )}
@@ -796,7 +796,7 @@ export default function PainelEquipe() {
                     {!podeCriar && (
                       <Button 
                         onClick={() => navigate("/historico-listas", { state: { listaId: cultoSelecionadoInfo.id } })}
-                        className="h-7 bg-slate-900 hover:bg-slate-800 text-white text-[9px] font-bold uppercase tracking-wider px-2 rounded-lg shadow-sm flex items-center gap-1.5"
+                        className="h-7 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-[9px] font-bold uppercase tracking-wider px-2 rounded-lg shadow-sm flex items-center gap-1.5"
                       >
                         Lista de Louvores <ArrowRight className="w-3 h-3" />
                       </Button>
@@ -805,7 +805,7 @@ export default function PainelEquipe() {
                       <button
                         type="button"
                         onClick={() => setMostrarFormAdicionar(!mostrarFormAdicionar)}
-                        className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white transition-all flex items-center gap-1.5 shadow-sm text-xs font-bold cursor-pointer"
+                        className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white transition-all flex items-center gap-1.5 shadow-sm text-xs font-bold cursor-pointer"
                         title={mostrarFormAdicionar ? "Recolher formulário" : "Adicionar participante à escala"}
                       >
                         {mostrarFormAdicionar ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -814,7 +814,7 @@ export default function PainelEquipe() {
                       <div className="flex items-center gap-1.5">
                         <Button 
                           onClick={() => setModoEdicao(true)}
-                          className="h-8 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-lg shadow-sm flex items-center gap-1.5"
+                          className="h-8 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-lg border border-slate-700 shadow-sm flex items-center gap-1.5"
                         >
                           <Edit3 className="w-3.5 h-3.5" /> Alterar
                         </Button>
@@ -822,7 +822,7 @@ export default function PainelEquipe() {
                           onClick={handleExcluirCultoDaLista}
                           disabled={salvandoEscala}
                           variant="outline"
-                          className="h-8 w-8 p-0 border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg flex items-center justify-center shadow-sm cursor-pointer"
+                          className="h-8 w-8 p-0 border-rose-900/60 text-rose-400 hover:bg-rose-950 rounded-lg flex items-center justify-center shadow-sm cursor-pointer"
                           title="Excluir Culto"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -832,9 +832,9 @@ export default function PainelEquipe() {
                   </div>
                 </div>
                 {mostrarFormAdicionar && podeCriar && modoEdicao && (
-                  <form onSubmit={handleAdicionarItemEscalaLocal} className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <form onSubmit={handleAdicionarItemEscalaLocal} className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="flex justify-between items-center flex-wrap gap-2">
-                      <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                         Adicionar Participante à Escala
                       </span>
                       {membrosCadastrados.length > 0 && (
@@ -852,11 +852,11 @@ export default function PainelEquipe() {
                               }
                             }}
                             defaultValue=""
-                            className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium outline-none focus:ring-1 focus:ring-slate-400 cursor-pointer"
+                            className="text-xs bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 font-medium outline-none focus:ring-1 focus:ring-slate-500 cursor-pointer"
                           >
-                            <option value="" disabled>Selecionar membro...</option>
+                            <option value="" disabled className="bg-slate-900">Selecionar membro...</option>
                             {membrosCadastrados.map((membro) => (
-                              <option key={membro.id} value={membro.id}>
+                              <option key={membro.id} value={membro.id} className="bg-slate-900">
                                 {membro.nome} ({membro.funcao || "Geral"}{membro.categoria ? ` - ${membro.categoria}` : ""}) {membro.equipe_padrao ? "★" : ""}
                               </option>
                             ))}
@@ -870,10 +870,10 @@ export default function PainelEquipe() {
                         <select 
                           value={formEscala.funcao}
                           onChange={(e) => setFormEscala({ ...formEscala, funcao: e.target.value, categoria: "" })}
-                          className="w-full h-9 text-xs bg-white border border-slate-200 rounded-lg px-2 font-medium outline-none cursor-pointer"
+                          className="w-full h-9 text-xs bg-slate-900 border border-slate-700 rounded-lg px-2 text-slate-200 font-medium outline-none cursor-pointer"
                         >
                           {funcoesMacro.map(f => (
-                            <option key={f} value={f}>{f}</option>
+                            <option key={f} value={f} className="bg-slate-900">{f}</option>
                           ))}
                         </select>
                       </div>
@@ -882,11 +882,11 @@ export default function PainelEquipe() {
                         <select 
                           value={formEscala.categoria}
                           onChange={(e) => setFormEscala({ ...formEscala, categoria: e.target.value })}
-                          className="w-full h-9 text-xs bg-white border border-slate-200 rounded-lg px-2 font-medium outline-none cursor-pointer"
+                          className="w-full h-9 text-xs bg-slate-900 border border-slate-700 rounded-lg px-2 text-slate-200 font-medium outline-none cursor-pointer"
                         >
-                          <option value="">Selecione ou digite ao lado...</option>
+                          <option value="" className="bg-slate-900">Selecione ou digite ao lado...</option>
                           {(categoriasFrequentes[formEscala.funcao] || []).map(c => (
-                            <option key={c} value={c}>{c}</option>
+                            <option key={c} value={c} className="bg-slate-900">{c}</option>
                           ))}
                         </select>
                       </div>
@@ -896,7 +896,7 @@ export default function PainelEquipe() {
                           placeholder="Nome do integrante" 
                           value={formEscala.nome}
                           onChange={(e) => setFormEscala({ ...formEscala, nome: e.target.value })}
-                          className="h-9 text-xs bg-white"
+                          className="h-9 text-xs bg-slate-900 border-slate-700 text-slate-100"
                         />
                       </div>
                     </div>
@@ -906,36 +906,36 @@ export default function PainelEquipe() {
                         id="salvarNoBancoCheck"
                         checked={salvarNovoNoBanco}
                         onChange={(e) => setSalvarNovoNoBanco(e.target.checked)}
-                        className="rounded border-slate-300 text-slate-800 focus:ring-slate-500 w-3.5 h-3.5 cursor-pointer"
+                        className="rounded border-slate-700 bg-slate-900 text-slate-100 focus:ring-slate-500 w-3.5 h-3.5 cursor-pointer"
                       />
-                      <label htmlFor="salvarNoBancoCheck" className="text-[11px] text-slate-500 cursor-pointer select-none">
+                      <label htmlFor="salvarNoBancoCheck" className="text-[11px] text-slate-400 cursor-pointer select-none">
                         Salvar também este integrante no Banco de Membros
                       </label>
                     </div>
-                    <Button type="submit" className="w-full h-9 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl cursor-pointer">
+                    <Button type="submit" className="w-full h-9 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-semibold rounded-xl cursor-pointer">
                       Adicionar à Lista
                     </Button>
                   </form>
                 )}
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                       Membros Escalados ({escalaCulto.length})
                     </span>
                     {escalaCulto.length > 0 && podeCriar && modoEdicao && (
                       <button
                         type="button"
                         onClick={handleLimparMembrosEscalados}
-                        className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1 transition-colors cursor-pointer"
+                        className="text-[11px] font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-3 h-3" /> Limpar Membros
                       </button>
                     )}
                   </div>
                   {carregandoEscala ? (
-                    <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-slate-600" /></div>
+                    <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
                   ) : escalaCulto.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 text-xs font-medium bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <div className="text-center py-8 text-slate-500 text-xs font-medium bg-slate-950/40 rounded-xl border border-dashed border-slate-800">
                       {podeCriar && modoEdicao 
                         ? "Use o botão '+' ou clique em 'Padrão' no topo para preencher."
                         : "Nenhum participante escalado para este culto."}
@@ -943,13 +943,13 @@ export default function PainelEquipe() {
                   ) : (
                     <div className="space-y-2 text-xs">
                       {escalaCulto.map((item) => (
-                        <div key={item.id} className="flex justify-between items-center py-2.5 px-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <div key={item.id} className="flex justify-between items-center py-2.5 px-3 bg-slate-800/60 rounded-xl border border-slate-800">
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-slate-600 font-bold text-[11px] uppercase">{item.funcao}</span>
+                              <span className="text-slate-300 font-bold text-[11px] uppercase">{item.funcao}</span>
                               {item.categoria && <span className="text-slate-400 text-[10px]">• {item.categoria}</span>}
                             </div>
-                            <span className="font-semibold text-slate-800 text-sm">{item.nome}</span>
+                            <span className="font-semibold text-slate-100 text-sm">{item.nome}</span>
                           </div>
                           {podeCriar && modoEdicao && (
                             <div className="flex items-center gap-1">
@@ -963,14 +963,14 @@ export default function PainelEquipe() {
                                     categoria: item.categoria || ""
                                   });
                                 }}
-                                className="p-1.5 bg-slate-200/60 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 bg-slate-700/60 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors cursor-pointer"
                                 title="Alterar dados na escala"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
                               <button 
                                 onClick={() => handleDeletarItemEscalaLocal(item.id)}
-                                className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 bg-rose-950/80 hover:bg-rose-900/80 text-rose-300 rounded-lg transition-colors cursor-pointer"
                                 title="Remover da escala local"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -985,7 +985,7 @@ export default function PainelEquipe() {
               </div>
             )}
             {cultoSelecionadoInfo.id && (
-              <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+              <div className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 shadow-sm space-y-3">
                 {podeCriar && modoEdicao ? (
                   <div className="space-y-2">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
@@ -995,16 +995,16 @@ export default function PainelEquipe() {
                       <Button
                         onClick={handleSalvarEscalaBanco}
                         disabled={salvandoEscala}
-                        className="flex-1 h-10 text-xs font-bold rounded-xl gap-2 cursor-pointer transition-all bg-slate-900 hover:bg-slate-800 text-white shadow-md"
+                        className="flex-1 h-10 text-xs font-bold rounded-xl gap-2 cursor-pointer transition-all bg-emerald-700 hover:bg-emerald-600 text-white shadow-md"
                       >
-                        {salvandoEscala ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-emerald-400" />}
+                        {salvandoEscala ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-emerald-200" />}
                         Salvar Escala no Banco
                       </Button>
                       <Button
                         onClick={handleExcluirCultoDaLista}
                         disabled={salvandoEscala}
                         variant="outline"
-                        className="h-10 border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold px-3 rounded-xl cursor-pointer"
+                        className="h-10 border-rose-900/60 text-rose-400 hover:bg-rose-950 text-xs font-semibold px-3 rounded-xl cursor-pointer"
                         title="Excluir este culto da tabela listas desta nuvem"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1013,7 +1013,7 @@ export default function PainelEquipe() {
                     <Button
                       onClick={handleCancelarEdicao}
                       variant="outline"
-                      className="w-full h-9 border-slate-200 text-slate-600 hover:bg-slate-100 text-[11px] font-bold rounded-xl cursor-pointer"
+                      className="w-full h-9 border-slate-800 text-slate-300 hover:bg-slate-800 text-[11px] font-bold rounded-xl cursor-pointer"
                     >
                       Cancelar Edição
                     </Button>
@@ -1026,7 +1026,7 @@ export default function PainelEquipe() {
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         onClick={() => handleGerarPreview("image")}
-                        className="h-9 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer shadow-xs"
+                        className="h-9 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer shadow-xs"
                       >
                         <ImageIcon className="w-3.5 h-3.5" />
                         Gerar Imagem
@@ -1034,18 +1034,18 @@ export default function PainelEquipe() {
                       <Button
                         onClick={() => handleGerarPreview("image-text")}
                         variant="secondary"
-                        className="h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer shadow-xs border border-slate-200"
+                        className="h-9 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer shadow-xs"
                       >
-                        <FileText className="w-3.5 h-3.5 text-slate-600" />
+                        <FileText className="w-3.5 h-3.5 text-slate-400" />
                         Imagem e Texto
                       </Button>
                     </div>
                     {podeCriar && (
-                      <div className="pt-2 border-t border-slate-100 flex gap-2">
+                      <div className="pt-2 border-t border-slate-800 flex gap-2">
                         <Button
                           onClick={handleCancelarEscala}
                           variant="ghost"
-                          className="w-full h-8 text-slate-500 hover:bg-slate-100 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer flex items-center justify-center"
+                          className="w-full h-8 text-slate-400 hover:text-slate-200 hover:bg-slate-800 text-[11px] font-bold rounded-xl gap-1.5 cursor-pointer flex items-center justify-center"
                         >
                           <X className="w-3.5 h-3.5" /> Fechar Visualização
                         </Button>
@@ -1056,15 +1056,15 @@ export default function PainelEquipe() {
               </div>
             )}
             {historicoListas.length > 0 && (
-              <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+              <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm space-y-3">
                 <button
                   type="button"
                   onClick={() => { setListaSanfonaExpandida(!listaSanfonaExpandida); setMostrarModalHistorico(false); }}
                   className="w-full flex justify-between items-center text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-slate-600" />
-                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
                       {cultoSelecionadoInfo.id 
                         ? `Outras Escalas (${outrosCultos.length})` 
                         : `Cultos e Escalas (${historicoListas.length})`}
@@ -1086,15 +1086,15 @@ export default function PainelEquipe() {
                         <div
                           key={item.id}
                           onClick={() => selecionarCulto(item)}
-                          className="p-3 rounded-xl text-xs cursor-pointer flex justify-between items-center transition-all border bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200/80 hover:border-slate-300"
+                          className="p-3 rounded-xl text-xs cursor-pointer flex justify-between items-center transition-all border bg-slate-800/60 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:border-slate-600"
                         >
                           <div>
-                            <span className="font-bold text-slate-800">{dataF}</span>
-                            <p className="text-[10px] text-slate-500 mt-0.5">
-                              <span className="font-semibold text-slate-700">{tipoE}</span> • Louvor: {louvor}
+                            <span className="font-bold text-slate-100">{dataF}</span>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              <span className="font-semibold text-slate-300">{tipoE}</span> • Louvor: {louvor}
                             </p>
                           </div>
-                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 text-white shrink-0">
+                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-950 text-slate-200 border border-slate-700 shrink-0">
                             Mostrar Escala
                           </span>
                         </div>
@@ -1107,9 +1107,9 @@ export default function PainelEquipe() {
           </div>
         )}
         {modalMembrosAberto && temNuvem && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-              <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900 text-slate-100 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="bg-slate-950 text-white px-5 py-4 flex items-center justify-between border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-slate-300" />
                   <h3 className="font-bold text-sm">Banco de Membros</h3>
@@ -1125,16 +1125,16 @@ export default function PainelEquipe() {
                 </button>
               </div>
               <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
-                <form onSubmit={handleSalvarMembroModal} className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                <form onSubmit={handleSalvarMembroModal} className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-700 uppercase">
+                    <span className="text-xs font-bold text-slate-300 uppercase">
                       {formMembroModal.id ? "Editar Integrante" : "Cadastrar Novo Integrante"}
                     </span>
                     {formMembroModal.id && (
                       <button
                         type="button"
                         onClick={() => setFormMembroModal({ id: null, nome: "", equipe_padrao: false, funcao: "", categoria: "" })}
-                        className="text-[10px] text-slate-500 hover:underline cursor-pointer"
+                        className="text-[10px] text-slate-400 hover:underline cursor-pointer"
                       >
                         Limpar / Novo
                       </button>
@@ -1144,47 +1144,47 @@ export default function PainelEquipe() {
                     <select
                       value={formMembroModal.funcao}
                       onChange={(e) => setFormMembroModal({ ...formMembroModal, funcao: e.target.value, categoria: "" })}
-                      className="h-9 text-xs bg-white border border-slate-200 rounded-xl px-2 font-medium outline-none cursor-pointer"
+                      className="h-9 text-xs bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2 font-medium outline-none cursor-pointer"
                     >
-                      <option value="">Função...</option>
-                      {funcoesMacro.map(f => <option key={f} value={f}>{f}</option>)}
+                      <option value="" className="bg-slate-900">Função...</option>
+                      {funcoesMacro.map(f => <option key={f} value={f} className="bg-slate-900">{f}</option>)}
                     </select>
                     <select
                       value={formMembroModal.categoria}
                       onChange={(e) => setFormMembroModal({ ...formMembroModal, categoria: e.target.value })}
-                      className="h-9 text-xs bg-white border border-slate-200 rounded-xl px-2 font-medium outline-none cursor-pointer"
+                      className="h-9 text-xs bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2 font-medium outline-none cursor-pointer"
                     >
-                      <option value="">Categoria/Instrumento...</option>
-                      {(categoriasFrequentes[formMembroModal.funcao] || []).map(c => <option key={c} value={c}>{c}</option>)}
+                      <option value="" className="bg-slate-900">Categoria/Instrumento...</option>
+                      {(categoriasFrequentes[formMembroModal.funcao] || []).map(c => <option key={c} value={c} className="bg-slate-900">{c}</option>)}
                     </select>
                     <div className="relative flex items-center">
                       <Input 
                         placeholder="Nome" 
                         value={formMembroModal.nome}
                         onChange={(e) => setFormMembroModal({ ...formMembroModal, nome: e.target.value })}
-                        className="h-9 text-xs bg-white pr-9"
+                        className="h-9 text-xs bg-slate-900 border-slate-700 text-slate-100 pr-9"
                       />
                       <button
                         type="button"
                         onClick={() => setFormMembroModal({ ...formMembroModal, equipe_padrao: !formMembroModal.equipe_padrao })}
-                        className="absolute right-2.5 text-slate-400 hover:text-amber-500 transition-colors cursor-pointer"
+                        className="absolute right-2.5 text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
                         title="Equipe Padrão"
                       >
-                        <Star className={`w-4 h-4 ${formMembroModal.equipe_padrao ? "text-amber-500 fill-amber-500" : "text-slate-300"}`} />
+                        <Star className={`w-4 h-4 ${formMembroModal.equipe_padrao ? "text-amber-400 fill-amber-400" : "text-slate-600"}`} />
                       </button>
                     </div>
                   </div>
-                  <Button type="submit" size="sm" className="w-full h-9 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl cursor-pointer">
+                  <Button type="submit" size="sm" className="w-full h-9 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs font-semibold rounded-xl cursor-pointer">
                     <Plus className="w-4 h-4 mr-1" /> Salvar Integrante no Banco
                   </Button>
                 </form>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center px-1">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Integrantes Salvos ({membrosCadastrados.length})</span>
-                    <span className="text-[10px] text-slate-400">★ Equipe Padrão</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase">Integrantes Salvos ({membrosCadastrados.length})</span>
+                    <span className="text-[10px] text-slate-500">★ Equipe Padrão</span>
                   </div>
                   {membrosCadastrados.length === 0 ? (
-                    <p className="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <p className="text-xs text-slate-500 text-center py-6 bg-slate-950/40 rounded-xl border border-dashed border-slate-800">
                       Nenhum participante cadastrado no banco ainda.
                     </p>
                   ) : (
@@ -1192,7 +1192,7 @@ export default function PainelEquipe() {
                       {membrosCadastrados.map((membro) => (
                         <div 
                           key={membro.id} 
-                          className="flex items-center justify-between bg-white px-3 py-2.5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors shadow-2xs gap-2"
+                          className="flex items-center justify-between bg-slate-800/70 px-3 py-2.5 rounded-xl border border-slate-700/60 hover:border-slate-600 transition-colors gap-2"
                         >
                           <div className="flex items-center gap-2.5 flex-1 min-w-0">
                             <button
@@ -1201,14 +1201,14 @@ export default function PainelEquipe() {
                               title={membro.equipe_padrao ? "Remover da Equipe Padrão" : "Marcar como Equipe Padrão"}
                               className="shrink-0 cursor-pointer"
                             >
-                              <Star className={`w-4 h-4 transition-transform active:scale-125 ${membro.equipe_padrao ? "text-amber-500 fill-amber-500" : "text-slate-300 hover:text-amber-400"}`} />
+                              <Star className={`w-4 h-4 transition-transform active:scale-125 ${membro.equipe_padrao ? "text-amber-400 fill-amber-400" : "text-slate-600 hover:text-amber-400"}`} />
                             </button>
                             <div className="flex flex-col flex-1 min-w-0">
-                              <span className="font-semibold text-slate-800 text-xs truncate">
+                              <span className="font-semibold text-slate-100 text-xs truncate">
                                 {membro.nome}
                               </span>
-                              <span className="text-[10px] text-slate-500 truncate">
-                                <strong className="text-slate-700">{membro.funcao || "Instrumento"}</strong> {membro.categoria ? `• ${membro.categoria}` : ""}
+                              <span className="text-[10px] text-slate-400 truncate">
+                                <strong className="text-slate-300">{membro.funcao || "Instrumento"}</strong> {membro.categoria ? `• ${membro.categoria}` : ""}
                               </span>
                             </div>
                           </div>
@@ -1222,7 +1222,7 @@ export default function PainelEquipe() {
                                 funcao: membro.funcao || "Instrumento",
                                 categoria: membro.categoria || ""
                               })}
-                              className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                               title="Editar integrante"
                             >
                               <Pencil className="w-3.5 h-3.5" />
@@ -1230,7 +1230,7 @@ export default function PainelEquipe() {
                             <button
                               type="button"
                               onClick={() => handleDeletarMembroBanco(membro.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                               title="Excluir do banco"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1242,12 +1242,12 @@ export default function PainelEquipe() {
                   )}
                 </div>
               </div>
-              <div className="bg-slate-50 px-5 py-3 border-t border-slate-100 text-right">
+              <div className="bg-slate-950 px-5 py-3 border-t border-slate-800 text-right">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => setModalMembrosAberto(false)}
-                  className="h-8 text-xs font-semibold cursor-pointer"
+                  className="h-8 text-xs font-semibold cursor-pointer border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
                 >
                   Concluir
                 </Button>
@@ -1257,9 +1257,9 @@ export default function PainelEquipe() {
         )}
       </div>
       {modalEditarEscala.open && temNuvem && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 text-slate-100 w-full max-w-sm rounded-3xl shadow-2xl border border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-slate-950 text-white px-5 py-4 flex items-center justify-between border-b border-slate-800">
               <h3 className="font-bold text-sm">Editar Integrante na Escala</h3>
               <button 
                 onClick={() => setModalEditarEscala({ open: false, id: null, nome: "", funcao: "", categoria: "" })}
@@ -1270,47 +1270,47 @@ export default function PainelEquipe() {
             </div>
             <div className="p-5 space-y-3">
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Nome</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Nome</label>
                 <Input 
                   value={modalEditarEscala.nome}
                   onChange={(e) => setModalEditarEscala({ ...modalEditarEscala, nome: e.target.value })}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs bg-slate-950 border-slate-800 text-slate-100"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Função (Grupo)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Função (Grupo)</label>
                 <select 
                   value={modalEditarEscala.funcao}
                   onChange={(e) => setModalEditarEscala({ ...modalEditarEscala, funcao: e.target.value, categoria: "" })}
-                  className="w-full h-9 text-xs bg-white border border-slate-200 rounded-xl px-2 font-medium outline-none cursor-pointer"
+                  className="w-full h-9 text-xs bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-2 font-medium outline-none cursor-pointer"
                 >
-                  {funcoesMacro.map(f => <option key={f} value={f}>{f}</option>)}
+                  {funcoesMacro.map(f => <option key={f} value={f} className="bg-slate-900">{f}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Categoria / Instrumento</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Categoria / Instrumento</label>
                 <select 
                   value={modalEditarEscala.categoria}
                   onChange={(e) => setModalEditarEscala({ ...modalEditarEscala, categoria: e.target.value })}
-                  className="w-full h-9 text-xs bg-white border border-slate-200 rounded-xl px-2 font-medium outline-none cursor-pointer mb-2"
+                  className="w-full h-9 text-xs bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-2 font-medium outline-none cursor-pointer mb-2"
                 >
-                  <option value="">Selecione a categoria...</option>
-                  {(categoriasFrequentes[modalEditarEscala.funcao] || []).map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value="" className="bg-slate-900">Selecione a categoria...</option>
+                  {(categoriasFrequentes[modalEditarEscala.funcao] || []).map(c => <option key={c} value={c} className="bg-slate-900">{c}</option>)}
                 </select>
                 <Input 
                   placeholder="Ou digite o instrumento/categoria"
                   value={modalEditarEscala.categoria}
                   onChange={(e) => setModalEditarEscala({ ...modalEditarEscala, categoria: e.target.value })}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs bg-slate-950 border-slate-800 text-slate-100"
                 />
               </div>
             </div>
-            <div className="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end gap-2">
+            <div className="bg-slate-950 px-5 py-3 border-t border-slate-800 flex justify-end gap-2">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => setModalEditarEscala({ open: false, id: null, nome: "", funcao: "", categoria: "" })}
-                className="h-8 text-xs font-semibold cursor-pointer"
+                className="h-8 text-xs font-semibold cursor-pointer border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800"
               >
                 Cancelar
               </Button>
@@ -1327,7 +1327,7 @@ export default function PainelEquipe() {
                   setTemAlteracoesPendentes(true);
                   setModalEditarEscala({ open: false, id: null, nome: "", funcao: "", categoria: "" });
                 }}
-                className="h-8 text-xs font-semibold bg-slate-800 hover:bg-slate-900 text-white cursor-pointer"
+                className="h-8 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white cursor-pointer border border-slate-700"
               >
                 Salvar
               </Button>

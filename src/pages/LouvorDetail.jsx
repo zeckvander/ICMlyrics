@@ -52,7 +52,8 @@ export default function LouvorDetail() {
     solicitarWakeLock();
 
     const handleVisibilityChange = async () => {
-      if (wakeLock !== null && document.visibilityState === 'visible') {
+      const manterAcesa = localStorage.getItem('icmlyrics_keep_awake') === 'true';
+      if (document.visibilityState === 'visible' && manterAcesa) {
         await solicitarWakeLock();
       }
     };
@@ -60,12 +61,10 @@ export default function LouvorDetail() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      if (wakeLock !== null) {
-        wakeLock.release().then(() => {
-          wakeLock = null;
-        });
-      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLock && !wakeLock.released) {
+        wakeLock.release().catch((err) => console.error(err));
+      }
     };
   }, []);
 

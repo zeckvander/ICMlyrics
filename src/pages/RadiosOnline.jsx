@@ -233,8 +233,8 @@ export default function RadiosOnline() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28 flex flex-col">
-      <div className="bg-slate-900 text-white px-4 pt-12 pb-6 sticky top-0 z-30 shadow-md">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-28 flex flex-col transition-colors duration-200">
+      <div className="bg-slate-900 dark:bg-slate-950 text-white px-4 pt-12 pb-6 sticky top-0 z-30 shadow-md border-b border-transparent dark:border-slate-800">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <button 
@@ -272,19 +272,19 @@ export default function RadiosOnline() {
             onEnded={() => setReproduzindo(false)}
           />
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm text-center">
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-center">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
               <Radio className="w-8 h-8" />
             </div>
 
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
               {radioSelecionada ? radioSelecionada.nome : "Nenhuma rádio selecionada"}
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 dark:text-slate-400 mt-0.5">
               {radioSelecionada?.categoria || "Estação de Rádio"}
             </p>
 
-            <div className="bg-slate-900 text-white p-4 rounded-2xl mt-4 flex items-center justify-between shadow-md relative">
+            <div className="bg-slate-900 dark:bg-slate-950 text-white p-4 rounded-2xl mt-4 flex items-center justify-between shadow-md relative border border-transparent dark:border-slate-800">
               
               <button 
                 onClick={togglePlayPrincipal}
@@ -294,7 +294,7 @@ export default function RadiosOnline() {
                 {reproduzindo ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
               </button>
 
-              <div className="flex-1 mx-4 flex items-center justify-center gap-2 bg-slate-800/80 py-2.5 rounded-xl border border-slate-700/50">
+              <div className="flex-1 mx-4 flex items-center justify-center gap-2 bg-slate-800/80 dark:bg-slate-900/90 py-2.5 rounded-xl border border-slate-700/50">
                 <Signal className={`w-4 h-4 ${reproduzindo ? "text-red-500 animate-pulse" : "text-slate-500"}`} />
                 <span className="text-xs font-bold tracking-wider uppercase text-slate-200">
                   {reproduzindo ? "Ao Vivo" : "Clique no play"}
@@ -318,7 +318,7 @@ export default function RadiosOnline() {
                     )}
                   </button>
                 ) : (
-                  <div className="absolute bottom-0 right-0 bg-slate-800 border border-slate-700 p-2.5 rounded-2xl shadow-2xl flex flex-col items-center gap-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute bottom-0 right-0 bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-800 p-2.5 rounded-2xl shadow-2xl flex flex-col items-center gap-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <span className="text-[10px] text-red-400 font-bold">
                       {Math.round((isMuted ? 0 : volume) * 100)}%
                     </span>
@@ -352,13 +352,13 @@ export default function RadiosOnline() {
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Estações Disponíveis</p>
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-2">
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Estações Disponíveis</p>
 
             {carregando ? (
-              <p className="text-center text-slate-400 text-xs py-6">Carregando rádios do Supabase...</p>
+              <p className="text-center text-slate-400 dark:text-slate-500 text-xs py-6">Carregando rádios do Supabase...</p>
             ) : radios.length === 0 ? (
-              <p className="text-center text-slate-400 text-xs py-6 uppercase font-bold tracking-wider">
+              <p className="text-center text-slate-400 dark:text-slate-500 text-xs py-6 uppercase font-bold tracking-wider">
                 Nenhuma rádio cadastrada
               </p>
             ) : (
@@ -370,20 +370,20 @@ export default function RadiosOnline() {
                     key={radio.id}
                     className={`w-full p-3 rounded-xl border text-xs font-medium flex items-center justify-between transition-colors ${
                       estaAtiva
-                        ? "bg-red-50 border-red-200 text-red-900 font-bold" 
-                        : "bg-slate-50 border-slate-100 text-slate-700"
+                        ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/50 text-red-900 dark:text-red-200 font-bold" 
+                        : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300"
                     }`}
                   >
                     <button
                       onClick={() => handleSelecionarEReproduzir(radio)}
                       className="flex-1 text-left flex items-center gap-2.5 truncate pr-2"
                     >
-                      <span className="p-1.5 bg-red-100 text-red-600 rounded-lg">
+                      <span className="p-1.5 bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 rounded-lg">
                         <Radio className="w-3.5 h-3.5" />
                       </span>
                       <div className="truncate">
-                        <p className="truncate text-slate-900 font-bold">{radio.nome}</p>
-                        <p className="text-[10px] text-slate-400 font-normal">{radio.categoria || "Gospel"}</p>
+                        <p className="truncate text-slate-900 dark:text-slate-100 font-bold">{radio.nome}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-400 font-normal">{radio.categoria || "Gospel"}</p>
                       </div>
                     </button>
 
@@ -393,7 +393,7 @@ export default function RadiosOnline() {
                         className={`p-2 rounded-lg transition-colors ${
                           tocandoEsta
                             ? "bg-red-600 text-white"
-                            : "bg-red-100 text-red-700 hover:bg-red-200"
+                            : "bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/80"
                         }`}
                         title={tocandoEsta ? "Pausar Estação" : "Ouvir Estação"}
                       >

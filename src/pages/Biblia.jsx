@@ -503,7 +503,7 @@ export default function Biblia() {
     localStorage.setItem(`icmlyrics_biblia_favoritos_${usuarioAtual}`, JSON.stringify(novosFavoritos));
     setComentariosEditando(prev => {
         const copy = { ...prev };
-        delete copy[fav.key];
+        delete copy[key];
         return copy;
     });
   };
@@ -608,15 +608,15 @@ export default function Biblia() {
   const favAtivos = (favoritos || []).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 relative">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24 relative text-slate-900 dark:text-slate-100 transition-colors">
       {notificacao && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm bg-emerald-600 text-white font-bold text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-emerald-500/30 transition-all animate-in fade-in slide-in-from-top-4 duration-300">
-          <Check className="w-4 h-4 shrink-0 text-emerald-100 bg-emerald-700/50 p-0.5 rounded-full" />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm bg-emerald-600 dark:bg-emerald-700 text-white font-bold text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-emerald-500/30 transition-all animate-in fade-in slide-in-from-top-4 duration-300">
+          <Check className="w-4 h-4 shrink-0 text-emerald-100 bg-emerald-700/50 dark:bg-emerald-800/50 p-0.5 rounded-full" />
           <span>{notificacao}</span>
         </div>
       )}
       {!livroAbbrev && (
-        <div className="bg-slate-900 text-white px-4 pt-12 pb-6 flex items-center justify-between sticky top-0 z-30">
+        <div className="bg-slate-900 dark:bg-slate-950 text-white px-4 pt-12 pb-6 flex items-center justify-between sticky top-0 z-30 border-b border-slate-800/50">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/dashboard")}
@@ -634,7 +634,7 @@ export default function Biblia() {
           <div className="flex items-center gap-2">
             <button
               onClick={alternarTamanhoFonte}
-              className="flex items-center gap-1 px-2.5 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition-all border border-slate-700 text-xs font-bold text-slate-200"
+              className="flex items-center gap-1 px-2.5 py-2 bg-slate-800 dark:bg-slate-900 hover:bg-slate-700 dark:hover:bg-slate-800 rounded-xl transition-all border border-slate-700 dark:border-slate-800 text-xs font-bold text-slate-200"
               title={`Tamanho da fonte: ${configFonte.label}`}
             >
               <Type className="w-4 h-4 text-emerald-400" />
@@ -642,7 +642,7 @@ export default function Biblia() {
             </button>
             <button 
               onClick={() => setIsFavoritosModalOpen(true)}
-              className="relative p-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition-all border border-slate-700"
+              className="relative p-2 bg-slate-800 dark:bg-slate-900 hover:bg-slate-700 dark:hover:bg-slate-800 rounded-xl transition-all border border-slate-700 dark:border-slate-800"
             >
               <Star className={`w-5 h-5 ${favAtivos.length > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
               {favAtivos.length > 0 && (
@@ -657,12 +657,12 @@ export default function Biblia() {
 
       <div className={`px-4 space-y-4 ${livroAbbrev ? "pt-12" : "-mt-3"}`}>
         {!livroAbbrev && (
-          <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 space-y-3 mt-6">
+          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-3 mt-6 transition-colors">
             <div className="flex items-center justify-center gap-1.5 flex-wrap">
               <button
                 type="button"
                 onClick={() => setIsAjudaModalOpen(true)}
-                className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors"
+                className="p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                 title="Significado das Traduções"
               >
                 <HelpCircle className="w-5 h-5" />
@@ -675,13 +675,13 @@ export default function Biblia() {
                     onClick={() => setVersaoSelecionada(v.id)}
                     className={`px-3 py-1 text-xs font-bold rounded-lg transition-all border flex items-center gap-1.5 ${
                       versaoSelecionada === v.id
-                        ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                        ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                     }`}
                   >
                     <span>{v.nome}</span>
                     {isFavorita && (
-                      <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3px] shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-emerald-400 dark:text-emerald-600 stroke-[3px] shrink-0" />
                     )}
                   </button>
                 );
@@ -690,10 +690,10 @@ export default function Biblia() {
             <form onSubmit={handleBuscaSeparada} className="flex gap-1.5 items-center">
               <div className="flex-[2] min-w-[110px]">
                 <Select value={buscaLivro} onValueChange={setBuscaLivro}>
-                  <SelectTrigger className="bg-slate-50 border-slate-100 shadow-inner rounded-xl h-9 text-xs font-semibold text-slate-700">
+                  <SelectTrigger className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-inner rounded-xl h-9 text-xs font-semibold text-slate-700 dark:text-slate-200">
                     <SelectValue placeholder="Livro" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[250px]">
+                  <SelectContent className="max-h-[250px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
                     {TODOS_LIVROS.map((l) => (
                       <SelectItem key={l.abbrev} value={l.abbrev}>
                         {l.nome}
@@ -708,10 +708,10 @@ export default function Biblia() {
                   onValueChange={setBuscaCapitulo} 
                   disabled={!buscaLivro}
                 >
-                  <SelectTrigger className="bg-slate-50 border-slate-100 shadow-inner rounded-xl h-9 text-xs font-semibold text-slate-700 disabled:opacity-50">
+                  <SelectTrigger className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-inner rounded-xl h-9 text-xs font-semibold text-slate-700 dark:text-slate-200 disabled:opacity-50">
                     <SelectValue placeholder="Cap." />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[250px]">
+                  <SelectContent className="max-h-[250px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
                     {capsDoLivroBuscado.map((cap) => (
                       <SelectItem key={cap} value={cap}>
                         {cap}
@@ -726,10 +726,10 @@ export default function Biblia() {
                   onValueChange={setBuscaVersiculo} 
                   disabled={!buscaCapitulo}
                 >
-                  <SelectTrigger className="bg-slate-50 border-slate-100 shadow-inner rounded-xl h-9 text-xs font-semibold text-slate-700 disabled:opacity-50">
+                  <SelectTrigger className="bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-inner rounded-xl h-9 text-xs font-semibold text-slate-700 dark:text-slate-200 disabled:opacity-50">
                     <SelectValue placeholder="Ver." />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[250px]">
+                  <SelectContent className="max-h-[250px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
                     {versDoCapBuscado.map((ver) => (
                       <SelectItem key={ver} value={ver}>
                         {ver}
@@ -742,7 +742,7 @@ export default function Biblia() {
                 type="submit" 
                 size="sm" 
                 disabled={!buscaLivro || !buscaCapitulo}
-                className="rounded-xl h-9 px-3 bg-slate-900 hover:bg-slate-800 shrink-0 disabled:opacity-50"
+                className="rounded-xl h-9 px-3 bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-700 text-white shrink-0 disabled:opacity-50"
               >
                 <Search className="w-4 h-4" />
               </Button>
@@ -751,16 +751,16 @@ export default function Biblia() {
         )}
         {!livroAbbrev ? (
           <div className="space-y-3">
-            <div className="flex bg-slate-200 p-1 rounded-xl">
+            <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl transition-colors">
               <button 
                 onClick={() => setTestamentoAtivo('AT')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${testamentoAtivo === 'AT' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${testamentoAtivo === 'AT' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
               >
                 Antigo Testamento (39)
               </button>
               <button 
                 onClick={() => setTestamentoAtivo('NT')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${testamentoAtivo === 'NT' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${testamentoAtivo === 'NT' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
               >
                 Novo Testamento (27)
               </button>
@@ -770,12 +770,12 @@ export default function Biblia() {
                 <button
                   key={l.abbrev}
                   onClick={() => selecionarLivro(l.abbrev, l.nome)}
-                  className="bg-white rounded-xl p-2.5 text-center shadow-sm border border-slate-100 hover:border-emerald-500/30 active:scale-95 transition-all truncate flex flex-col justify-center items-center min-h-[56px]"
+                  className="bg-white dark:bg-slate-900 rounded-xl p-2.5 text-center shadow-sm border border-slate-100 dark:border-slate-800 hover:border-emerald-500/30 dark:hover:border-emerald-500/40 active:scale-95 transition-all truncate flex flex-col justify-center items-center min-h-[56px]"
                 >
-                  <p className={`font-bold text-slate-800 leading-tight truncate ${configFonte.titleClass}`}>
+                  <p className={`font-bold text-slate-800 dark:text-slate-200 leading-tight truncate ${configFonte.titleClass}`}>
                     {l.nome}
                   </p>
-                  <p className={`text-slate-400 font-mono font-bold uppercase leading-none mt-0.5 ${configFonte.subClass}`}>
+                  <p className={`text-slate-400 dark:text-slate-500 font-mono font-bold uppercase leading-none mt-0.5 ${configFonte.subClass}`}>
                     ({l.abbrev})
                   </p>
                 </button>
@@ -783,32 +783,32 @@ export default function Biblia() {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 gap-2">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4 transition-colors">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
               <div className="flex items-center gap-2 max-w-[55%] overflow-hidden">
                 <button
                   onClick={() => {
                     setLivroAbbrev(null);
                     setVersiculos([]);
                   }}
-                  className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition shrink-0"
+                  className="p-1.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-xl transition shrink-0"
                 >
                   <BookOpen className="w-5 h-5" />
                 </button>
-                <h2 className="font-extrabold text-base text-slate-900 truncate">
+                <h2 className="font-extrabold text-base text-slate-900 dark:text-slate-100 truncate">
                   {nomeLivroExibicao}
                 </h2>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cap:</span>
+                <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Cap:</span>
                 <Select
                   value={String(capituloSelecionado)}
                   onValueChange={(val) => setCapituloSelecionado(Number(val))}
                 >
-                  <SelectTrigger className="w-14 bg-slate-50 border-0 shadow-inner rounded-xl h-8 text-xs font-extrabold text-slate-800 p-2">
+                  <SelectTrigger className="w-14 bg-slate-50 dark:bg-slate-800 border-0 shadow-inner rounded-xl h-8 text-xs font-extrabold text-slate-800 dark:text-slate-200 p-2">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[250px]">
+                  <SelectContent className="max-h-[250px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
                     {capitulosDisponiveis.map((cap) => (
                       <SelectItem key={cap} value={String(cap)}>
                         {cap}
@@ -828,7 +828,7 @@ export default function Biblia() {
                   className={`h-8 px-2.5 text-xs font-bold rounded-xl flex items-center gap-1 transition ${
                     modoSelecaoAtivo 
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-400/50" 
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                   }`}
                   title="Selecionar vários versículos"
                 >
@@ -837,7 +837,7 @@ export default function Biblia() {
                 </Button>
                 <button
                   onClick={alternarTamanhoFonte}
-                  className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl transition text-slate-600"
+                  className="p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition text-slate-600 dark:text-slate-300"
                   title={`Fonte atual: ${configFonte.label}`}
                 >
                   <Type className="w-4 h-4" />
@@ -845,7 +845,7 @@ export default function Biblia() {
                 {favoritosDoLivroAtual.length > 0 && (
                   <button
                     onClick={() => setIsFavoritosModalOpen(true)}
-                    className="p-2 bg-amber-50 hover:bg-amber-100 rounded-xl transition border border-amber-200 text-amber-500"
+                    className="p-2 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 rounded-xl transition border border-amber-200 dark:border-amber-800 text-amber-500"
                     title={`Ver favoritos de ${nomeLivroExibicao}`}
                   >
                     <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
@@ -858,7 +858,7 @@ export default function Biblia() {
                 <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
               </div>
             ) : (
-              <div className={`space-y-4 leading-relaxed text-slate-700 select-text bg-slate-50/50 p-4 rounded-xl ${configFonte.textClass}`}>
+              <div className={`space-y-4 leading-relaxed text-slate-700 dark:text-slate-300 select-text bg-slate-50/50 dark:bg-slate-950/50 p-4 rounded-xl ${configFonte.textClass}`}>
                 {versiculos.map((v) => {
                   const key = `${livroAbbrev}-${capituloSelecionado}-${v.versiculo}`;
                   const favoritoAtivo = isFavorito(livroAbbrev, capituloSelecionado, v.versiculo);
@@ -870,24 +870,24 @@ export default function Biblia() {
                       className={`group relative flex gap-3 items-start cursor-pointer p-2.5 rounded-xl transition-all duration-200 ${
                         modoSelecaoAtivo
                           ? selecionadoNestaSessao
-                            ? "bg-emerald-100/90 border border-emerald-400 shadow-sm"
-                            : "bg-white border border-slate-200 hover:border-emerald-300"
+                            ? "bg-emerald-100/90 dark:bg-emerald-950/60 border border-emerald-400 dark:border-emerald-600 shadow-sm"
+                            : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700"
                           : selecionadoNestaSessao 
-                            ? "bg-emerald-100/80 border border-emerald-300 shadow-sm" 
-                            : "border border-transparent hover:bg-slate-100"
+                            ? "bg-emerald-100/80 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 shadow-sm" 
+                            : "border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60"
                       }`}
                     >
                       <span className={`text-xs font-bold font-mono select-none mt-1 shrink-0 ${
                         selecionadoNestaSessao 
-                          ? "text-emerald-800 font-black" 
-                          : "text-emerald-600"
+                          ? "text-emerald-800 dark:text-emerald-300 font-black" 
+                          : "text-emerald-600 dark:text-emerald-400"
                       }`}>
                         {v.versiculo}
                       </span>
                       <p className={`flex-1 ${
                         selecionadoNestaSessao 
-                          ? "text-emerald-950 font-semibold" 
-                          : "text-slate-800"
+                          ? "text-emerald-950 dark:text-emerald-100 font-semibold" 
+                          : "text-slate-800 dark:text-slate-200"
                       }`}>
                         {v.texto}
                       </p>
@@ -903,7 +903,7 @@ export default function Biblia() {
         )}
       </div>
       {modoSelecaoAtivo && versiculosSelecionados.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-between border border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md bg-slate-900 dark:bg-slate-950 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-between border border-slate-800 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center gap-2">
             <span className="bg-emerald-500 text-white text-xs font-extrabold w-6 h-6 rounded-full flex items-center justify-center shrink-0">
               {versiculosSelecionados.length}
@@ -927,29 +927,31 @@ export default function Biblia() {
           </div>
         </div>
       )}
+
+      {/* Modal - Visualizar / Comparar em Bloco */}
       <Dialog open={isVisualizarMultiplosModalOpen} onOpenChange={setIsVisualizarMultiplosModalOpen}>
-        <DialogContent className="max-w-md bg-white rounded-2xl p-6 max-h-[85vh] flex flex-col">
-          <DialogHeader className="border-b pb-3 shrink-0 flex flex-row items-center justify-between">
-            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-emerald-600" />
+        <DialogContent className="max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-h-[85vh] flex flex-col">
+          <DialogHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0 flex flex-row items-center justify-between">
+            <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <CheckSquare className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               {nomeLivroExibicao} {capituloSelecionado}:{versiculosSelecionados.map(v => v.numVersiculo).sort((a,b)=>a-b).join(", ")}
             </DialogTitle>
             <DialogDescription className="sr-only">Versículos Selecionados</DialogDescription>
             <button
               type="button"
               onClick={handleToggleFavoritoBloco}
-              className="p-2 hover:bg-slate-100 rounded-full transition text-amber-500 mr-4"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition text-amber-500 mr-4"
             >
-              <Star className={`w-5 h-5 ${isBlocoFavoritado() ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
+              <Star className={`w-5 h-5 ${isBlocoFavoritado() ? 'fill-amber-500 text-amber-500' : 'text-slate-400 dark:text-slate-500'}`} />
             </button>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto mt-4 space-y-3 pr-1">
-            <div className="p-3.5 rounded-xl border bg-emerald-50/40 border-emerald-200 shadow-sm space-y-2">
+            <div className="p-3.5 rounded-xl border bg-emerald-50/40 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60 shadow-sm space-y-2">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[9px] font-black px-2 py-0.5 rounded uppercase text-emerald-800 bg-emerald-200">
+                <span className="text-[9px] font-black px-2 py-0.5 rounded uppercase text-emerald-800 dark:text-emerald-300 bg-emerald-200 dark:bg-emerald-900/60">
                   {versaoSelecionada}
                 </span>
-                <span className="text-[10px] font-bold text-slate-400">
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
                   - {NOME_EXTENSO_VERSOES[versaoSelecionada.toLowerCase()]}
                 </span>
               </div>
@@ -957,8 +959,8 @@ export default function Biblia() {
                 {versiculosSelecionados
                   .sort((a, b) => a.numVersiculo - b.numVersiculo)
                   .map(v => (
-                    <p key={v.numVersiculo} className="text-sm text-slate-700 leading-relaxed">
-                      <span className="font-bold text-emerald-800 mr-1.5">{v.numVersiculo}.</span>
+                    <p key={v.numVersiculo} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <span className="font-bold text-emerald-800 dark:text-emerald-400 mr-1.5">{v.numVersiculo}.</span>
                       {v.texto}
                     </p>
                   ))}
@@ -976,14 +978,14 @@ export default function Biblia() {
                   return (
                     <div 
                       key={item.versao} 
-                      className="p-3.5 rounded-xl border bg-slate-50 border-slate-100 transition space-y-2"
+                      className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 transition space-y-2"
                     >
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded uppercase text-slate-600 bg-slate-200/60">
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded uppercase text-slate-600 dark:text-slate-300 bg-slate-200/60 dark:bg-slate-700/60">
                           {item.versao}
                         </span>
                         {nomePorExtenso && (
-                          <span className="text-[10px] font-bold text-slate-400">
+                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
                             - {nomePorExtenso}
                           </span>
                         )}
@@ -991,13 +993,13 @@ export default function Biblia() {
                       <div className="space-y-1.5">
                         {item.versiculos && item.versiculos.length > 0 ? (
                           item.versiculos.map(v => (
-                            <p key={v.versiculo} className="text-sm text-slate-700 leading-relaxed">
-                              <span className="font-bold text-slate-600 mr-1.5">{v.versiculo}.</span>
+                            <p key={v.versiculo} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                              <span className="font-bold text-slate-600 dark:text-slate-400 mr-1.5">{v.versiculo}.</span>
                               {v.texto}
                             </p>
                           ))
                         ) : (
-                          <p className="text-sm text-slate-400 italic">Versículos não encontrados nesta tradução.</p>
+                          <p className="text-sm text-slate-400 dark:text-slate-500 italic">Versículos não encontrados nesta tradução.</p>
                         )}
                       </div>
                     </div>
@@ -1007,16 +1009,18 @@ export default function Biblia() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal - Ajuda Versões */}
       <Dialog open={isAjudaModalOpen} onOpenChange={setIsAjudaModalOpen}>
-        <DialogContent className="max-w-md bg-white rounded-2xl p-6">
-          <DialogHeader className="border-b pb-3">
-            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <DialogContent className="max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+          <DialogHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-emerald-500" /> Escolha sua Versão Favorita
             </DialogTitle>
             <DialogDescription className="sr-only">Explicação das Traduções Disponíveis</DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-            <p className="text-xs text-slate-500 mb-3 font-medium text-center">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 font-medium text-center">
               Clique em qualquer uma das traduções abaixo para defini-la imediatamente como sua favorita padrão e atualizar as preferências.
             </p>
             {VERSOES_DISPONIVEIS.map((v) => {
@@ -1026,22 +1030,26 @@ export default function Biblia() {
                   key={v.id}
                   onClick={() => selecionarVersaoFavoritaPeloModal(v.id)}
                   className={`w-full p-3.5 rounded-xl border text-left transition flex items-start gap-3 ${
-                    isActive ? "bg-emerald-50/60 border-emerald-300" : "bg-slate-50 hover:bg-slate-100 border-slate-100"
+                    isActive 
+                      ? "bg-emerald-50/60 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800" 
+                      : "bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-100 dark:border-slate-800"
                   }`}
                 >
                   <div className="w-14 shrink-0 flex justify-start">
                     <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg border uppercase text-center w-full ${
-                      isActive ? "text-emerald-700 bg-emerald-100 border-emerald-200" : "text-slate-600 bg-white border-slate-200"
+                      isActive 
+                        ? "text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 border-emerald-200 dark:border-emerald-800" 
+                        : "text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
                     }`}>
                       {v.nome}
                     </span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-1.5">
-                      <p className="font-bold text-slate-800 text-sm">{v.extenso}</p>
-                      {isActive && <Check className="w-4 h-4 text-emerald-600 stroke-[3px] shrink-0" />}
+                      <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{v.extenso}</p>
+                      {isActive && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[3px] shrink-0" />}
                     </div>
-                    <p className="text-xs text-slate-400 mt-1 leading-normal">
+                    <p className="text-xs text-slate-400 dark:text-slate-400 mt-1 leading-normal">
                       {v.id === 'arc' && 'Almeida Revista e Corrigida histórica, respeitada pelo estilo formal e poético.'}
                       {v.id === 'acf' && 'Tradução literal, tradicional e com português clássico baseada no Texto Recebido.'}
                       {v.id === 'ara' && 'Texto clássico alinhado com a erudição bíblica moderna, equilíbrio entre fidelidade e clareza.'}
@@ -1056,16 +1064,18 @@ export default function Biblia() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal - Primeiro Acesso */}
       <Dialog open={isPrimeiroAcessoModalOpen} onOpenChange={setIsPrimeiroAcessoModalOpen}>
-        <DialogContent className="max-w-md bg-white rounded-2xl p-6 shadow-xl">
+        <DialogContent className="max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl">
           <DialogHeader className="text-center flex flex-col items-center justify-center">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-2">
-              <BookOpen className="w-6 h-6 text-emerald-600 animate-pulse" />
+            <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center mb-2">
+              <BookOpen className="w-6 h-6 text-emerald-600 dark:text-emerald-400 animate-pulse" />
             </div>
-            <DialogTitle className="text-lg font-extrabold text-slate-900 text-center">
+            <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100 text-center">
               Escolha sua Versão Padrão
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 max-w-xs mt-2 text-center whitespace-pre-line leading-relaxed mx-auto">
+            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mt-2 text-center whitespace-pre-line leading-relaxed mx-auto">
               Para começar a sua leitura, escolha abaixo qual tradução da Bíblia deseja usar como padrão principal.
             </DialogDescription>
           </DialogHeader>
@@ -1077,24 +1087,26 @@ export default function Biblia() {
                   selecionarVersaoFavoritaPeloModal(v.id);
                   setIsPrimeiroAcessoModalOpen(false);
                 }}
-                className="w-full p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 transition flex items-center gap-3 text-left group"
+                className="w-full p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-200 dark:hover:border-emerald-800 transition flex items-center gap-3 text-left group"
               >
-                <span className="text-[10px] font-black px-2 py-1 rounded bg-white text-slate-700 border border-slate-200 group-hover:bg-emerald-600 group-hover:text-white transition">
+                <span className="text-[10px] font-black px-2 py-1 rounded bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 group-hover:bg-emerald-600 group-hover:text-white transition">
                   {v.nome}
                 </span>
-                <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-900 transition flex-1">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-900 dark:group-hover:text-emerald-200 transition flex-1">
                   {v.extenso}
                 </span>
-                <Check className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 stroke-[3px] transition shrink-0" />
+                <Check className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 stroke-[3px] transition shrink-0" />
               </button>
             ))}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal - Favoritos */}
       <Dialog open={isFavoritosModalOpen} onOpenChange={setIsFavoritosModalOpen}>
-        <DialogContent className="max-w-md bg-white rounded-2xl p-6 max-h-[80vh] flex flex-col">
-          <DialogHeader className="border-b pb-3 shrink-0">
-            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <DialogContent className="max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-h-[80vh] flex flex-col">
+          <DialogHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0">
+            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
               {livroAbbrev ? `Favoritos de ${nomeLivroExibicao}` : "Versículos Favoritos"}
             </DialogTitle>
@@ -1102,7 +1114,7 @@ export default function Biblia() {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1">
             {((livroAbbrev ? favoritosDoLivroAtual : favoritos) || []).filter(Boolean).length === 0 ? (
-              <p className="text-center text-slate-400 text-sm py-10 italic">Nenhum favorito encontrado.</p>
+              <p className="text-center text-slate-400 dark:text-slate-500 text-sm py-10 italic">Nenhum favorito encontrado.</p>
             ) : (
               ((livroAbbrev ? favoritosDoLivroAtual : favoritos) || []).filter(Boolean).map((fav) => {
                 if (!fav || !fav.key) return null;
@@ -1115,16 +1127,16 @@ export default function Biblia() {
                     ? `${fav.versiculos[0].numVersiculo}-${fav.versiculos[fav.versiculos.length - 1].numVersiculo}` 
                     : '';
                   return (
-                    <div key={fav.key} className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-2.5">
+                    <div key={fav.key} className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-800 uppercase bg-white px-2 py-1 rounded-lg border border-slate-200">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase bg-white dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
                           {fav.livro || "Livro"} {fav.cap}:{rangeStr}
                         </span>
                         <div className="flex gap-1">
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 text-sky-600 hover:bg-sky-50"
+                            className="h-7 w-7 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/50"
                             onClick={() => compartilharFavoritoBloco(fav)}
                             title="Compartilhar bloco"
                           >
@@ -1133,7 +1145,7 @@ export default function Biblia() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 text-emerald-600 hover:bg-emerald-50"
+                            className="h-7 w-7 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                             onClick={() => irParaFavorito(fav)}
                           >
                             <ExternalLink className="w-4 h-4" />
@@ -1141,35 +1153,35 @@ export default function Biblia() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
+                            className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
                             onClick={() => removerFavoritoDireto(fav.key)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
-                      <div className="space-y-1.5 bg-white p-3 rounded-lg border border-slate-200/60">
+                      <div className="space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
                         {fav.versiculos.map(v => (
-                          <p key={v.numVersiculo} className="text-xs text-slate-700 leading-relaxed">
-                            <span className="font-bold text-emerald-800 mr-1.5">{v.numVersiculo}.</span>
+                          <p key={v.numVersiculo} className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                            <span className="font-bold text-emerald-800 dark:text-emerald-400 mr-1.5">{v.numVersiculo}.</span>
                             {v.texto}
                           </p>
                         ))}
                       </div>
-                      <div className="space-y-1 pt-1 border-t border-slate-200/60">
+                      <div className="space-y-1 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
                         {emEdicao ? (
                           <div className="space-y-1.5">
                             <textarea
                               value={valorComentario}
                               onChange={(e) => atualizarComentarioFavorito(fav.key, e.target.value)}
                               placeholder="Escreva sua anotação ou reflexão aqui..."
-                              className="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700 resize-none h-16"
+                              className="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700 dark:text-slate-200 resize-none h-16"
                             />
                             <div className="flex justify-end gap-1">
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 text-[10px] text-slate-500"
+                                className="h-6 text-[10px] text-slate-500 dark:text-slate-400"
                                 onClick={() => {
                                   setComentariosEditando(prev => {
                                     const copy = { ...prev };
@@ -1195,12 +1207,12 @@ export default function Biblia() {
                             className="cursor-pointer group/comentario py-1"
                           >
                             {fav.comentario ? (
-                              <div className="text-xs text-slate-600 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 flex items-start justify-between gap-2">
+                              <div className="text-xs text-slate-600 dark:text-slate-300 bg-emerald-50/50 dark:bg-emerald-950/30 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/50 flex items-start justify-between gap-2">
                                 <p className="flex-1 whitespace-pre-wrap">✍️ {fav.comentario}</p>
-                                <span className="text-[10px] text-emerald-600 font-bold opacity-0 group-hover/comentario:opacity-100 transition">Editar</span>
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold opacity-0 group-hover/comentario:opacity-100 transition">Editar</span>
                               </div>
                             ) : (
-                              <p className="text-[11px] text-slate-400 italic group-hover/comentario:text-emerald-600 transition">
+                              <p className="text-[11px] text-slate-400 dark:text-slate-500 italic group-hover/comentario:text-emerald-600 dark:group-hover/comentario:text-emerald-400 transition">
                                 + Adicionar anotação/comentário...
                               </p>
                             )}
@@ -1212,16 +1224,16 @@ export default function Biblia() {
                 }
 
                 return (
-                  <div key={fav.key} className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                  <div key={fav.key} className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-800 uppercase bg-white px-2 py-1 rounded-lg border border-slate-200">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase bg-white dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
                         {fav.livro || "Livro"} {fav.cap}:{fav.numVersiculo}
                       </span>
                       <div className="flex gap-1">
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 text-sky-600 hover:bg-sky-50"
+                          className="h-7 w-7 text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/50"
                           onClick={() => compartilharFavorito(fav)}
                           title="Compartilhar versículo e anotação"
                         >
@@ -1230,7 +1242,7 @@ export default function Biblia() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 text-emerald-600 hover:bg-emerald-50"
+                          className="h-7 w-7 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                           onClick={() => irParaFavorito(fav)}
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -1238,30 +1250,30 @@ export default function Biblia() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
+                          className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
                           onClick={() => removerFavoritoDireto(fav.key)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-700 leading-relaxed italic">
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic">
                       "{fav.texto}"
                     </p>
-                    <div className="space-y-1 pt-1 border-t border-slate-200/60">
+                    <div className="space-y-1 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
                       {emEdicao ? (
                         <div className="space-y-1.5">
                           <textarea
                             value={valorComentario}
                             onChange={(e) => atualizarComentarioFavorito(fav.key, e.target.value)}
                             placeholder="Escreva sua anotação ou reflexão aqui..."
-                            className="w-full text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700 resize-none h-16"
+                            className="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700 dark:text-slate-200 resize-none h-16"
                           />
                           <div className="flex justify-end gap-1">
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-6 text-[10px] text-slate-500"
+                              className="h-6 text-[10px] text-slate-500 dark:text-slate-400"
                               onClick={() => {
                                 setComentariosEditando(prev => {
                                   const copy = { ...prev };
@@ -1287,12 +1299,12 @@ export default function Biblia() {
                           className="cursor-pointer group/comentario py-1"
                         >
                           {fav.comentario ? (
-                            <div className="text-xs text-slate-600 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 flex items-start justify-between gap-2">
+                            <div className="text-xs text-slate-600 dark:text-slate-300 bg-emerald-50/50 dark:bg-emerald-950/30 p-2 rounded-lg border border-emerald-100 dark:border-emerald-900/50 flex items-start justify-between gap-2">
                               <p className="flex-1 whitespace-pre-wrap">✍️ {fav.comentario}</p>
-                              <span className="text-[10px] text-emerald-600 font-bold opacity-0 group-hover/comentario:opacity-100 transition">Editar</span>
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold opacity-0 group-hover/comentario:opacity-100 transition">Editar</span>
                             </div>
                           ) : (
-                            <p className="text-[11px] text-slate-400 italic group-hover/comentario:text-emerald-600 transition">
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 italic group-hover/comentario:text-emerald-600 dark:group-hover/comentario:text-emerald-400 transition">
                               + Adicionar anotação/comentário...
                             </p>
                           )}
@@ -1306,10 +1318,12 @@ export default function Biblia() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal - Comparação de Traduções */}
       <Dialog open={isComparacaoOpen} onOpenChange={setIsComparacaoOpen}>
-        <DialogContent className="max-w-md bg-white rounded-2xl p-6">
-          <DialogHeader className="flex flex-row items-center justify-between border-b pb-3">
-            <DialogTitle className="text-base font-bold text-slate-900">
+        <DialogContent className="max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+          <DialogHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
               {nomeLivroExibicao} {versiculoParaComparar?.cap}:{versiculoParaComparar?.numVersiculo}
             </DialogTitle>
             <DialogDescription className="sr-only">Comparação de Traduções do Versículo</DialogDescription>
@@ -1327,7 +1341,7 @@ export default function Biblia() {
                     nomeLivroExibicao
                   );
                 }}
-                className="p-2 hover:bg-slate-100 rounded-full transition text-amber-500 mr-4"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition text-amber-500 mr-4"
               >
                 <Star className={`w-5 h-5 ${
                   versiculoParaComparar && isFavorito(versiculoParaComparar.abbrev, versiculoParaComparar.cap, versiculoParaComparar.numVersiculo) ? 'fill-amber-500' : ''
@@ -1354,21 +1368,21 @@ export default function Biblia() {
                     key={idx} 
                     className={`p-3.5 rounded-xl border transition space-y-1.5 ${
                       isSuaFavoritaPadrao 
-                        ? "bg-emerald-50/40 border-emerald-200 shadow-sm" 
-                        : "bg-slate-50 border-slate-100"
+                        ? "bg-emerald-50/40 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60 shadow-sm" 
+                        : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase ${
                           isSuaFavoritaPadrao 
-                            ? "text-emerald-800 bg-emerald-200" 
-                            : "text-slate-600 bg-slate-200/60"
+                            ? "text-emerald-800 dark:text-emerald-300 bg-emerald-200 dark:bg-emerald-900/60" 
+                            : "text-slate-600 dark:text-slate-300 bg-slate-200/60 dark:bg-slate-700/60"
                         }`}>
                           {item.versao}
                         </span>
                         {nomePorExtenso && (
-                          <span className="text-[10px] font-bold text-slate-400">
+                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
                             - {nomePorExtenso}
                           </span>
                         )}
@@ -1380,12 +1394,12 @@ export default function Biblia() {
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-slate-700 leading-relaxed">{item.texto}</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{item.texto}</p>
                   </div>
                 );
               })}
               {comparacoes.length === 0 && (
-                <p className="text-xs text-slate-400 italic text-center">Nenhuma tradução alternativa encontrada.</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 italic text-center">Nenhuma tradução alternativa encontrada.</p>
               )}
             </div>
           )}
