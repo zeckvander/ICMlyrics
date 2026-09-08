@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    <script>
+      ['log', 'debug', 'info'].forEach((method) => {
+        const orig = console[method];
+        console[method] = (...args) => {
+          if (typeof args[0] === 'string' && args[0].includes('[vite]')) return;
+          orig(...args);
+        };
+      });
+    </script>
     <meta charset="UTF-8" />
     <meta name="google-site-verification" content="TXc3goy2XIPzE3s7w9Hw3IJDcOmxoaZAkI46leUtBSQ" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />

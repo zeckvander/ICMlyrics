@@ -21,62 +21,152 @@ export default function ModoPlaylist() {
   const [fav, setFav] = useState(false);
   const [listaInfo, setListaInfo] = useState(null);
 
+  const [tema] = useState(() => localStorage.getItem('icmlyrics_tema') || 'escuro');
+  const eEscuro = tema === 'escuro';
+
+  const [tamanhoFonte] = useState(() => localStorage.getItem('icmlyrics_fonte') || 'md');
+
+  const perfil = localStorage.getItem('icmlyrics_perfil') || 'instrumento';
+  const cifraPadrao = localStorage.getItem('icmlyrics_cifra_padrao') || 'cifra1';
+  const abaPadrao = perfil === 'voz' ? 'letra' : cifraPadrao;
+
   const musico = localStorage.getItem("icmlyrics_user") || "";
+
+  useEffect(() => {
+    let wakeLock = null;
+
+    const solicitarWakeLock = async () => {
+      const manterAcesa = localStorage.getItem('icmlyrics_keep_awake') === 'true';
+      if (manterAcesa && 'wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    };
+
+    solicitarWakeLock();
+
+    const handleVisibilityChange = async () => {
+      if (wakeLock !== null && document.visibilityState === 'visible') {
+        await solicitarWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (wakeLock !== null) {
+        wakeLock.release().then(() => {
+          wakeLock = null;
+        });
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     const carregarPlaylistCompleta = async () => {
       setLoading(true);
-      const listaRecebida = location.state?.lista;
+
+      const state = location.state;
+      const listaRecebida = state?.lista || (state?.lista_itens || state?.rows || state?.itens ? state : null);
 
       if (listaRecebida) {
         setListaInfo(listaRecebida);
-        const itensBrutos = listaRecebida.lista_itens || listaRecebida.rows || [];
+        const itensBrutos = listaRecebida.lista_itens || listaRecebida.rows || listaRecebida.itens || listaRecebida.louvores || [];
 
-        const itensProcessados = await Promise.all(
-          itensBrutos.map(async (item, idx) => {
-            const baseItem = {
-              id: item.id || `item_${idx}`,
-              type: item.tipo || item.type || "louvor",
-              observacao: item.observacao || "",
-              text: item.texto_secao || item.text || ""
-            };
+        const idsValidos = [];
+        const numerosValidos = [];
+        const nomesValidos = [];
 
-            if (baseItem.type === "divider") {
-              return baseItem;
+        itensBrutos.forEach((item) => {
+          if (item.tipo === "divider" || item.type === "divider") return;
+
+          const possibleId = item.louvor_id || item.id_louvor || (item.louvores && item.louvores.id) || item.id;
+          if (possibleId !== null && possibleId !== undefined && !isNaN(possibleId) && !String(possibleId).startsWith("item_") && !String(possibleId).startsWith("local_")) {
+            idsValidos.push(Number(possibleId));
+          }
+
+          const possibleNumero = item.numero ?? item.louvor_numero;
+          if (possibleNumero !== null && possibleNumero !== undefined && !isNaN(possibleNumero) && String(possibleNumero).trim() !== "") {
+            numerosValidos.push(Number(possibleNumero));
+          }
+
+          const possibleNome = item.nome || item.text || item.buscaLouvor;
+          if (possibleNome && typeof possibleNome === "string" && possibleNome.trim() !== "") {
+            nomesValidos.push(possibleNome.trim());
+          }
+        });
+
+        let louvoresBanco = [];
+        if (idsValidos.length > 0 || numerosValidos.length > 0 || nomesValidos.length > 0) {
+          try {
+            const filters = [];
+
+            if (idsValidos.length > 0) {
+              filters.push(`id.in.(${idsValidos.join(",")})`);
+            }
+            if (numerosValidos.length > 0) {
+              filters.push(`numero.in.(${numerosValidos.join(",")})`);
+            }
+            if (nomesValidos.length > 0) {
+              const escapedNomes = nomesValidos.map((n) => `"${n.replace(/"/g, '""')}"`).join(",");
+              filters.push(`nome.in.(${escapedNomes})`);
             }
 
-            let louvorData = item.louvores || {};
-            const louvorId = item.louvor_id || louvorData.id || item.id_louvor;
-            
-            if ((!louvorData.letra_musica || !louvorData.mapa_musica) && louvorId && !String(louvorId).startsWith("local_")) {
-              try {
-                const { data } = await supabase
-                  .from('louvores')
-                  .select('*')
-                  .eq('id', louvorId)
-                  .maybeSingle();
-                
-                if (data) {
-                  louvorData = data;
-                }
-              } catch (err) {
-                console.error("Erro ao buscar detalhes do louvor:", err);
+            if (filters.length > 0) {
+              const { data, error } = await supabase
+                .from("louvores")
+                .select("*")
+                .or(filters.join(","));
+
+              if (!error && data) {
+                louvoresBanco = data;
               }
             }
+          } catch (err) {
+            console.error("Erro ao carregar louvores da playlist:", err);
+          }
+        }
 
-            return {
-              ...baseItem,
-              ...louvorData,
-              numero: louvorData.numero || item.numero || "",
-              nome: louvorData.nome || item.nome || item.text || item.buscaLouvor || "",
-              categoria: louvorData.categoria || item.categoria || "Coletânea",
-              tom: louvorData.mapa_musica || louvorData.tom || item.mapa_musica || item.tom || "N/A",
-              andamento: louvorData.bpm_compasso || louvorData.andamento || item.bpm_compasso || item.andamento || "N/A",
-              ritmo: louvorData.ritmo || item.ritmo || "",
-              letra_musica: louvorData.letra_musica || item.letra_musica || "Nenhuma letra.",
-            };
-          })
-        );
+        const itensProcessados = itensBrutos.map((item, idx) => {
+          const baseItem = {
+            id: item.id || `item_${idx}`,
+            type: item.tipo || item.type || "louvor",
+            observacao: item.observacao || "",
+            text: item.texto_secao || item.text || ""
+          };
+
+          if (baseItem.type === "divider") {
+            return baseItem;
+          }
+
+          const rawId = item.louvor_id || item.id_louvor || (item.louvores && item.louvores.id) || item.id;
+          const numId = rawId && !isNaN(rawId) && !String(rawId).startsWith("item_") && !String(rawId).startsWith("local_") ? Number(rawId) : null;
+          const numNumero = item.numero !== null && item.numero !== undefined && !isNaN(item.numero) ? Number(item.numero) : null;
+          const strNome = (item.nome || item.text || item.buscaLouvor || "").trim().toLowerCase();
+
+          const louvorData = louvoresBanco.find((l) => {
+            if (numId !== null && Number(l.id) === numId) return true;
+            if (numNumero !== null && Number(l.numero) === numNumero) return true;
+            if (strNome && l.nome && l.nome.trim().toLowerCase() === strNome) return true;
+            return false;
+          }) || (Array.isArray(item.louvores) ? item.louvores[0] : item.louvores) || item.louvor || {};
+
+          return {
+            ...baseItem,
+            ...louvorData,
+            numero: louvorData.numero ?? item.numero ?? "",
+            nome: louvorData.nome || item.nome || item.text || item.buscaLouvor || "",
+            categoria: louvorData.categoria || item.categoria || "Coletânea",
+            tom: louvorData.mapa_musica || louvorData.tom || item.mapa_musica || item.tom || "N/A",
+            andamento: louvorData.bpm_compasso || louvorData.andamento || item.bpm_compasso || item.andamento || "N/A",
+            ritmo: louvorData.ritmo || item.ritmo || "",
+            letra_musica: louvorData.letra_musica || louvorData.letra || item.letra_musica || item.letra || "Nenhuma letra.",
+          };
+        });
 
         setPlaylist(itensProcessados);
       }
@@ -106,7 +196,7 @@ export default function ModoPlaylist() {
   const getTemaReal = (numero, categoria) => {
     if (!numero || !categoria) return null;
     const item = TEMAS_PADRAO.find(
-      t => t.numero === String(numero) && t.categoria === categoria
+      (t) => t.numero === String(numero) && t.categoria === categoria
     );
     return item ? item.tema : null;
   };
@@ -116,7 +206,7 @@ export default function ModoPlaylist() {
     return texto
       .toLowerCase()
       .split(" ")
-      .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1))
+      .map((palavra) => palavra.charAt(0).toUpperCase() + palavra.slice(1))
       .join(" ");
   };
 
@@ -126,7 +216,7 @@ export default function ModoPlaylist() {
     let dataFormatada = "";
     if (info.data_culto) {
       try {
-        const [ano, mes, dia] = info.data_culto.split('T')[0].split('-');
+        const [ano, mes, dia] = info.data_culto.split("T")[0].split("-");
         if (ano && mes && dia) {
           dataFormatada = `${dia}/${mes}`;
         }
@@ -143,9 +233,19 @@ export default function ModoPlaylist() {
     return dataFormatada || diaSemanaFormatado || "Cronograma do Culto";
   };
 
+  const getTamanhoFonteClass = () => {
+    switch (tamanhoFonte) {
+      case 'sm': return 'text-sm';
+      case 'md': return 'text-base';
+      case 'lg': return 'text-lg font-medium';
+      case 'xl': return 'text-xl font-bold';
+      default: return 'text-base';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center">
+      <div className={`min-h-screen flex flex-col items-center justify-center ${eEscuro ? 'bg-slate-950 text-slate-300' : 'bg-slate-50 text-slate-800'}`}>
         <Loader2 className="w-8 h-8 animate-spin text-slate-400 mb-2" />
         <p className="text-sm text-slate-500">Carregando playlist do culto...</p>
       </div>
@@ -154,9 +254,9 @@ export default function ModoPlaylist() {
 
   if (playlist.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-4">
+      <div className={`min-h-screen flex flex-col items-center justify-center p-4 ${eEscuro ? 'bg-slate-950 text-slate-300' : 'bg-slate-50 text-slate-800'}`}>
         <p className="text-center text-slate-500 mb-4">Nenhum item encontrado nesta playlist.</p>
-        <Button variant="outline" onClick={() => navigate("/historico-listas")}>
+        <Button variant="outline" onClick={() => navigate("/historico-listas")} className={eEscuro ? 'border-slate-800 hover:bg-slate-900 text-slate-300' : ''}>
           Voltar para o Histórico
         </Button>
       </div>
@@ -172,13 +272,13 @@ export default function ModoPlaylist() {
     { label: "Contralto", url: itemAtual.contralto },
     { label: "Tenor", url: itemAtual.tenor },
     { label: "Baixo", url: itemAtual.baixo }
-  ].filter(l => l.url && l.url.trim() !== "") : [];
+  ].filter((l) => l.url && l.url.trim() !== "") : [];
 
   const cabecalhoDataTexto = formatarCabecalhoCulto(listaInfo);
   const tipoCulto = listaInfo?.tipo_culto;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-8 flex flex-col justify-between">
+    <div className={`min-h-screen pb-24 transition-colors duration-300 ${eEscuro ? 'bg-slate-950' : 'bg-slate-50'} flex flex-col justify-between`}>
       <div>
         <div className="bg-slate-900 text-white px-4 pt-8 pb-6">
           {isDivider ? (
@@ -211,7 +311,7 @@ export default function ModoPlaylist() {
                   <button 
                     onClick={() => setSidebarOpen(!sidebarOpen)}
                     className={`relative p-2 rounded-lg transition-colors flex items-center justify-center ${
-                      sidebarOpen ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      sidebarOpen ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                     }`}
                     title="Cronograma do Culto"
                   >
@@ -235,20 +335,20 @@ export default function ModoPlaylist() {
 
         {!isDivider && (
           <div className="px-4 -mt-3 space-y-4 max-w-3xl mx-auto">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-3 space-y-3">
+            <div className={`rounded-xl shadow-sm border p-3 space-y-3 ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-slate-400" />
                   <div>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tom</p>
-                    <p className="text-sm font-semibold text-slate-800">{itemAtual.tom || "N/A"}</p>
+                    <p className={`text-sm font-semibold ${eEscuro ? 'text-slate-100' : 'text-slate-800'}`}>{itemAtual.tom || "N/A"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-slate-400" />
                   <div>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Andamento</p>
-                    <p className="text-sm font-semibold text-slate-800">{itemAtual.andamento || "N/A"}</p>
+                    <p className={`text-sm font-semibold ${eEscuro ? 'text-slate-100' : 'text-slate-800'}`}>{itemAtual.andamento || "N/A"}</p>
                   </div>
                 </div>
               </div>
@@ -256,19 +356,19 @@ export default function ModoPlaylist() {
               {linksValidos.length > 0 && (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <button className="w-full flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                    <button className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${eEscuro ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-50 hover:bg-slate-100'}`}>
                       <div className="flex items-center gap-2">
                         <Link2 className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-semibold text-blue-700">Links</span>
+                        <span className={`text-sm font-semibold ${eEscuro ? 'text-blue-400' : 'text-blue-700'}`}>Links</span>
                       </div>
-                      <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{linksValidos.length}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${eEscuro ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>{linksValidos.length}</span>
                     </button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-md bg-white border border-slate-100 text-slate-900">
-                    <DialogHeader><DialogTitle>Links (Google Drive)</DialogTitle></DialogHeader>
+                  <DialogContent className={`sm:max-w-md ${eEscuro ? 'bg-slate-900 text-slate-100 border-slate-800' : ''}`}>
+                    <DialogHeader><DialogTitle className={eEscuro ? 'text-slate-100' : ''}>Links (Google Drive)</DialogTitle></DialogHeader>
                     <div className="flex flex-col gap-2 py-4">
                       {linksValidos.map((linkItem, i) => (
-                        <a key={i} href={linkItem.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 text-sm">
+                        <a key={i} href={linkItem.url} target="_blank" rel="noopener noreferrer" className={`flex items-center justify-between p-3 border rounded-lg text-sm transition-colors ${eEscuro ? 'border-slate-800 hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-50 text-slate-700'}`}>
                           {linkItem.label} <ExternalLink className="w-4 h-4 text-blue-500" />
                         </a>
                       ))}
@@ -278,20 +378,20 @@ export default function ModoPlaylist() {
               )}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-              <Tabs defaultValue="letra" className="w-full">
-                <TabsList className="w-full rounded-none border-b bg-slate-50">
-                  <TabsTrigger value="letra" className="flex-1 text-xs">Letra</TabsTrigger>
-                  <TabsTrigger value="cifra1" className="flex-1 text-xs">Cifra 1</TabsTrigger>
-                  <TabsTrigger value="cifra2" className="flex-1 text-xs">Cifra 2</TabsTrigger>
+            <div className={`rounded-xl shadow-sm border overflow-hidden ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+              <Tabs defaultValue={abaPadrao} className="w-full">
+                <TabsList className={`w-full rounded-none border-b ${eEscuro ? 'bg-slate-950 border-slate-800' : 'bg-slate-50'}`}>
+                  <TabsTrigger value="letra" className={`flex-1 text-xs ${eEscuro ? 'data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400' : ''}`}>Letra</TabsTrigger>
+                  <TabsTrigger value="cifra1" className={`flex-1 text-xs ${eEscuro ? 'data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400' : ''}`}>Cifra 1</TabsTrigger>
+                  <TabsTrigger value="cifra2" className={`flex-1 text-xs ${eEscuro ? 'data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400' : ''}`}>Cifra 2</TabsTrigger>
                 </TabsList>
-                <TabsContent value="letra" className="p-4 m-0">
-                  <p className="text-base text-slate-700 whitespace-pre-wrap leading-relaxed">{itemAtual.letra_musica}</p>
+                <TabsContent value="letra" className="p-4 m-0 pb-6">
+                  <p className={`${getTamanhoFonteClass()} whitespace-pre-wrap leading-relaxed ${eEscuro ? 'text-slate-200' : 'text-slate-700'}`}>{itemAtual.letra_musica}</p>
                 </TabsContent>
-                <TabsContent value="cifra1" className="p-4 m-0">
+                <TabsContent value="cifra1" className="p-4 m-0 pb-6">
                   <CifraImageTab louvorId={itemAtual.id} field="cifra1_imagem" imageUrl={itemAtual.cifra1_imagem} />
                 </TabsContent>
-                <TabsContent value="cifra2" className="p-4 m-0">
+                <TabsContent value="cifra2" className="p-4 m-0 pb-6">
                   <CifraImageTab louvorId={itemAtual.id} field="cifra2_imagem" imageUrl={itemAtual.cifra2_imagem} />
                 </TabsContent>
               </Tabs>
@@ -300,31 +400,30 @@ export default function ModoPlaylist() {
         )}
 
         {isDivider && (
-          <div className="max-w-xl mx-auto mt-12 bg-white p-12 rounded-3xl border border-slate-100 text-center shadow-sm">
-            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-2xl flex items-center justify-center mx-auto shadow-sm mb-4">
+          <div className={`max-w-xl mx-auto mt-12 p-12 rounded-3xl border text-center shadow-sm ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-sm mb-4 ${eEscuro ? 'bg-indigo-950/50 text-indigo-400 border border-indigo-900/50' : 'bg-indigo-50 text-indigo-600 border border-indigo-100'}`}>
               <MessageSquare className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">{itemAtual.text || "Seção"}</h2>
+            <h2 className={`text-2xl font-black tracking-tight uppercase ${eEscuro ? 'text-slate-100' : 'text-slate-900'}`}>{itemAtual.text || "Seção"}</h2>
           </div>
         )}
       </div>
 
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 flex justify-end">
-          <div className="bg-white w-80 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
-            {/* Header: Tipo de Culto roxo em cima e Data/Dia da semana em preto embaixo (com dia da semana formatado ex: "Sexta-Feira") */}
-            <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-start justify-between">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex justify-end">
+          <div className={`w-80 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200 ${eEscuro ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-900'}`}>
+            <div className={`p-4 border-b flex items-start justify-between ${eEscuro ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
               <div>
                 {tipoCulto && (
-                  <h3 className="text-base font-extrabold text-indigo-600 uppercase tracking-tight">
+                  <h3 className="text-base font-extrabold text-indigo-400 uppercase tracking-tight">
                     {tipoCulto}
                   </h3>
                 )}
-                <p className={`font-bold text-slate-900 ${tipoCulto ? 'text-sm mt-0.5' : 'text-base'}`}>
+                <p className={`font-bold ${eEscuro ? 'text-slate-100' : 'text-slate-900'} ${tipoCulto ? "text-sm mt-0.5" : "text-base"}`}>
                   {cabecalhoDataTexto}
                 </p>
               </div>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900" onClick={() => setSidebarOpen(false)}>✕</Button>
+              <Button variant="ghost" size="sm" className={`h-7 w-7 p-0 ${eEscuro ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`} onClick={() => setSidebarOpen(false)}>✕</Button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -348,12 +447,12 @@ export default function ModoPlaylist() {
                     onClick={() => { setActiveIndex(index); setSidebarOpen(false); }}
                     className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
                       isSelected
-                        ? itemIsDivider ? "bg-indigo-600 text-white font-bold" : "bg-slate-900 text-white font-bold"
-                        : "text-slate-600 hover:bg-slate-100"
+                        ? itemIsDivider ? "bg-indigo-600 text-white font-bold" : (eEscuro ? "bg-slate-800 text-white font-bold" : "bg-slate-900 text-white font-bold")
+                        : (eEscuro ? "text-slate-300 hover:bg-slate-800/60" : "text-slate-600 hover:bg-slate-100")
                     }`}
                   >
                     <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${
-                      isSelected ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                      isSelected ? "bg-white/20 text-white" : (eEscuro ? "bg-slate-800 text-slate-400" : "bg-slate-100 text-slate-500")
                     }`}>
                       {index + 1}
                     </div>
@@ -374,7 +473,7 @@ export default function ModoPlaylist() {
               })}
             </div>
 
-            <div className="p-3 bg-slate-50">
+            <div className={`p-3 ${eEscuro ? 'bg-slate-950 border-t border-slate-800' : 'bg-slate-50'}`}>
               <Button 
                 onClick={() => navigate("/historico-listas")}
                 className="w-full justify-center gap-2 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl h-10 shadow-sm"
@@ -386,7 +485,7 @@ export default function ModoPlaylist() {
         </div>
       )}
 
-      <div className="sticky bottom-0 bg-white border-t border-slate-200 px-4 py-3 mt-8 flex items-center justify-between gap-4 z-10 shadow-lg">
+      <div className={`sticky bottom-0 border-t px-4 py-3 mt-8 flex items-center justify-between gap-4 z-40 shadow-lg ${eEscuro ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-slate-200'} backdrop-blur-md`}>
         <span className="text-xs font-semibold text-slate-500 tracking-wider hidden sm:inline">
           Etapa {activeIndex + 1} de {playlist.length}
         </span>
@@ -396,7 +495,7 @@ export default function ModoPlaylist() {
             onClick={handleRetroceder}
             disabled={activeIndex === 0}
             variant="outline"
-            className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-30 h-10 px-5 rounded-xl flex-1 sm:flex-none"
+            className={`h-10 px-5 rounded-xl flex-1 sm:flex-none disabled:opacity-30 ${eEscuro ? 'border-slate-800 bg-slate-800 text-slate-200 hover:bg-slate-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
           >
             <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
           </Button>

@@ -230,6 +230,10 @@ export default function HistoricoListas() {
     setPreviewOpen(true);
   };
 
+  const abrirModoPlaylist = (lista) => {
+    navigate("/modo-playlist", { state: { lista } });
+  };
+
   const abrirEdicao = (lista) => {
     setListaSelecionada(JSON.parse(JSON.stringify(lista)));
     setBuscaEdicao("");
@@ -504,12 +508,21 @@ export default function HistoricoListas() {
                   })}
                 </div>
 
-                <div className="pt-2 flex flex-wrap gap-2 border-t border-slate-100 dark:border-slate-800">
+                {/* BOTÕES INFERIORES: Playlist + Reimprimir */}
+                <div className="pt-2 grid grid-cols-2 gap-2 border-t border-slate-100 dark:border-slate-800">
+                  <Button
+                    onClick={() => abrirModoPlaylist(lista)}
+                    size="sm"
+                    className="w-full h-9 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 transition-colors shadow-xs"
+                  >
+                    <Play className="w-4 h-4 fill-white" /> Playlist
+                  </Button>
+
                   <Button
                     onClick={() => abrirPreview(lista, "image")}
-                    variant="default"
+                    variant="outline"
                     size="sm"
-                    className="w-full h-8 text-xs font-semibold rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-2"
+                    className="w-full h-9 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2 transition-colors"
                   >
                     <Printer className="w-4 h-4" /> Reimprimir
                   </Button>

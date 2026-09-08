@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 import path from 'path' 
 
 export default defineConfig({
+  logLevel: 'warn',
   plugins: [
     react(),
   ],
@@ -14,6 +15,9 @@ export default defineConfig({
   server: {
     port: 5174,
     host: true,
+    hmr: {
+      overlay: false,
+    },
   },
   build: {
     chunkSizeWarningLimit: 1000, 
