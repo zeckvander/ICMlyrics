@@ -4,7 +4,7 @@ import {
   Music2, ListPlus, Radio, Gauge, Mic, History, LogOut, 
   BookOpen, Cloud, Link2, Link2Off, Eye, EyeOff, MessageSquare, 
   AlertTriangle, Database, Megaphone, ListMusic, Sparkles, Settings, Users, User,
-  Piano
+  Piano, Monitor
 } from "lucide-react";
 import { useTools } from "@/components/tools/ToolsProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -449,6 +449,18 @@ export default function Dashboard() {
                   <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-100">{f.label}</span>
                 </button>
               ))}
+
+              <button
+                onClick={() => navigate("/projetor/PainelControle")}
+                className="col-span-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 flex items-center justify-center gap-3 hover:shadow-md active:scale-[0.99] transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-blue-600 dark:bg-slate-800 flex items-center justify-center shrink-0 shadow-sm">
+                  <Monitor className="w-5 h-5 text-white dark:text-slate-200" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-100">
+                  Projeção
+                </span>
+              </button>
             </div>
           </div>
         </div>

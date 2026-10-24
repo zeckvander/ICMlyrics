@@ -38,7 +38,10 @@ import RegistroDons from '@/pages/RegistroDons';
 import Dados from '@/pages/Dados';
 import Oracao from '@/pages/Oracao';
 import ListaOracao from '@/components/lista/ListaOracao';
-import RedefinirSenha from './pages/RedefinirSenha';
+import RedefinirSenha from '@/pages/RedefinirSenha';
+import PainelControle from '@/components/projetor/PainelControle';
+import TelaAoVivo from '@/components/projetor/TelaAoVivo';
+import TelaProjetor from '@/components/projetor/TelaProjetor';
 
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -129,6 +132,9 @@ function App() {
             <Route path="/oracao" element={<Oracao />} />
             <Route path="/lista-oracao/:id" element={<ListaOracao />} />
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+            <Route path="/projetor/PainelControle" element={<PainelControle />} />
+            <Route path="/projetor/tela-aovivo" element={<TelaAoVivo />} />
+            <Route path="/projetor/tela-projetor" element={<TelaProjetor />} />    
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>

@@ -3,7 +3,8 @@ import { defineConfig } from 'vite'
 import path from 'path' 
 
 export default defineConfig({
-  logLevel: 'warn',
+  // logLevel alterado para 'info' para exibir os links no terminal
+  logLevel: 'info',
   plugins: [
     react(),
   ],
