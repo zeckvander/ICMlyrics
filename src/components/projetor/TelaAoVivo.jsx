@@ -154,9 +154,8 @@ export default function TelaAoVivo() {
           <div className="flex md:hidden items-center bg-black/40 rounded-xl p-1 border border-blue-700/60 gap-1 ml-auto">
             <button
               onClick={alternarTamanho}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 shadow flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-950 shadow flex items-center gap-1.5 cursor-pointer"
             >
-              <Type className="w-3.5 h-3.5" />
               <span>{ciclosTamanhos[tamanhoIndex].label}</span>
             </button>
           </div>
