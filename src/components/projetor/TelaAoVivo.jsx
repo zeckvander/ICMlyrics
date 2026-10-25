@@ -16,7 +16,18 @@ export default function TelaAoVivo() {
     imagem_fundo_url: ""
   });
 
-  const [tamanhoMobile, setTamanhoMobile] = useState("medio");
+  const [tamanhoIndex, setTamanhoIndex] = useState(1);
+
+  const ciclosTamanhos = [
+    { id: "pequeno", label: "P", classe: "text-base sm:text-2xl md:text-3xl lg:text-4xl" },
+    { id: "medio", label: "M", classe: "text-xl sm:text-3xl md:text-4xl lg:text-5xl" },
+    { id: "grande", label: "G", classe: "text-2xl sm:text-4xl md:text-5xl lg:text-6xl" },
+    { id: "gg", label: "GG", classe: "text-3xl sm:text-5xl md:text-6xl lg:text-7xl" }
+  ];
+
+  const alternarTamanho = () => {
+    setTamanhoIndex((prev) => (prev + 1) % ciclosTamanhos.length);
+  };
 
   useEffect(() => {
     const carregarTudo = async () => {
@@ -82,18 +93,6 @@ export default function TelaAoVivo() {
     return { backgroundColor: "#030712", color: "#ffffff" };
   };
 
-  const obterClasseTamanhoMobile = () => {
-    switch (tamanhoMobile) {
-      case "pequeno":
-        return "text-lg sm:text-2xl md:text-3xl lg:text-4xl";
-      case "grande":
-        return "text-2xl sm:text-4xl md:text-5xl lg:text-6xl";
-      case "medio":
-      default:
-        return "text-xl sm:text-3xl md:text-4xl lg:text-5xl";
-    }
-  };
-
   const renderizarTextoComDestaque = (texto) => {
     if (!texto) return null;
     
@@ -142,7 +141,7 @@ export default function TelaAoVivo() {
         <div className="w-full px-6 sm:px-12 py-3.5 sm:py-5 bg-gradient-to-r from-blue-950 via-blue-900 to-blue-950 border-b-2 border-blue-700/80 relative flex items-center justify-between shrink-0 shadow-2xl">
           <div className="flex items-center gap-2">
             <span className="italic font-serif text-amber-300 text-lg sm:text-2xl tracking-wide drop-shadow-md">
-              Louvor
+              
             </span>
           </div>
 
@@ -153,30 +152,12 @@ export default function TelaAoVivo() {
           </div>
 
           <div className="flex md:hidden items-center bg-black/40 rounded-xl p-1 border border-blue-700/60 gap-1 ml-auto">
-            <Type className="w-3.5 h-3.5 text-amber-300 ml-1.5 mr-0.5" />
             <button
-              onClick={() => setTamanhoMobile("pequeno")}
-              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                tamanhoMobile === "pequeno" ? "bg-amber-500 text-slate-950 shadow" : "text-amber-200 hover:text-white"
-              }`}
+              onClick={alternarTamanho}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 shadow flex items-center gap-1.5 cursor-pointer"
             >
-              P
-            </button>
-            <button
-              onClick={() => setTamanhoMobile("medio")}
-              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                tamanhoMobile === "medio" ? "bg-amber-500 text-slate-950 shadow" : "text-amber-200 hover:text-white"
-              }`}
-            >
-              M
-            </button>
-            <button
-              onClick={() => setTamanhoMobile("grande")}
-              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                tamanhoMobile === "grande" ? "bg-amber-500 text-slate-950 shadow" : "text-amber-200 hover:text-white"
-              }`}
-            >
-              G
+              <Type className="w-3.5 h-3.5" />
+              <span>{ciclosTamanhos[tamanhoIndex].label}</span>
             </button>
           </div>
         </div>
@@ -192,10 +173,14 @@ export default function TelaAoVivo() {
           </h1>
         ) : (
           <p 
-            className={`font-bold uppercase whitespace-pre tracking-wide text-left transition-all duration-200 ${obterClasseTamanhoMobile()} ${
+            className={`font-bold uppercase tracking-wide text-left transition-all duration-200 ${ciclosTamanhos[tamanhoIndex].classe} ${
               eFundoClaro ? "drop-shadow-none" : "drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
             }`}
-            style={{ lineHeight: 1.55 }}
+            style={{ 
+              lineHeight: 1.55, 
+              wordBreak: "break-word", 
+              overflowWrap: "break-word" 
+            }}
           >
             {renderizarTextoComDestaque(conteudo.texto)}
           </p>
