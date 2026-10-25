@@ -533,24 +533,17 @@ export default function PainelControle() {
     }
 
     const termoNorm = normalizarTexto(termoBruto);
-    const eNumero = !isNaN(termoBruto);
 
     let query = supabase.from("louvores").select("*");
     if (categoria !== "all") {
       query = query.eq("categoria", categoria);
     }
 
-    if (eNumero) {
-      query = query.eq("numero", parseInt(termoBruto, 10));
-    } else {
-      query = query.or(`nome.ilike.%${termoBruto}%,letra_musica.ilike.%${termoBruto}%`);
-    }
-
-    const { data } = await query.limit(50);
+    const { data } = await query;
 
     if (data) {
       const filtradosESort = ordenarLouvoresCustom(data.filter((l) => {
-        const matchNumero = l.numero !== null && l.numero !== undefined && String(l.numero).startsWith(termoBruto);
+        const matchNumero = l.numero !== null && l.numero !== undefined && String(l.numero).includes(termoBruto);
         const matchNome = normalizarTexto(l.nome).includes(termoNorm);
         const matchLetra = l.letra_musica && normalizarTexto(l.letra_musica).includes(termoNorm);
         return matchNumero || matchNome || matchLetra;
@@ -574,46 +567,151 @@ export default function PainelControle() {
 
   const selecionarLouvor = (louvor) => {
     let estrofesProcessadas = [];
-    if (louvor.letra_musica) {
-      const blocosBrutos = louvor.letra_musica.split(/\n\s*\n/).map(b => b.trim()).filter(b => b !== "");
-      
-      let estrofesPuras = [];
-      let coroTexto = null;
-      let finalTexto = null;
+    let primeiroCoroCompletoTexto = "";
 
-      blocosBrutos.forEach(bloco => {
-        const linhas = bloco.split("\n");
-        const primeiraLinhaNorm = normalizarTexto(linhas[0]);
+    const tituloCompleto = louvor.numero !== null && louvor.numero !== undefined && louvor.numero !== 0 
+      ? `${louvor.numero} - ${louvor.nome}` 
+      : louvor.nome;
 
-        if ((primeiraLinhaNorm === "coro" || primeiraLinhaNorm === "coro:") && linhas.length === 1) {
+    // Slide 1: Apenas o nome do hino (título)
+    estrofesProcessadas.push({
+      isTitle: true,
+      label: "",
+      content: tituloCompleto
+    });
+
+    const processarBlocoEfetivo = (primeiraLinhaOriginal, linhasCorpo) => {
+      const matchMultiplicador = primeiraLinhaOriginal.match(/\b(\d+)[xX]\b|\b(bis)\b/i);
+      const instrucaoLimpa = primeiraLinhaOriginal.replace(/\b\d+[xX]\b|\bbis\b/gi, "").trim();
+      const primeiraLower = primeiraLinhaOriginal.toLowerCase();
+
+      // Ignora e remove completamente a palavra "cantar" ou linhas que sejam apenas "Cantar:"
+      if (instrucaoLimpa.toLowerCase() === "cantar" || instrucaoLimpa.toLowerCase() === "cantar:") {
+        const corpoTexto = linhasCorpo.join("\n");
+        if (corpoTexto) {
+          estrofesProcessadas.push({
+            isTitle: false,
+            label: "",
+            content: matchMultiplicador ? Array(matchMultiplicador[1] ? parseInt(matchMultiplicador[1]) : 2).fill(corpoTexto).join("\n\n") : corpoTexto
+          });
+        }
+        return;
+      }
+
+      let rotuloFormatado = "";
+      if (primeiraLower.includes("coro")) rotuloFormatado = "CORO:";
+      else if (primeiraLower.includes("final")) rotuloFormatado = "FINAL:";
+      else if (primeiraLower.includes("instrumental")) rotuloFormatado = "INSTRUMENTAL:";
+
+      if (matchMultiplicador) {
+        const vezes = matchMultiplicador[1] ? parseInt(matchMultiplicador[1]) : 2;
+        const corpoTexto = linhasCorpo.join("\n");
+
+        if (corpoTexto.length === 0) {
           return;
         }
 
-        if ((primeiraLinhaNorm === "coro" || primeiraLinhaNorm === "coro:") && linhas.length > 1) {
-          coroTexto = bloco;
-        } else if (primeiraLinhaNorm.startsWith("final")) {
-          finalTexto = bloco;
+        if (linhasCorpo.length > 7) {
+          const chunks = [];
+          for (let i = 0; i < linhasCorpo.length; i += 4) {
+            chunks.push(linhasCorpo.slice(i, i + 4).join("\n"));
+          }
+          for (let v = 0; v < vezes; v++) {
+            chunks.forEach((chunk, index) => {
+              estrofesProcessadas.push({
+                isTitle: false,
+                label: index === 0 ? rotuloFormatado : "",
+                content: chunk
+              });
+            });
+          }
         } else {
-          estrofesPuras.push(bloco);
+          const partesRepetidas = Array(vezes).fill(corpoTexto).join("\n\n");
+          estrofesProcessadas.push({
+            isTitle: false,
+            label: rotuloFormatado,
+            content: partesRepetidas
+          });
+        }
+      } else {
+        const corpoTextoUnico = linhasCorpo.join("\n");
+        estrofesProcessadas.push({
+          isTitle: false,
+          label: rotuloFormatado,
+          content: corpoTextoUnico
+        });
+      }
+    };
+
+    if (louvor.letra_musica) {
+      const blocosBrutos = louvor.letra_musica.split(/\n\s*\n/).map(b => b.trim()).filter(b => b !== "");
+
+      blocosBrutos.forEach((b) => {
+        const linhas = b.split("\n");
+        const primeira = (linhas[0] || "").toLowerCase();
+        if (primeira.includes("coro") && linhas.length > 1) {
+          if (!primeiroCoroCompletoTexto) {
+            primeiroCoroCompletoTexto = b;
+          }
         }
       });
 
-      if (coroTexto && estrofesPuras.length > 0) {
-        estrofesPuras.forEach((est) => {
-          estrofesProcessadas.push(est);
-          estrofesProcessadas.push(coroTexto);
-        });
-      } else {
-        estrofesProcessadas = estrofesPuras;
-      }
+      const processarBlocoComRegraCondicional = (textoBloco) => {
+        const linhasBloco = textoBloco.split("\n");
+        let primeiraLinha = linhasBloco[0] || "";
+        const matchMultiplicador = primeiraLinha.match(/\b(\d+)[xX]\b|\b(bis)\b/i);
+        const primeiraLinhaLower = primeiraLinha.toLowerCase();
 
-      if (finalTexto) {
-        estrofesProcessadas.push(finalTexto);
-      }
+        // Seção Instrumental vazia
+        if (primeiraLinhaLower.includes("instrumental")) {
+          estrofesProcessadas.push({
+            isTitle: false,
+            label: "INSTRUMENTAL:",
+            content: ""
+          });
+          return;
+        }
 
-      if (estrofesProcessadas.length === 0 && blocosBrutos.length > 0) {
-        estrofesProcessadas = blocosBrutos;
-      }
+        // Repetição de estrofes
+        if (primeiraLinhaLower.includes("repetir") || primeiraLinhaLower.includes("repete")) {
+          if (primeiraLinhaLower.includes("1") || primeiraLinhaLower.includes("primeira")) {
+            if (blocosBrutos.length > 0) {
+              processarBlocoComRegraCondicional(blocosBrutos[0]);
+            }
+          }
+          return;
+        }
+
+        if (matchMultiplicador) {
+          const linhasCorpo = linhasBloco.slice(1);
+          const corpoTexto = linhasCorpo.join("\n");
+
+          if (!corpoTexto) {
+            if (primeiraLinhaLower.includes("coro") && primeiroCoroCompletoTexto) {
+              processarBlocoComRegraCondicional(primeiroCoroCompletoTexto);
+            }
+            return;
+          }
+
+          processarBlocoEfetivo(primeiraLinha, linhasCorpo);
+        } else {
+          if (linhasBloco.length === 1 && primeiraLinhaLower.includes("coro")) {
+            if (primeiroCoroCompletoTexto) {
+              processarBlocoComRegraCondicional(primeiroCoroCompletoTexto);
+            } else {
+              estrofesProcessadas.push({
+                isTitle: false,
+                label: "CORO:",
+                content: textoBloco
+              });
+            }
+          } else {
+            processarBlocoEfetivo(primeiraLinha, linhasBloco.slice(1));
+          }
+        }
+      };
+
+      blocosBrutos.forEach((b) => processarBlocoComRegraCondicional(b));
     }
     
     const objetoLouvor = { ...louvor, estrofes: estrofesProcessadas };
@@ -621,15 +719,12 @@ export default function PainelControle() {
     setEstrofeAtiva(0);
     setLouvoresResultado([]);
 
-    const tituloFormatado = louvor.numero !== null && louvor.numero !== undefined && louvor.numero !== 0 
-      ? `${louvor.numero} - ${louvor.nome}` 
-      : louvor.nome;
-
     if (estrofesProcessadas.length > 0) {
+      const slideInicial = estrofesProcessadas[0];
       transmitirProjecao({
         tipo: "louvor",
-        titulo: tituloFormatado,
-        texto: estrofesProcessadas[0]
+        titulo: tituloCompleto,
+        texto: slideInicial.isTitle ? "" : (slideInicial.label ? `${slideInicial.label}\n${slideInicial.content}` : slideInicial.content)
       });
     }
   };
@@ -637,13 +732,15 @@ export default function PainelControle() {
   const irParaEstrofe = (index) => {
     if (!louvorSelecionado || !louvorSelecionado.estrofes[index]) return;
     setEstrofeAtiva(index);
-    const tituloFormatado = louvorSelecionado.numero !== null && louvorSelecionado.numero !== undefined && louvorSelecionado.numero !== 0 
+    const slideAlvo = louvorSelecionado.estrofes[index];
+    const tituloCompleto = louvorSelecionado.numero !== null && louvorSelecionado.numero !== undefined && louvorSelecionado.numero !== 0 
       ? `${louvorSelecionado.numero} - ${louvorSelecionado.nome}` 
       : louvorSelecionado.nome;
+
     transmitirProjecao({
       tipo: "louvor",
-      titulo: tituloFormatado,
-      texto: louvorSelecionado.estrofes[index]
+      titulo: tituloCompleto,
+      texto: slideAlvo.isTitle ? "" : (slideAlvo.label ? `${slideAlvo.label}\n${slideAlvo.content}` : slideAlvo.content)
     });
   };
 
@@ -1001,12 +1098,12 @@ export default function PainelControle() {
                             </h2>
                           </div>
                           <span className="text-xs text-slate-400 font-mono font-bold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
-                            Bloco {estrofeAtiva + 1} / {louvorSelecionado.estrofes.length}
+                            Slide {estrofeAtiva + 1} / {louvorSelecionado.estrofes.length}
                           </span>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1">
-                          {louvorSelecionado.estrofes.map((estrofe, idx) => (
+                          {louvorSelecionado.estrofes.map((slideItem, idx) => (
                             <button
                               key={idx}
                               onClick={() => irParaEstrofe(idx)}
@@ -1017,9 +1114,20 @@ export default function PainelControle() {
                               }`}
                             >
                               <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                                Bloco {idx + 1}
+                                {slideItem.isTitle ? "Slide de Título" : `Slide ${idx + 1}`}
                               </span>
-                              <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{estrofe}</p>
+                              {slideItem.isTitle ? (
+                                <p className="text-sm sm:text-base font-bold text-teal-600 dark:text-teal-400">{slideItem.content}</p>
+                              ) : (
+                                <>
+                                  {slideItem.label && (
+                                    <p className="text-xs sm:text-sm font-bold text-yellow-500 uppercase tracking-wide mb-1">
+                                      {slideItem.label}
+                                    </p>
+                                  )}
+                                  <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{slideItem.content}</p>
+                                </>
+                              )}
                             </button>
                           ))}
                         </div>
