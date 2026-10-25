@@ -81,7 +81,7 @@ export default function TelaAoVivo() {
   const obterEstiloFundo = () => {
     if (config.tema_modo === "imagem" && config.imagem_fundo_url) {
       return {
-        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)), url(${config.imagem_fundo_url})`,
+        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.75)), url(${config.imagem_fundo_url})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         color: "#ffffff"
