@@ -77,13 +77,15 @@ export default function TelaAoVivo() {
   }, []);
 
   const eFundoClaro = config.tema_modo === "claro";
+  const eModoEspera = conteudo.tipo === "espera";
 
   const obterEstiloFundo = () => {
     if (config.tema_modo === "imagem" && config.imagem_fundo_url) {
       return {
-        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.75)), url(${config.imagem_fundo_url})`,
-        backgroundSize: "cover",
+        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${config.imagem_fundo_url})`,
+        backgroundSize: "100% 100%",
         backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
         color: "#ffffff"
       };
     }
@@ -137,7 +139,7 @@ export default function TelaAoVivo() {
         ...obterEstiloFundo()
       }}
     >
-      {!ehPrimeiroSlideTitulo && (
+      {!eModoEspera && !ehPrimeiroSlideTitulo && (
         <div className="w-full px-6 sm:px-12 py-3.5 sm:py-5 bg-gradient-to-r from-blue-950 via-blue-900 to-blue-950 border-b-2 border-blue-700/80 relative flex items-center justify-between shrink-0 shadow-2xl">
           <div className="flex items-center gap-2">
             <span className="italic font-serif text-amber-300 text-lg sm:text-2xl tracking-wide drop-shadow-md">
@@ -162,31 +164,33 @@ export default function TelaAoVivo() {
         </div>
       )}
 
-      <div className={`flex-1 flex flex-col items-start justify-center pl-4 sm:pl-8 pr-6 py-8 w-full overflow-hidden box-border ${ehPrimeiroSlideTitulo ? "h-full" : ""}`}>
-        {ehPrimeiroSlideTitulo ? (
-          <h1 
-            className={classeTitulo}
-            style={{ wordBreak: "normal", overflowWrap: "normal" }}
-          >
-            {conteudo.titulo}
-          </h1>
-        ) : (
-          <p 
-            className={`font-bold uppercase tracking-wide text-left transition-all duration-200 ${ciclosTamanhos[tamanhoIndex].classe} ${
-              eFundoClaro ? "drop-shadow-none" : "drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
-            }`}
-            style={{ 
-              lineHeight: 1.55, 
-              wordBreak: "break-word", 
-              overflowWrap: "break-word" 
-            }}
-          >
-            {renderizarTextoComDestaque(conteudo.texto)}
-          </p>
-        )}
-      </div>
+      {!eModoEspera && (
+        <div className={`flex-1 flex flex-col items-start justify-center pl-4 sm:pl-8 pr-6 py-8 w-full overflow-hidden box-border ${ehPrimeiroSlideTitulo ? "h-full" : ""}`}>
+          {ehPrimeiroSlideTitulo ? (
+            <h1 
+              className={classeTitulo}
+              style={{ wordBreak: "normal", overflowWrap: "normal" }}
+            >
+              {conteudo.titulo}
+            </h1>
+          ) : (
+            <p 
+              className={`font-bold uppercase tracking-wide text-left transition-all duration-200 ${ciclosTamanhos[tamanhoIndex].classe} ${
+                eFundoClaro ? "drop-shadow-none" : "drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
+              }`}
+              style={{ 
+                lineHeight: 1.55, 
+                wordBreak: "break-word", 
+                overflowWrap: "break-word" 
+              }}
+            >
+              {renderizarTextoComDestaque(conteudo.texto)}
+            </p>
+          )}
+        </div>
+      )}
 
-      {conteudo.avisoUrgente && (
+      {!eModoEspera && conteudo.avisoUrgente && (
         <div className="w-full bg-amber-600 text-white py-3 px-6 text-center font-extrabold text-base sm:text-lg md:text-xl uppercase tracking-wider shrink-0 shadow-2xl animate-bounce">
           {conteudo.avisoUrgente}
         </div>
