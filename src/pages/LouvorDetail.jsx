@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Pencil, Trash2, Music, MapPin, Loader2, Star, Link2, Clock, Piano } from "lucide-react";
+import { ArrowLeft, ExternalLink, Pencil, Trash2, Music, MapPin, Loader2, Star, Link2, Clock, Piano, RotateCcw, Play, Pause, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import CategoriaBadge from "@/components/louvores/CategoriaBadge";
 import LouvorForm from "@/components/louvores/LouvorForm";
-import CifraImageTab from "@/components/louvores/CifraImageTab";
+import CifraViewer from "@/components/louvores/CifraViewer";
 import PianoPartituraModal from "@/components/tools/PianoPartituraModal";
 import { isFavorite, toggleFavorite } from "@/lib/favorites";
 import { TEMAS_PADRAO } from "@/data/louvores_coletanea_tema";
 import { getHinoMedia } from "@/lib/r2Utils";
 import { supabase } from "@/lib/supabaseClient";
+import { transporAcorde } from "@/components/louvores/escalas";
 
 export default function LouvorDetail() {
   const { id } = useParams();
@@ -24,20 +25,29 @@ export default function LouvorDetail() {
   const [fav, setFav] = useState(false);
   const [admin, setAdmin] = useState(false);
   const [modalPianoAberto, setModalPianoAberto] = useState(false);
+  const [transposicao, setTransposicao] = useState(0);
+
+  // Estados do Metrônomo Inline
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [bpm, setBpm] = useState(90);
+  const [isPulse, setIsPulse] = useState(false);
+
+  const audioCtxRef = useRef(null);
+  const timerRef = useRef(null);
   
+  const perfil = localStorage.getItem('icmlyrics_perfil') || 'instrumento';
+  const cifraPadrao = localStorage.getItem('icmlyrics_cifra_padrao') || 'cifra1';
+  const abaInicial = perfil === 'voz' ? 'letra' : cifraPadrao;
+  const [abaAtiva, setAbaAtiva] = useState(abaInicial === 'cifra2' ? 'cifra1' : abaInicial);
+
   const [tamanhoFonte, setTamanhoFonte] = useState(() => localStorage.getItem('icmlyrics_fonte') || 'md');
   const [tema, setTema] = useState(() => localStorage.getItem('icmlyrics_tema') || 'escuro');
   const eEscuro = tema === 'escuro';
-
-  const perfil = localStorage.getItem('icmlyrics_perfil') || 'instrumento';
-  const cifraPadrao = localStorage.getItem('icmlyrics_cifra_padrao') || 'cifra1';
-  const abaPadrao = perfil === 'voz' ? 'letra' : cifraPadrao;
 
   const musico = localStorage.getItem("icmlyrics_user") || "";
 
   useEffect(() => {
     let wakeLock = null;
-
     const solicitarWakeLock = async () => {
       const manterAcesa = localStorage.getItem('icmlyrics_keep_awake') === 'true';
       if (manterAcesa && 'wakeLock' in navigator) {
@@ -48,7 +58,6 @@ export default function LouvorDetail() {
         }
       }
     };
-
     solicitarWakeLock();
 
     const handleVisibilityChange = async () => {
@@ -57,7 +66,6 @@ export default function LouvorDetail() {
         await solicitarWakeLock();
       }
     };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
@@ -69,17 +77,71 @@ export default function LouvorDetail() {
   }, []);
 
   useEffect(() => { loadLouvor(); }, [id]);
-  useEffect(() => { if (louvor) setFav(isFavorite(musico, louvor.id)); }, [louvor, musico]);
+
+  useEffect(() => { 
+    if (louvor) {
+      setFav(isFavorite(musico, louvor.id));
+      if (louvor.bpm_compasso) {
+        const numeros = louvor.bpm_compasso.match(/\d+/);
+        if (numeros) setBpm(parseInt(numeros[0]));
+      }
+    } 
+  }, [louvor, musico]);
+
+  // Lógica do Áudio do Metrônomo
+  useEffect(() => {
+    if (!isPlaying) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    const interval = (60 / bpm) * 1000;
+
+    const playClick = () => {
+      try {
+        const ctx = audioCtxRef.current;
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const osc = ctx.createOscillator();
+        const envelope = ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+
+        envelope.gain.setValueAtTime(1, ctx.currentTime);
+        envelope.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+
+        osc.connect(envelope);
+        envelope.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.05);
+
+        setIsPulse(true);
+        setTimeout(() => setIsPulse(false), 100);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    playClick();
+    timerRef.current = setInterval(playClick, interval);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isPlaying, bpm]);
 
   useEffect(() => {
     const verificarSessao = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
-        if (user && !error) {
-          setAdmin(true);
-        } else {
-          setAdmin(false);
-        }
+        if (user && !error) setAdmin(true);
+        else setAdmin(false);
       } catch (err) {
         setAdmin(false);
       }
@@ -96,7 +158,11 @@ export default function LouvorDetail() {
       .maybeSingle();
     
     if (error) console.error(error);
-    else setLouvor(data);
+    else {
+      setLouvor(data);
+      setTransposicao(0);
+      setIsPlaying(false);
+    }
     setLoading(false);
   };
 
@@ -125,9 +191,8 @@ export default function LouvorDetail() {
         .delete()
         .eq('id', louvor.id);
 
-      if (error) {
-        alert("Erro ao excluir: " + error.message);
-      } else {
+      if (error) alert("Erro ao excluir: " + error.message);
+      else {
         alert("Louvor excluído com sucesso!");
         handleVoltar();
       }
@@ -137,8 +202,8 @@ export default function LouvorDetail() {
   };
 
   const handleVoltar = () => {
+    setIsPlaying(false);
     const rotaRetorno = localStorage.getItem("icmlyrics_retorno_repertorio");
-    
     if (rotaRetorno) {
       localStorage.removeItem("icmlyrics_retorno_repertorio"); 
       navigate(rotaRetorno);
@@ -149,7 +214,6 @@ export default function LouvorDetail() {
 
   const getTemaReal = (numero, categoria) => {
     if (!numero || !categoria) return null;
-    
     const item = TEMAS_PADRAO.find(
       t => t.numero === String(numero) && t.categoria === categoria
     );
@@ -193,6 +257,15 @@ export default function LouvorDetail() {
   const temNumero = louvor.numero !== null && louvor.numero !== undefined && String(louvor.numero).trim() !== "";
   const nomePasta = temNumero ? `${louvor.numero} - ${louvor.nome}` : louvor.nome;
   const { pdfUrl, midiUrl } = getHinoMedia(nomePasta, "mid");
+
+  const semitonsEfetivos = ((transposicao % 12) + 12) % 12;
+  const tomAtual = louvor.mapa_musica ? transporAcorde(louvor.mapa_musica, semitonsEfetivos) : "";
+  const tomAlterado = transposicao !== 0;
+  const exibeBotoesTom = abaAtiva === 'cifra1';
+
+  // Extrair compasso (ex: "85-95 3/4" -> pega o "3/4")
+  const partesBpmCompasso = louvor.bpm_compasso ? louvor.bpm_compasso.split(" ") : [];
+  const compassoTexto = partesBpmCompasso.slice(1).join(" ");
 
   return (
     <div className={`min-h-screen pb-8 transition-colors duration-300 ${eEscuro ? 'bg-slate-950' : 'bg-slate-50'}`}>
@@ -248,22 +321,98 @@ export default function LouvorDetail() {
 
       <div className="px-4 -mt-3 space-y-4">
         <div className={`rounded-xl shadow-sm border p-3 space-y-3 ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 items-center">
+            
+            {/* Coluna Esquerda: TOM */}
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-slate-400" />
               <div>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tom</p>
-                <p className={`text-sm font-semibold ${eEscuro ? 'text-slate-100' : 'text-slate-800'}`}>{louvor.mapa_musica || "N/A"}</p>
+                <p className={`text-sm font-semibold ${tomAlterado && exibeBotoesTom ? 'text-red-500 font-bold' : (eEscuro ? 'text-slate-100' : 'text-slate-800')}`}>
+                  {exibeBotoesTom ? (tomAtual || "N/A") : (louvor.mapa_musica || "N/A")}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-400" />
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Andamento</p>
-                <p className={`text-sm font-semibold ${eEscuro ? 'text-slate-100' : 'text-slate-800'}`}>{louvor.bpm_compasso || "N/A"}</p>
+            
+            {/* Coluna Direita: Andamento / Metrônomo Inline + Compasso + Botões de Tom */}
+            <div className="flex items-center justify-between">
+              
+              {/* Bloco do Andamento com Metrônomo Inline, Botões Destacados e Compasso */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-7 w-7 rounded-lg transition-colors ${isPlaying ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse' : (eEscuro ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200')}`}
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  title={isPlaying ? "Pausar metrônomo" : "Iniciar metrônomo"}
+                >
+                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                </Button>
+
+                <div className="flex items-center gap-1.5">
+                  <Clock className={`w-4 h-4 ${isPlaying ? 'text-red-500' : 'text-slate-400'}`} />
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Andamento</p>
+                    {isPlaying ? (
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center bg-slate-800/80 border border-slate-700 rounded-lg px-1 py-0.5 shadow-inner">
+                          <button 
+                            onClick={() => setBpm(prev => Math.max(40, prev - 1))}
+                            className="px-1.5 text-xs font-bold text-slate-300 hover:text-white"
+                          >-</button>
+                          <span className="text-xs font-mono font-bold text-red-400 px-1">{bpm}</span>
+                          <button 
+                            onClick={() => setBpm(prev => Math.min(240, prev + 1))}
+                            className="px-1.5 text-xs font-bold text-slate-300 hover:text-white"
+                          >+</button>
+                        </div>
+                        {compassoTexto && <span className="text-xs font-semibold text-slate-300 ml-0.5">{compassoTexto}</span>}
+                      </div>
+                    ) : (
+                      <p className={`text-sm font-semibold ${eEscuro ? 'text-slate-100' : 'text-slate-800'}`}>
+                        {louvor.bpm_compasso || "N/A"}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              {/* Botões de Alteração de Tom (Visíveis apenas na aba Cifra) */}
+              {exibeBotoesTom && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-7 px-2 text-xs rounded-lg ${eEscuro ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                    onClick={() => setTransposicao(prev => prev - 1)}
+                    title="Diminuir tom"
+                  >
+                    -
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-7 px-1.5 text-xs rounded-lg ${eEscuro ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
+                    onClick={() => setTransposicao(0)}
+                    title="Restaurar tom original"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-7 px-2 text-xs rounded-lg ${eEscuro ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                    onClick={() => setTransposicao(prev => prev + 1)}
+                    title="Aumentar tom"
+                  >
+                    +
+                  </Button>
+                </div>
+              )}
             </div>
+
           </div>
+
           {linksValidos.length > 0 && (
             <Dialog>
               <DialogTrigger asChild>
@@ -290,11 +439,10 @@ export default function LouvorDetail() {
         </div>
 
         <div className={`rounded-xl shadow-sm border overflow-hidden ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-          <Tabs defaultValue={abaPadrao} className="w-full">
+          <Tabs defaultValue={abaInicial} value={abaAtiva} onValueChange={setAbaAtiva} className="w-full">
             <TabsList className={`w-full rounded-none border-b ${eEscuro ? 'bg-slate-950 border-slate-800' : 'bg-slate-50'}`}>
               <TabsTrigger value="letra" className={`flex-1 text-xs ${eEscuro ? 'data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400' : ''}`}>Letra</TabsTrigger>
-              <TabsTrigger value="cifra1" className={`flex-1 text-xs ${eEscuro ? 'data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400' : ''}`}>Cifra 1</TabsTrigger>
-              <TabsTrigger value="cifra2" className={`flex-1 text-xs ${eEscuro ? 'data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400' : ''}`}>Cifra 2</TabsTrigger>
+              <TabsTrigger value="cifra1" className={`flex-1 text-xs ${eEscuro ? 'data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400' : ''}`}>Cifra</TabsTrigger>
             </TabsList>
 
             <TabsContent value="letra" className={`p-4 m-0 transition-all duration-300 ${modalPianoAberto ? 'pb-64' : 'pb-6'}`}>
@@ -304,11 +452,11 @@ export default function LouvorDetail() {
             </TabsContent>
 
             <TabsContent value="cifra1" className={`p-4 m-0 transition-all duration-300 ${modalPianoAberto ? 'pb-64' : 'pb-6'}`}>
-              <CifraImageTab louvorId={louvor.id} field="cifra1_imagem" imageUrl={louvor.cifra1_imagem} onUploaded={loadLouvor} />
-            </TabsContent>
-
-            <TabsContent value="cifra2" className={`p-4 m-0 transition-all duration-300 ${modalPianoAberto ? 'pb-64' : 'pb-6'}`}>
-              <CifraImageTab louvorId={louvor.id} field="cifra2_imagem" imageUrl={louvor.cifra2_imagem} onUploaded={loadLouvor} />
+              {louvor.cifra_1 ? (
+                <CifraViewer textoCifra={louvor.cifra_1} transposicao={transposicao} />
+              ) : (
+                <p className="text-slate-400 text-sm">Nenhuma cifra adicionada.</p>
+              )}
             </TabsContent>
           </Tabs>
         </div>

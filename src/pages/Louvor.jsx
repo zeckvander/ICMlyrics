@@ -510,7 +510,6 @@ export default function Louvor() {
         )}
       </div>
 
-      {/* MODAL DE PARTITURA E PIANO */}
       {modalPianoAberto && hinoSelecionado && (() => {
         const { pdfUrl, midiUrl } = getHinoMedia(hinoSelecionado.pasta, "mid");
         return (
