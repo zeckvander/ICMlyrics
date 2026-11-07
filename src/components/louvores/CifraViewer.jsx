@@ -20,75 +20,117 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
 
   const processarLinha = (linha) => {
     if (linha.trim() === "") {
-      return <div className="h-4" />;
+      return <div className="h-3" />;
+    }
+
+    // Tratamento especial para a linha de Introdução / Instrumental / Final sem colchetes
+    const ehIntroOuFinal = linha.toLowerCase().startsWith("introdução:") || 
+                           linha.toLowerCase().startsWith("final:") ||
+                           linha.toLowerCase().startsWith("instrumentos:");
+
+    if (ehIntroOuFinal && linha.includes(":")) {
+      const partesLinha = linha.split(":");
+      const rotulo = partesLinha[0] + ":";
+      const resto = partesLinha.slice(1).join(":");
+
+      const acordesTranspostos = resto.split(",").map(item => {
+        const limpo = item.trim().replace(/[\[\]]/g, '');
+        if (!limpo) return "";
+        return transporAcorde(limpo, semitonsEfetivos);
+      }).join(", ");
+
+      return (
+        <div className={`font-mono text-left my-1 ${eEscuro ? 'text-slate-200' : 'text-slate-800'}`}>
+          <span className="font-bold">{rotulo}</span>{" "}
+          <span className="text-red-600 dark:text-red-400 font-bold">
+            {acordesTranspostos}
+          </span>
+        </div>
+      );
     }
 
     if (!linha.includes("[") && linha.trim().endsWith(":")) {
       return (
-        <div className={`font-bold my-2 text-left ${eEscuro ? 'text-slate-100' : 'text-slate-900'}`}>
-          {linha}
+        <div className={`font-bold my-1 text-left ${eEscuro ? 'text-slate-100' : 'text-slate-900'}`}>
+          {renderizarTextoFormatado(linha)}
         </div>
       );
     }
 
-    let blocos = [];
     let regex = /\[(.*?)\]/g;
     let match;
     let ultimoIndex = 0;
-    let textoLimpo = "";
+    let blocos = [];
 
     while ((match = regex.exec(linha)) !== null) {
       const textoAntes = linha.substring(ultimoIndex, match.index);
-      textoLimpo += textoAntes;
+      const acordeTransposto = transporAcorde(match[1], semitonsEfetivos);
+
+      if (textoAntes || blocos.length > 0) {
+        if (blocos.length === 0) {
+          blocos.push({ texto: textoAntes, acorde: "", temAcorde: false });
+        } else {
+          blocos[blocos.length - 1].texto = textoAntes;
+        }
+      }
+
       blocos.push({
-        posicao: textoLimpo.length,
-        acorde: transporAcorde(match[1], semitonsEfetivos)
+        acorde: acordeTransposto,
+        texto: "",
+        temAcorde: true
       });
+
       ultimoIndex = regex.lastIndex;
     }
-    textoLimpo += linha.substring(ultimoIndex);
 
-    if (blocos.length === 0) {
-      return (
-        <div className={`font-mono text-left ${eEscuro ? 'text-slate-200' : 'text-slate-800'}`}>
-          {renderizarLetraComBarras(linha)}
-        </div>
-      );
+    const textoRestante = linha.substring(ultimoIndex);
+    if (blocos.length > 0) {
+      blocos[blocos.length - 1].texto = textoRestante;
+    } else {
+      blocos.push({ acorde: "", texto: textoRestante, temAcorde: false });
     }
 
-    let linhaAcordesFormatada = "";
-    let posicaoAtual = 0;
-
-    blocos.forEach((bloco) => {
-      if (bloco.posicao > posicaoAtual) {
-        linhaAcordesFormatada += " ".repeat(bloco.posicao - posicaoAtual);
-      }
-      linhaAcordesFormatada += bloco.acorde;
-      posicaoAtual = bloco.posicao + bloco.acorde.length;
-    });
-
     return (
-      <div className="mb-2 font-mono leading-tight text-left">
-        <div className="text-red-600 dark:text-red-400 font-bold whitespace-pre text-left">
-          {linhaAcordesFormatada.trimStart()}
-        </div>
-        <div className={`whitespace-pre text-left ${eEscuro ? 'text-slate-100' : 'text-slate-900'}`}>
-          {renderizarLetraComBarras(textoLimpo)}
-        </div>
+      <div className="flex flex-wrap mb-1.5 font-mono leading-tight text-left items-end">
+        {blocos.map((bloco, i) => (
+          <div key={i} className="flex flex-col inline-block align-bottom">
+            {/* Acorde */}
+            <span className="text-red-600 dark:text-red-400 font-bold whitespace-pre">
+              {bloco.acorde}
+            </span>
+            {/* Letra da música com a barra vertical injetada automaticamente onde há acorde */}
+            <span className={`whitespace-pre font-mono ${eEscuro ? 'text-slate-100' : 'text-slate-900'}`}>
+              {bloco.temAcorde && bloco.texto.length > 0 ? (
+                <>
+                  <span className="text-red-600 dark:text-red-400 font-bold mx-[1px]">|</span>
+                  {renderizarTextoFormatado(bloco.texto)}
+                </>
+              ) : (
+                renderizarTextoFormatado(bloco.texto)
+              )}
+            </span>
+          </div>
+        ))}
       </div>
     );
   };
 
-  const renderizarLetraComBarras = (texto) => {
-    const partes = texto.split("|");
-    return partes.map((parte, i) => (
-      <React.Fragment key={i}>
-        {parte}
-        {i < partes.length - 1 && (
-          <span className="text-red-600 dark:text-red-400 font-bold">|</span>
-        )}
-      </React.Fragment>
-    ));
+  const renderizarTextoFormatado = (texto) => {
+    const partesNegrito = texto.split(/\*(.*?)\*/g);
+
+    return partesNegrito.map((trecho, idx) => {
+      const ehNegrito = idx % 2 === 1;
+
+      if (ehNegrito) {
+        return (
+          <strong key={idx} className="font-bold">
+            {trecho}
+          </strong>
+        );
+      }
+
+      return <React.Fragment key={idx}>{trecho}</React.Fragment>;
+    });
   };
 
   return (

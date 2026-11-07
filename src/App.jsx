@@ -42,6 +42,9 @@ import RedefinirSenha from '@/pages/RedefinirSenha';
 import PainelControle from '@/components/projetor/PainelControle';
 import TelaAoVivo from '@/components/projetor/TelaAoVivo';
 import TelaProjetor from '@/components/projetor/TelaProjetor';
+import CiclotronMix24 from '@/components/projetor/CiclotronMix24';
+
+
 
 const PrivateLayout = ({ children }) => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -134,7 +137,8 @@ function App() {
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
             <Route path="/projetor/PainelControle" element={<PainelControle />} />
             <Route path="/projetor/tela-aovivo" element={<TelaAoVivo />} />
-            <Route path="/projetor/tela-projetor" element={<TelaProjetor />} />    
+            <Route path="/projetor/tela-projetor" element={<TelaProjetor />} /> 
+            <Route path="/projetor/ciclotronMix24" element={<PrivateLayout><CiclotronMix24 /></PrivateLayout>} />
 
             <Route path="*" element={<PageNotFound />} />
           </Routes>
