@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { transporAcorde } from "@/components/louvores/escalas";
+import { ChordPopover } from "@/components/tools/ChordPopover";
 
 export default function CifraViewer({ textoCifra, transposicao = 0 }) {
   const [tema, setTema] = useState(() => localStorage.getItem('icmlyrics_tema') || 'escuro');
+  const [acordeSelecionado, setAcordeSelecionado] = useState(null);
   const eEscuro = tema === 'escuro';
 
   useEffect(() => {
@@ -15,6 +17,16 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
 
   if (!textoCifra) return null;
 
+  const abrirAcorde = (e, nomeAcorde) => {
+    const limpo = (nomeAcorde || "").trim();
+    if (!limpo) return;
+    e.stopPropagation();
+    setAcordeSelecionado({
+      nome: limpo,
+      rect: e.currentTarget.getBoundingClientRect(),
+    });
+  };
+
   const linhas = textoCifra.split("\n");
   const semitonsEfetivos = ((transposicao % 12) + 12) % 12;
 
@@ -23,28 +35,40 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
       return <div className="h-3" />;
     }
 
-    // Tratamento especial para a linha de Introdução / Instrumental / Final sem colchetes
-    const ehIntroOuFinal = linha.toLowerCase().startsWith("introdução:") || 
-                           linha.toLowerCase().startsWith("final:") ||
-                           linha.toLowerCase().startsWith("instrumentos:");
+    const ehIntroOuFinal =
+      linha.toLowerCase().startsWith("introdução:") ||
+      linha.toLowerCase().startsWith("final:") ||
+      linha.toLowerCase().startsWith("instrumentos:");
 
     if (ehIntroOuFinal && linha.includes(":")) {
       const partesLinha = linha.split(":");
       const rotulo = partesLinha[0] + ":";
       const resto = partesLinha.slice(1).join(":");
 
-      const acordesTranspostos = resto.split(",").map(item => {
-        const limpo = item.trim().replace(/[\[\]]/g, '');
-        if (!limpo) return "";
-        return transporAcorde(limpo, semitonsEfetivos);
-      }).join(", ");
+      const itens = resto
+        .split(",")
+        .map((item) => {
+          const limpo = item.trim().replace(/[\[\]]/g, "");
+          if (!limpo) return "";
+          return transporAcorde(limpo, semitonsEfetivos);
+        })
+        .filter(Boolean);
 
       return (
         <div className={`font-mono text-left my-1 ${eEscuro ? 'text-slate-200' : 'text-slate-800'}`}>
           <span className="font-bold">{rotulo}</span>{" "}
-          <span className="text-red-600 dark:text-red-400 font-bold">
-            {acordesTranspostos}
-          </span>
+          {itens.map((acorde, idx) => (
+            <React.Fragment key={idx}>
+              <button
+                type="button"
+                onClick={(e) => abrirAcorde(e, acorde)}
+                className="text-red-600 dark:text-red-400 font-bold hover:underline cursor-pointer"
+              >
+                {acorde}
+              </button>
+              {idx < itens.length - 1 && <span>, </span>}
+            </React.Fragment>
+          ))}
         </div>
       );
     }
@@ -94,11 +118,19 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
       <div className="flex flex-wrap mb-1.5 font-mono leading-tight text-left items-end">
         {blocos.map((bloco, i) => (
           <div key={i} className="flex flex-col inline-block align-bottom">
-            {/* Acorde */}
-            <span className="text-red-600 dark:text-red-400 font-bold whitespace-pre">
-              {bloco.acorde}
-            </span>
-            {/* Letra da música com a barra vertical injetada automaticamente onde há acorde */}
+            {bloco.acorde ? (
+              <button
+                type="button"
+                onClick={(e) => abrirAcorde(e, bloco.acorde)}
+                className="text-red-600 dark:text-red-400 font-bold whitespace-pre text-left hover:underline cursor-pointer"
+              >
+                {bloco.acorde}
+              </button>
+            ) : (
+              <span className="text-red-600 dark:text-red-400 font-bold whitespace-pre">
+                {bloco.acorde}
+              </span>
+            )}
             <span className={`whitespace-pre font-mono ${eEscuro ? 'text-slate-100' : 'text-slate-900'}`}>
               {bloco.temAcorde && bloco.texto.length > 0 ? (
                 <>
@@ -134,10 +166,18 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
   };
 
   return (
-    <div className={`p-4 rounded-xl border overflow-x-auto text-left transition-colors ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-      {linhas.map((linha, index) => (
-        <div key={index} className="text-left">{processarLinha(linha)}</div>
-      ))}
-    </div>
+    <>
+      <div className={`p-4 rounded-xl border overflow-x-auto text-left transition-colors ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+        {linhas.map((linha, index) => (
+          <div key={index} className="text-left">{processarLinha(linha)}</div>
+        ))}
+      </div>
+
+      <ChordPopover
+        chordName={acordeSelecionado?.nome ?? null}
+        anchorRect={acordeSelecionado?.rect ?? null}
+        onClose={() => setAcordeSelecionado(null)}
+      />
+    </>
   );
 }
