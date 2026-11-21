@@ -2,14 +2,33 @@ import React, { useState, useEffect } from "react";
 import { transporAcorde } from "@/components/louvores/escalas";
 import { ChordPopover } from "@/components/tools/ChordPopover";
 
-export default function CifraViewer({ textoCifra, transposicao = 0 }) {
-  const [tema, setTema] = useState(() => localStorage.getItem('icmlyrics_tema') || 'escuro');
+function getTamanhoFonteClass(tamanhoFonte) {
+  switch (tamanhoFonte) {
+    case "sm":
+      return "text-sm";
+    case "md":
+      return "text-base";
+    case "lg":
+      return "text-lg font-medium";
+    case "xl":
+      return "text-xl font-bold";
+    default:
+      return "text-base";
+  }
+}
+
+export default function CifraViewer({ textoCifra, transposicao = 0, tamanhoFonte }) {
+  const [tema, setTema] = useState(() => localStorage.getItem("icmlyrics_tema") || "escuro");
+  const [fonteLocal, setFonteLocal] = useState(() => localStorage.getItem("icmlyrics_fonte") || "md");
   const [acordeSelecionado, setAcordeSelecionado] = useState(null);
-  const eEscuro = tema === 'escuro';
+  const eEscuro = tema === "escuro";
+  const fonteEfetiva = tamanhoFonte || fonteLocal;
+  const classeFonte = getTamanhoFonteClass(fonteEfetiva);
 
   useEffect(() => {
     const handleStorage = () => {
-      setTema(localStorage.getItem('icmlyrics_tema') || 'escuro');
+      setTema(localStorage.getItem("icmlyrics_tema") || "escuro");
+      setFonteLocal(localStorage.getItem("icmlyrics_fonte") || "md");
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
@@ -55,7 +74,7 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
         .filter(Boolean);
 
       return (
-        <div className={`font-mono text-left my-1 ${eEscuro ? 'text-slate-200' : 'text-slate-800'}`}>
+        <div className={`${classeFonte} text-left my-1 ${eEscuro ? "text-slate-200" : "text-slate-800"}`}>
           <span className="font-bold">{rotulo}</span>{" "}
           {itens.map((acorde, idx) => (
             <React.Fragment key={idx}>
@@ -75,7 +94,7 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
 
     if (!linha.includes("[") && linha.trim().endsWith(":")) {
       return (
-        <div className={`font-bold my-1 text-left ${eEscuro ? 'text-slate-100' : 'text-slate-900'}`}>
+        <div className={`font-bold ${classeFonte} my-1 text-left ${eEscuro ? "text-slate-100" : "text-slate-900"}`}>
           {renderizarTextoFormatado(linha)}
         </div>
       );
@@ -101,7 +120,7 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
       blocos.push({
         acorde: acordeTransposto,
         texto: "",
-        temAcorde: true
+        temAcorde: true,
       });
 
       ultimoIndex = regex.lastIndex;
@@ -115,7 +134,7 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
     }
 
     return (
-      <div className="flex flex-wrap mb-1.5 font-mono leading-tight text-left items-end">
+      <div className={`flex flex-wrap mb-1.5 ${classeFonte} leading-tight text-left items-end`}>
         {blocos.map((bloco, i) => (
           <div key={i} className="flex flex-col inline-block align-bottom">
             {bloco.acorde ? (
@@ -131,7 +150,7 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
                 {bloco.acorde}
               </span>
             )}
-            <span className={`whitespace-pre font-mono ${eEscuro ? 'text-slate-100' : 'text-slate-900'}`}>
+            <span className={`whitespace-pre ${eEscuro ? "text-slate-100" : "text-slate-900"}`}>
               {bloco.temAcorde && bloco.texto.length > 0 ? (
                 <>
                   <span className="text-red-600 dark:text-red-400 font-bold mx-[1px]">|</span>
@@ -167,9 +186,15 @@ export default function CifraViewer({ textoCifra, transposicao = 0 }) {
 
   return (
     <>
-      <div className={`p-4 rounded-xl border overflow-x-auto text-left transition-colors ${eEscuro ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+      <div
+        className={`p-4 rounded-xl border overflow-x-auto text-left transition-colors ${
+          eEscuro ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-sm"
+        }`}
+      >
         {linhas.map((linha, index) => (
-          <div key={index} className="text-left">{processarLinha(linha)}</div>
+          <div key={index} className="text-left">
+            {processarLinha(linha)}
+          </div>
         ))}
       </div>
 
